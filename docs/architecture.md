@@ -160,3 +160,23 @@ The media table stores upload metadata, dimensions and variant URLs. Sharp valid
 ## Redesign (October 2026)
 
 The public templates were rewritten in readable form and `public/theme.css` was folded into a single `public/site.css`. The homepage now reads every Homepage setting: announcement, latest-updates mode (automatic, selected, hidden) and count, event panel (automatic, selected, hidden), opportunity panel and image caption. The studio has its own app bar and no longer loads the public header. See [redesign-plan.md](redesign-plan.md).
+
+## Editorial content updates (`content/content-updates.json`)
+
+Content written after the original migration — the research area pages, their related tools and
+publications, and one-line tool descriptions — lives in `content/content-updates.json`. On startup
+`applyContentUpdates()` (in `src/editorial.mjs`) copies each value into the database **only if that
+field is still empty**, and records a marker so a database receives each update set once. Editor
+changes, including a field emptied on purpose, are never overwritten. The static export applies the same
+file when it builds from `content/seed.json`.
+
+## What editors can change in the Content Studio
+
+| Editable in the studio | Fixed in code (ask a developer) |
+|---|---|
+| All news, events, publications, people, tools, research areas, opportunities and site pages: text, images, links, dates, status | Menu labels and structure |
+| Research area text, image, related tools and publications | Section page titles and intros (e.g. "Tools & databases", "News") |
+| Homepage headline, summary, photo, buttons, announcement, latest-updates mode, event and opportunity panels | Homepage section headings ("What we study", "Join us") |
+| Footer text, address, email, phone, profile and affiliation links | Page layouts, colours and typography |
+| Director profile: biography, education, appointments, awards, links | Authorship-key meanings |
+| People page group, profile links, education and experience rows | |

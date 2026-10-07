@@ -1,4 +1,4 @@
-import {defaults,ensureEditorial} from '../src/editorial.mjs';
+import {defaults,ensureEditorial,applyContentUpdates,withContentUpdates} from '../src/editorial.mjs';
 /** Build a clean, portable public snapshot. Never leave unpublished pages behind. */
 import { readFileSync, mkdirSync, writeFileSync, cpSync, existsSync, mkdtempSync, renameSync, rmSync, readdirSync, lstatSync } from 'node:fs';
 import { resolve, dirname, relative, join } from 'node:path';
@@ -73,9 +73,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   let records;
   if (existsSync(database)) {
     const store = new Store(database);
-    try { ensureEditorial(store); records = store.list(); } finally { store.close(); }
+    try { ensureEditorial(store); applyContentUpdates(store); records = store.list(); } finally { store.close(); }
   } else {
-    records = JSON.parse(readFileSync(new URL('../content/seed.json', import.meta.url))).records;
+    records = withContentUpdates(JSON.parse(readFileSync(new URL('../content/seed.json', import.meta.url))).records);
   }
   const result = exportPreview({ records, out: process.argv[2] || 'preview', uploadsDir: join(dataDir, 'uploads') });
   console.log(`Exported ${result.routes.length} routes to ${result.out}`);

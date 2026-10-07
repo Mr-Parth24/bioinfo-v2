@@ -77,9 +77,29 @@ function researchPage(records) {
   return pageHeader('Research', 'We combine biology, computer science and engineering to turn complex biological data into new understanding — and share the results as open tools.', 'Research program', {
     aside: `<dl class="header-facts"><div><dt>Research areas</dt><dd>${areas.length}</dd></div><div><dt>Open tools</dt><dd>${tools}</dd></div></dl>`,
   })
-    + `<div class="wrap page-body"><ol class="area-rows">${areas.map((r, i) => `<li class="area-row reveal"><a class="area-row-media" href="${e(r.route)}" tabindex="-1" aria-hidden="true">${image(r, '', false)}</a><div class="area-row-text"><span class="area-index">${String(i + 1).padStart(2, '0')}</span><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<a class="link-more" href="${e(r.route)}">Explore this area ${arrow}</a></div></li>`).join('')}</ol>`
+    + `<div class="wrap page-body"><ol class="area-rows">${areas.map((r, i) => { const t = relatedOf(r, 'toolIds', 'tools', records).length, p = relatedOf(r, 'publicationIds', 'publications', records).length; return `<li class="area-row reveal"><a class="area-row-media" href="${e(r.route)}" tabindex="-1" aria-hidden="true">${image(r, '', false)}</a><div class="area-row-text"><span class="area-index">${String(i + 1).padStart(2, '0')}</span><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}${t || p ? `<p class="area-counts">${t ? `<span>${t} ${t === 1 ? 'tool' : 'tools'}</span>` : ''}${p ? `<span>${p} ${p === 1 ? 'paper' : 'papers'}</span>` : ''}</p>` : ''}<a class="link-more" href="${e(r.route)}">Explore this area ${arrow}</a></div></li>`; }).join('')}</ol>`
     + (overview?.body ? `<section class="split-section reveal" id="program"><div class="split-head"><p class="eyebrow">Program</p><h2>Objectives &amp; approach</h2></div><div class="prose">${richBody(overview.body, records)}</div></section>` : '')
     + `</div>`;
+}
+
+const relatedOf = (record, key, collection, records) => (record[key] || []).map(id => records.find(r => r.id === id && r.collection === collection && r.status === 'published')).filter(Boolean);
+
+/** A research area: what it is, the numbers, the tools and the papers behind it. */
+function researchArea(record, records) {
+  const areas = records.filter(r => r.collection === 'research');
+  const index = areas.findIndex(r => r.id === record.id);
+  const tools = relatedOf(record, 'toolIds', 'tools', records);
+  const pubs = relatedOf(record, 'publicationIds', 'publications', records).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+  const years = pubs.map(p => parseInt(p.year)).filter(Boolean);
+  const stats = [[tools.length, tools.length === 1 ? 'Tool or database' : 'Tools & databases'], [pubs.length, pubs.length === 1 ? 'Publication' : 'Publications'], [years.length ? (Math.min(...years) === Math.max(...years) ? String(years[0]) : `${Math.min(...years)}–${Math.max(...years)}`) : '', 'Years of published work']].filter(([n]) => n);
+  const host = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  return `<article class="article research-area"><header class="article-header"><div class="wrap">${breadcrumbs([['Research', '/research'], [record.title]])}<div class="area-hero"><div class="article-heading"><p class="eyebrow">Research area ${index >= 0 ? String(index + 1).padStart(2, '0') : ''}</p><h1>${e(record.title)}</h1>${record.summary ? `<p class="lede">${e(record.summary)}</p>` : ''}${stats.length ? `<dl class="profile-stats">${stats.map(([n, l]) => `<div><dd>${e(String(n))}</dd><dt>${l}</dt></div>`).join('')}</dl>` : ''}</div>${record.image ? `<figure class="area-hero-figure">${image(record, 'area-hero-image')}${record.imageCaption ? `<figcaption>${e(record.imageCaption)}</figcaption>` : ''}</figure>` : ''}</div></div></header>`
+    + `<div class="wrap area-layout"><div class="area-main">`
+    + (record.body ? `<div class="prose">${richBody(record.body, records)}</div>` : `<p class="lede">This research area is part of the lab’s wider program. Explore the related tools and publications below.</p>`)
+    + (tools.length ? `<section class="area-section" id="tools"><h2>Tools &amp; databases</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Resource</th><th scope="col">What it does</th><th scope="col">Category</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead><tbody>${tools.map(t => `<tr><th scope="row"><a href="${e(t.link)}" target="_blank" rel="noopener noreferrer">${e(t.title)}</a></th><td>${e(t.summary || '')}</td><td><span class="tag">${e(t.category || 'Tool')}</span></td><td><a class="small-link" href="${e(t.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${e(t.title)} at ${e(host(t.link))}">Open ${icons.external}</a></td></tr>`).join('')}</tbody></table></div></section>` : '')
+    + (pubs.length ? `<section class="area-section" id="publications"><div class="profile-section-head"><h2>Publications</h2><span class="count-badge">${pubs.length}</span></div><ol class="publication-entries compact">${pubs.map(p => publicationRow(p, { compact: true })).join('')}</ol><p><a class="link-more" href="/publications">All publications ${arrow}</a></p></section>` : '')
+    + `</div><aside class="area-aside"><div class="aside-panel"><p class="eyebrow">On this page</p><ul class="aside-links"><li><a href="#main">Overview</a></li>${tools.length ? '<li><a href="#tools">Tools &amp; databases</a></li>' : ''}${pubs.length ? '<li><a href="#publications">Publications</a></li>' : ''}</ul></div><div class="aside-panel aside-opportunity"><p class="eyebrow">Work with us</p><p>Students and researchers interested in this area are welcome to get in touch.</p><a class="link-more" href="/opportunities">Opportunities ${arrow}</a></div></aside></div>`
+    + `<div class="wrap">${areas.length > 1 ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${areas.filter(r => r.id !== record.id).map(r => `<li><a href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : ''}<p class="back-link"><a href="/research">${icons.back} Back to research</a></p></div></article>`;
 }
 
 /* ---------- Tools ---------- */
@@ -336,6 +356,7 @@ function listing(records, collection) {
 function detail(input, records) {
   const record = { ...input, date: displayDate(input) };
   if (record.collection === 'people') return personProfile(record, records);
+  if (record.collection === 'research') return researchArea(record, records);
   const collection = record.collection;
   const section = { pages: ['About', '/about'], news: ['News', '/news'], events: ['Events', '/events'], research: ['Research', '/research'], opportunities: ['Opportunities', '/opportunities'], tools: ['Tools', '/tools'], publications: ['Publications', '/publications'] }[collection] || [collection, '/' + collection];
   const isExternal = record.link && record.link.replace(/\/$/, '') !== record.route;

@@ -1,4 +1,4 @@
-import {ensureEditorial} from './editorial.mjs';
+import {ensureEditorial,applyContentUpdates} from './editorial.mjs';
 /**
  * Thin Node HTTP adapter. Application behavior belongs in app.mjs; this file owns listening, initial seed import and graceful shutdown.
  * See docs/architecture.md for the full data flow and extension guide.
@@ -16,6 +16,7 @@ const dataDir=resolve(process.env.DATA_DIR||'data');
 const store=new Store(resolve(dataDir,'content.sqlite'));
 store.seed(JSON.parse(readFileSync(new URL('../content/seed.json',import.meta.url))).records);
 ensureEditorial(store);
+const updated=applyContentUpdates(store);if(updated)console.log(`Added editorial content to ${updated} records (empty fields only).`);
 const app=createApp({store,origin,dataDir,production:process.env.NODE_ENV==='production'});
 const server=http.createServer({maxHeaderSize:16384,requestTimeout:30000,headersTimeout:15000},async(req,res)=>{
  try{
