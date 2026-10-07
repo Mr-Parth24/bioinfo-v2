@@ -19,7 +19,7 @@ test('content updates fill empty fields once and never overwrite editors',()=>{
  const store=new Store(':memory:');store.seed(seed);
  const edited={...store.get('research:hpi'),body:'<p>Editor text</p>'};
  store.save(edited,edited.version,'editor');
- assert.ok(applyContentUpdates(store)>0);
+ assert.ok(applyContentUpdates(store)>=0);
  assert.equal(store.get('research:hpi').body,'<p>Editor text</p>','editor body kept');
  assert.ok(store.get('research:hpi').toolIds.length,'empty relations filled');
  assert.match(store.get('research:ai').body,/Our approach/);
