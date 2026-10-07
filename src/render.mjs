@@ -119,13 +119,30 @@ function newsListing(list, records) {
   `;
 }
 
-function listing(records,collection){
- const list=sortDate(records.filter(r=>r.collection===collection));
+const eventYear=r=>(displayDate(r).match(/\d{4}/)||[''])[0];
+function eventCard(input){
+ const r={...input,date:displayDate(input)};const date=r.date||'';
+ const day=date.match(/\b\d{1,2}(?:\s?[-–]\s?\d{1,2})?\b/)?.[0]||'';const month=date.match(/[A-Za-z]{3,}/)?.[0]?.slice(0,3)||'';
+ const place=r.location||r.original?.location||'';
+ return `<article class="event-card" data-item data-year="${e(eventYear(r))}" data-search="${e(r.title+' '+date+' '+place)}"><a class="event-card-media" href="${e(r.route)}" tabindex="-1" aria-hidden="true">${image(r,'event-photo',false)}${day?`<span class="event-chip"><strong>${e(day)}</strong><span>${e(month)}</span></span>`:''}</a><div class="event-card-body"><p class="meta">${e(date)}</p><h3><a href="${e(r.route)}">${e(r.title)}</a></h3>${place?`<p class="event-place"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>${e(place)}</p>`:''}<span class="event-more">View details <span aria-hidden="true">→</span></span></div></article>`;
+}
+function eventsListing(list,records){
  const today=new Date().setUTCHours(0,0,0,0);
  const upcoming=list.filter(r=>dateValue({...r,publishDate:undefined})>=today).sort((a,b)=>dateValue(a)-dateValue(b));
  const past=list.filter(r=>!upcoming.includes(r));
- const events=rows=>rows.map(eventRow).join('');
- return pageHeader(pageTitles[collection],intros[collection],collection==='news'?'NEWS / FROM OUR COMMUNITY':'EVENTS / COMMUNITY ARCHIVE')+`<section class="wrap section-bottom" data-directory>${collection==='news'?newsListing(list,records):`${filterBar(list,collection,{categories:false,years:true})}<section class="event-period" data-filter-group><h2>Upcoming events</h2>${upcoming.length?`<div class="event-list">${events(upcoming)}</div>`:'<p class="event-empty">New events will appear here when announced.</p>'}</section><section class="event-period" data-filter-group><h2>Past events</h2><div class="event-list">${events(past)}</div></section>`}</section>`;
+ const years=[...new Set(past.map(eventYear).filter(Boolean))];
+ const cards=rows=>rows.map(eventCard).join('');
+ const upcomingBlock=upcoming.length
+  ?`<section class="event-upcoming" data-filter-group aria-labelledby="up-h"><div class="event-section-head"><p class="eyebrow">COMING UP</p><h2 id="up-h">Upcoming events</h2></div><div class="event-grid event-grid-featured">${cards(upcoming)}</div></section>`
+  :`<section class="event-empty-banner" aria-label="Upcoming events"><div><p class="eyebrow">COMING UP</p><h2>No events scheduled right now</h2><p>New events appear here as soon as they are announced. Want to host or join one? Get in touch.</p></div><a class="button" href="/contact">Contact the lab ${'→'}</a></section>`;
+ const yearBlocks=years.map(y=>`<section class="event-year" id="year-${e(y)}" data-filter-group aria-labelledby="y-${e(y)}"><div class="event-year-head"><h2 id="y-${e(y)}">${e(y)}</h2><span class="event-year-count">${past.filter(r=>eventYear(r)===y).length} event${past.filter(r=>eventYear(r)===y).length===1?'':'s'}</span></div><div class="event-grid">${cards(past.filter(r=>eventYear(r)===y))}</div></section>`).join('');
+ const undated=past.filter(r=>!eventYear(r));
+ const chips=years.length?`<nav class="year-chips" aria-label="Jump to year">${years.map(y=>`<a href="#year-${e(y)}">${e(y)}</a>`).join('')}</nav>`:'';
+ return `${upcomingBlock}${chips}${yearBlocks}${undated.length?`<section class="event-year" data-filter-group><div class="event-grid">${cards(undated)}</div></section>`:''}`;
+}
+function listing(records,collection){
+ const list=sortDate(records.filter(r=>r.collection===collection));
+ return pageHeader(pageTitles[collection],intros[collection],collection==='news'?'NEWS / FROM OUR COMMUNITY':'EVENTS / COMMUNITY ARCHIVE')+`<section class="wrap section-bottom" data-directory>${collection==='news'?newsListing(list,records):`${filterBar(list,collection,{categories:false,years:true})}${eventsListing(list,records)}`}</section>`;
 }
 function richBody(body,records){
  let out=sanitizeHtml(body);
