@@ -1,0 +1,594 @@
+{
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/pyseqrna.png?a=height&w=6&h=6": {
+    "url": "/assets/media/96e15837842a1e879f04.webp",
+    "width": 930,
+    "height": 930
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/weconet.png": {
+    "url": "/assets/media/9a166d935f08422e7ad7.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/kbllogo.png": {
+    "url": "/assets/media/a51b26c95b9067e3c14c.webp",
+    "width": 283,
+    "height": 85
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/trustdb2.png": {
+    "url": "/assets/media/53dbc2b2e7b16154f2d2.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/events/PAG-2019/g2.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/aa4903a2be12a8d78d4e.webp",
+    "width": 387,
+    "height": 387
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/slider/homePageTeam.jpg": {
+    "url": "/assets/media/90dac27265d46f29b849.webp",
+    "width": 1600,
+    "height": 376
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/news/koltonurco.jpg?a=height&w=1&h=1&c=l": {
+    "url": "/assets/media/1a7f1143bc9a75ffb54f.webp",
+    "width": 900,
+    "height": 900
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/RK_2.jpg": {
+    "url": "/assets/media/36ead973a4f8dfbc12fb.webp",
+    "width": 512,
+    "height": 512
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/covid.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/33e5556e7ca5680199fd.webp",
+    "width": 932,
+    "height": 932
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/nikhil.jpg": {
+    "url": "/assets/media/1823773aaf665e07ee42.webp",
+    "width": 900,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/malivhu.png": {
+    "url": "/assets/media/bc75c8bbdb91ffa1f3c1.webp",
+    "width": 335,
+    "height": 92
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/weconet.png?a=height&w=6&h=6": {
+    "url": "/assets/media/a76269a53f5ab0097577.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/minpred.png": {
+    "url": "/assets/media/97f4b98710baa9c5f100.webp",
+    "width": 1600,
+    "height": 702
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/bradyc.jpg": {
+    "url": "/assets/media/0203f4d29097fcd2de51.webp",
+    "width": 900,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/mat.jfif": {
+    "url": "/assets/media/e310a55cbbd60ab24b3a.webp",
+    "width": 194,
+    "height": 259
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/UDARIKA-EDIRIWEERA.jpg": {
+    "url": "/assets/media/7d1e430b0f69ab318338.webp",
+    "width": 236,
+    "height": 339
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/greeningdb.png": {
+    "url": "/assets/media/fd31ee3783b0aee907d8.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/stripenet.png": {
+    "url": "/assets/media/503f0f63ebb247648fdb.webp",
+    "width": 1366,
+    "height": 768
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/farewellCristian/IMG_3702.JPG": {
+    "url": "/assets/media/c19a4dab2d0f3a4145e4.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/functionalbg_resized.png": {
+    "url": "/assets/media/e39f271a39c948cc833c.webp",
+    "width": 271,
+    "height": 211
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/suyash.jpg": {
+    "url": "/assets/media/36999ad65e6a3cbfa855.webp",
+    "width": 290,
+    "height": 367
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/simardeep.jpg": {
+    "url": "/assets/media/9247a24c46c7e1804d75.webp",
+    "width": 1055,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/HPI_new.gif": {
+    "url": "/assets/media/47d76a3c2321ce8edd74.webp",
+    "width": 270,
+    "height": 211
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/mitchell.jpg": {
+    "url": "/assets/media/7e0756d37d3ff7d0f660.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/deepnec.png?a=height&w=6&h=6": {
+    "url": "/assets/media/ac5597cabce73d1a93ca.webp",
+    "width": 788,
+    "height": 788
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/austins.jpg?h=600&w=500": {
+    "url": "/assets/media/566bc9a5095af2f04d32.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/people/ajouffray/profile.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/7fb5b2dfc7396dc3293f.webp",
+    "width": 400,
+    "height": 400
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/atsubp2.png": {
+    "url": "/assets/media/2a461c309da5d50d076e.webp",
+    "width": 1600,
+    "height": 919
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/ranchsatdb.png?a=height&w=6&h=6": {
+    "url": "/assets/media/0024c75adabff65af854.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/PSCshowcase_2019/d791cf15-ac89-4759-97d8-239827926698.JPG": {
+    "url": "/assets/media/ce6a97d9f880a38fbba4.webp",
+    "width": 1024,
+    "height": 768
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/profile_pic.jpeg": {
+    "url": "/assets/media/1ccab10e3af87d2b6d40.webp",
+    "width": 225,
+    "height": 225
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/alfanet.png?a=height&w=6&h=6": {
+    "url": "/assets/media/d14491d64dd8a625a77c.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/1.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/2e2448058d30137e2718.webp",
+    "width": 200,
+    "height": 200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/1.jpg": {
+    "url": "/assets/media/1ae9befd232827c64f5d.webp",
+    "width": 172,
+    "height": 200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/prgminer.png": {
+    "url": "/assets/media/d77de98254b61fbcd070.webp",
+    "width": 1600,
+    "height": 917
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/sabbi-post/p_agr.jpg": {
+    "url": "/assets/media/30ce56a082a1f913b1e5.webp",
+    "width": 271,
+    "height": 211
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/hucovaria.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/2a5fe5ffb7792f575d99.webp",
+    "width": 730,
+    "height": 730
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/NCHU-2018/IMG_5118.JPG": {
+    "url": "/assets/media/0bd39f6d01bac143e194.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/legumessdb.png?a=height&w=6&h=6": {
+    "url": "/assets/media/cc3d8d5b0aa781db5527.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/plantmSubp.PNG": {
+    "url": "/assets/media/99b2850f1e7d85084f27.webp",
+    "width": 1600,
+    "height": 750
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/rslpred.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/a00a7b39b5c8574e5f5e.webp",
+    "width": 904,
+    "height": 904
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/citsatdb.png?a=height&w=6&h=6": {
+    "url": "/assets/media/563b9f47f7d841ad7134.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/Cricket_2019/7d2e764e.JPG": {
+    "url": "/assets/media/f48905dd3f8c67d0a68b.webp",
+    "width": 1024,
+    "height": 768
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/trisociety/1.jpg": {
+    "url": "/assets/media/855494fe1545854a8841.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/hpipy.png": {
+    "url": "/assets/media/15a23f5ab9d0d56e4811.webp",
+    "width": 1137,
+    "height": 676
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/events/IMG_20200113_151858.jpg?a=height&w=1&h=1": {
+    "url": "/assets/media/190e87678570a33c5dee.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/rousselenel.jpg?h=600&w=500": {
+    "url": "/assets/media/aad8363a0683c9c8b304.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/predHpi.PNG": {
+    "url": "/assets/media/e258bc16d5728420fed5.webp",
+    "width": 1600,
+    "height": 745
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/tritikbdb.png": {
+    "url": "/assets/media/919d7cc701112cf73514.webp",
+    "width": 1379,
+    "height": 936
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/Rocky_2018/IMG_1335.JPG?ro=180": {
+    "url": "/assets/media/6ee2c7a56dbcdff6142c.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/osupres/11310703416_5d39f89a49.png": {
+    "url": "/assets/media/897e9d0a2c38d6a210f6.webp",
+    "width": 997,
+    "height": 663
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/2022-Mitchell-Farewell/PXL_20220812_194602003.MP.jpg": {
+    "url": "/assets/media/b1b56e112b579f8e2227.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/legumeloc.png": {
+    "url": "/assets/media/eb83c081c6d34bfc5473.webp",
+    "width": 1600,
+    "height": 992
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/people/raghav/raghav2.jpg?a=c&w=5&h=6": {
+    "url": "/assets/media/aff9e9cef59374f4c108.webp",
+    "width": 1000,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/myDockDB.png": {
+    "url": "/assets/media/79abfc71bb314868b437.webp",
+    "width": 1600,
+    "height": 913
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/hucovaria.jpg": {
+    "url": "/assets/media/64400f2870b81572c1a7.webp",
+    "width": 1314,
+    "height": 730
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/loaiza orduz-cristian.jpg?h=600&w=500": {
+    "error": "URL can't contain control characters. '/raikou/image/raw/bioinfo/profile/loaiza orduz-cristian.jpg?h=600&w=500' (found at least ' ')"
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/Parth.jpg?h=600&w=500": {
+    "url": "/assets/media/bd75c588c6b3bb68d127.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/koltonCapitolHill/DSC04533.jpg": {
+    "url": "/assets/media/142facfa5608846e1fc0.webp",
+    "width": 1600,
+    "height": 1067
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/plpred.PNG": {
+    "url": "/assets/media/4d0e12cb66fe0103ac07.webp",
+    "width": 1600,
+    "height": 747
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/colin.jpg": {
+    "url": "/assets/media/68f2690a6a28cc6dc566.webp",
+    "width": 1072,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/dgAPInet.png": {
+    "url": "/assets/media/5fd88e3739150fb807cb.webp",
+    "width": 1278,
+    "height": 755
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/dsaic/thumb.PNG": {
+    "error": "over 6 MB"
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/ritcheyScience/20220510-3.jpg": {
+    "url": "/assets/media/8ee15f3eb84f23e7b421.webp",
+    "width": 1100,
+    "height": 825
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/pscShowcase26/psc-2026.jpeg": {
+    "url": "/assets/media/ae27af3aa2eb3994ade1.webp",
+    "width": 1599,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/lacsubpred.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/110d044d3307c0c25de7.webp",
+    "width": 872,
+    "height": 872
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/news/apogeeInstruments.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/dfceff85805adbfadcda.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/news/proFeatX.png?a=height&w=6&h=6": {
+    "url": "/assets/media/16762280aa3babfcc884.webp",
+    "width": 100,
+    "height": 100
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/khauck.jpg": {
+    "url": "/assets/media/bfd2ca6358ea79a22c22.webp",
+    "width": 331,
+    "height": 423
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/pyseqrna.png": {
+    "url": "/assets/media/74a431e0be10a960fb3e.webp",
+    "width": 1600,
+    "height": 744
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/events/2022-Mitchell-Farewell/PXL_20220812_194602003.MP.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/43e283a73449734d68b2.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/atsubp.png": {
+    "url": "/assets/media/bd967501f8ab70b58dd1.webp",
+    "width": 989,
+    "height": 682
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/ranchsatdb.png": {
+    "url": "/assets/media/f7f040692da754d57c3d.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/shelby.jpg": {
+    "url": "/assets/media/92670b1b776927a4a336.webp",
+    "width": 900,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/greeningdb.png?a=height&w=6&h=6": {
+    "url": "/assets/media/fcf50cca2d1e05d3bad9.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/ligpred.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/ee63400da2ab57071c1e.webp",
+    "width": 872,
+    "height": 872
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/covid.jpg": {
+    "url": "/assets/media/6cf238fbb7adc7b6f406.webp",
+    "width": 1600,
+    "height": 893
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/IMG_20200113_151858.jpg": {
+    "url": "/assets/media/e348bccc31d6518d811d.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/deephpi.png": {
+    "url": "/assets/media/f123b298d1445f85f3f4.webp",
+    "width": 1499,
+    "height": 1013
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/legumessdb.png": {
+    "url": "/assets/media/cfc92e8a70ae29b7f8a0.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/springSRS26/srs-2026.jpg": {
+    "url": "/assets/media/56b690797ecaf6fbecd8.webp",
+    "width": 1600,
+    "height": 900
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/caleby.jpg?h=600&w=500": {
+    "url": "/assets/media/5a3e0790e58f4cf49d91.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/farewellShelby/IMG_6824.JPG": {
+    "error": "over 6 MB"
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/hupoxnet.png": {
+    "url": "/assets/media/a702c5971bfc81dd9fec.webp",
+    "width": 1384,
+    "height": 861
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/deepnec2.png": {
+    "url": "/assets/media/c7631b5e6c8838b2452c.webp",
+    "width": 1258,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/rslpred.PNG": {
+    "url": "/assets/media/1a081fd6d9c5a4a5af07.webp",
+    "width": 1600,
+    "height": 753
+  },
+  "https://images.unsplash.com/photo-1584118624012-df056829fbd0?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D": {
+    "url": "/assets/media/a7c51ed31a920c476919.webp",
+    "width": 1032,
+    "height": 581
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/ligpred.PNG": {
+    "url": "/assets/media/f76d39a82f14e90ff417.webp",
+    "width": 1600,
+    "height": 729
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/alfanet.png": {
+    "url": "/assets/media/905c1e8cb31be7083125.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/lacsubpred.PNG": {
+    "url": "/assets/media/cb27272a0941b3558c7c.webp",
+    "width": 1600,
+    "height": 727
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/citsatdb.png": {
+    "url": "/assets/media/2a03e927a0ad9a3d7ce1.webp",
+    "width": 1600,
+    "height": 901
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/api-net.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/5bdef7d8d633ee836bff.webp",
+    "width": 847,
+    "height": 847
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/USU_winter/IMG_1201.JPG": {
+    "url": "/assets/media/edee652c83dde34b5196.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/simardeep.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/77d6d978e21aad7ce292.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/hpinet.png": {
+    "url": "/assets/media/8e0170d9727178ac448c.webp",
+    "width": 1158,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/meta_new.png": {
+    "url": "/assets/media/e62273084e08a726c521.webp",
+    "width": 1020,
+    "height": 797
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/rslpred2.png": {
+    "url": "/assets/media/fff889cefd0a980ae506.webp",
+    "width": 1600,
+    "height": 751
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/rbpred.PNG": {
+    "url": "/assets/media/96b4f66e44bcb032d50a.webp",
+    "width": 1600,
+    "height": 741
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/khauck.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/6d875dcd52b8c9b6c966.webp",
+    "width": 423,
+    "height": 423
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/events/PAG-2019/g2.jpg": {
+    "url": "/assets/media/c96dd4db270409ad4627.webp",
+    "width": 555,
+    "height": 387
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/rbpred.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/981ae3d74324e430ca92.webp",
+    "width": 885,
+    "height": 885
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/AI-processor-LowRes-v1.jpg": {
+    "url": "/assets/media/01d3e2156c39f7788fab.webp",
+    "width": 271,
+    "height": 211
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/tritikbdb.png?a=height&w=6&h=6": {
+    "url": "/assets/media/f226503547842758c440.webp",
+    "width": 936,
+    "height": 936
+  },
+  "https://bioinfocore.usu.edu/raikou/image/people/ajouffray/profile.jpg": {
+    "url": "/assets/media/7e79e602e741dda872f5.webp",
+    "width": 400,
+    "height": 400
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/bigDataConf2022/PXL_20220518_191935611.MP.jpg": {
+    "url": "/assets/media/3918f69c894db76a4b8f.webp",
+    "width": 900,
+    "height": 675
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/atsubp.png?a=height&w=6&h=6": {
+    "url": "/assets/media/a1c3bf27545b026911f1.webp",
+    "width": 682,
+    "height": 682
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/deepnec.png": {
+    "url": "/assets/media/a24cd24dc4fe04319167.webp",
+    "width": 1438,
+    "height": 788
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/trustdb2.png?a=height&w=6&h=6": {
+    "url": "/assets/media/fc4eae43cb83e0320e12.webp",
+    "width": 1082,
+    "height": 1082
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/api-net.PNG": {
+    "url": "/assets/media/f819dda42faa5cde560b.webp",
+    "width": 1600,
+    "height": 710
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/plantmSubp.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/c282c1baa6754045356d.webp",
+    "width": 887,
+    "height": 887
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/david.jpg?h=600&w=500": {
+    "url": "/assets/media/04744755e3769087277e.webp",
+    "width": 500,
+    "height": 600
+  },
+  "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/Kaige Zhang.jpg": {
+    "error": "URL can't contain control characters. '/raikou/image/raw/bioinfo/profile/Kaige Zhang.jpg' (found at least ' ')"
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/plpred.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/2c72696e80519c2f0c5a.webp",
+    "width": 896,
+    "height": 896
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/colin.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/25286aceb9ab994ee5fb.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/profeatx.png": {
+    "url": "/assets/media/9e522f7621e7ab0f5c94.webp",
+    "width": 789,
+    "height": 835
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/shelby.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/2834156f513cc891d41c.webp",
+    "width": 1200,
+    "height": 1200
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/malivhu.png?a=height&w=6&h=6": {
+    "url": "/assets/media/ca4248eaccf5ba2e7e49.webp",
+    "width": 92,
+    "height": 92
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/profile/david.jpg?a=height&w=6&h=6": {
+    "url": "/assets/media/64bb44636df39958e7b7.webp",
+    "width": 957,
+    "height": 957
+  },
+  "https://bioinfocore.usu.edu/raikou/image/bioinfo/datamining-lowres.png": {
+    "url": "/assets/media/ff161b9ebb309b2116b9.webp",
+    "width": 271,
+    "height": 211
+  },
+  "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/predHpi.PNG?a=height&w=6&h=6": {
+    "url": "/assets/media/dfa4e2076722840b9391.webp",
+    "width": 894,
+    "height": 894
+  }
+}

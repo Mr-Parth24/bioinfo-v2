@@ -1,0 +1,11 @@
+.git
+.env
+data
+preview
+artifacts
+__pycache__
+test
+docs
+node_modules
+*.zip
+*.png

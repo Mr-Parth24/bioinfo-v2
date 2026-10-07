@@ -1,0 +1,194 @@
+[
+  {
+    "collection": "settings",
+    "status": "published",
+    "id": "settings:home",
+    "title": "Biology. Data. Discovery.",
+    "summary": "We bring together biology, computer science, engineering, and related disciplines to train the next generation of data scientists.",
+    "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/slider/homePageTeam.jpg",
+    "imageAlt": "KAABiL staff and students outside the Center for Integrated Biosystems",
+    "imageFit": "cover",
+    "focalX": 50,
+    "focalY": 50,
+    "primaryLabel": "Explore our research",
+    "primaryLink": "/research",
+    "secondaryLabel": "Meet our team",
+    "secondaryLink": "/people",
+    "feedMode": "automatic",
+    "feedCount": 3,
+    "featuredIds": [],
+    "showEvents": "yes",
+    "showOpportunities": "yes"
+  },
+  {
+    "collection": "settings",
+    "status": "published",
+    "id": "settings:site",
+    "title": "KAABiL \u00b7 Utah State University",
+    "footerText": "The Kaundal Artificial Intelligence & Advanced Bioinformatics Lab (KAABiL) at Utah State University develops innovative machine learning algorithms, multi-omics workflows, and open-access software to decode complex biological systems across plant health, agriculture, and computational biology.",
+    "address": "4700 Old Main Hill\nLogan, UT 84322-4700, USA",
+    "email": "rkaundal@usu.edu",
+    "phone": "+1 (435) 797-4117",
+    "social": [
+      {
+        "type": "GitHub",
+        "link": "https://github.com/usubioinfo"
+      },
+      {
+        "type": "Google Scholar",
+        "link": "https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&hl=en&oi=ao"
+      }
+    ],
+    "resourceLinks": [
+      {
+        "type": "BioinfoCore",
+        "link": "https://bioinfocore.usu.edu/"
+      },
+      {
+        "type": "COVID-19 Tracker",
+        "link": "https://bioinfo.usu.edu/covidTracker/"
+      },
+      {
+        "type": "USU RStudio",
+        "link": "https://biocluster.usu.edu/rstudio"
+      }
+    ],
+    "affiliationLinks": [
+      {
+        "type": "Plants, Soils & Climate",
+        "link": "https://qanr.usu.edu/psc/"
+      },
+      {
+        "type": "Center for Integrated Biosystems",
+        "link": "https://qanr.usu.edu/biosystems/"
+      },
+      {
+        "type": "Computer Science",
+        "link": "https://engineering.usu.edu/cs/"
+      }
+    ]
+  },
+  {
+    "collection": "settings",
+    "status": "published",
+    "id": "settings:director",
+    "title": "Dr. Rakesh Kaundal",
+    "summary": "Director, Bioinformatics Facility \u00b7 Associate Professor, Bioinformatics",
+    "body": "<section class=\"mb-5\">\n      <h2 class=\"rakesh-header\">Dr. Rakesh Kaundal</h2>\n      <h5 class=\"workplace-header\"><a href=\"https://qanr.usu.edu/psc/\" class=\"kbl-link\">Department of Plants, Soils and Climate</a></h5>\n      <h6 class=\"workplace-header\">(College of Agriculture and Natural Resources)</h6>\n      <p class=\"workplace-desc\"> &nbsp;&nbsp;&nbsp;&nbsp; <a href=\"https://qanr.usu.edu/directory/kaundal-rakesh\" class=\"kbl-link\" target=\"_blank\" rel=\"noopener noreferrer\">\n    Associate Professor, Bioinformatics</a>\n      </p>\n      <h5 class=\"workplace-header\">\n        <a href=\"https://qanr.usu.edu/biosystems/\" class=\"kbl-link\">Center for Integrated BioSystems</a>\n      </h5>\n      <h6 class=\"workplace-header\">(College of Agriculture and Natural Resources)</h6>\n      <p class=\"workplace-desc\"> &nbsp;&nbsp;&nbsp;&nbsp; <a href=\"https://qanr.usu.edu/directory/kaundal-rakesh\" class=\"kbl-link\" target=\"_blank\" rel=\"noopener noreferrer\">\n    Director, Bioinformatics Facility</a>\n      </p>\n      <h5 class=\"workplace-header\"><a href=\"https://engineering.usu.edu/cs/\" class=\"kbl-link\">Department of Computer Science</a></h5>\n      <h6 class=\"workplace-header\">(College of Engineering)</h6>\n      <p class=\"workplace-desc\"> &nbsp;&nbsp;&nbsp;&nbsp; <a href=\"https://engineering.usu.edu/cs/directory/adjunct-faculty/kaundal-rakesh\" class=\"kbl-link\" target=\"_blank\" rel=\"noopener noreferrer\">\n    Adjunct Associate Professor</a>\n     </p>\n    </section>\n\n    <section class=\"mt-5\">\n      <h4 class=\"biography\">Biography</h4>\n\n      <h6 class=\"bio-header mt-3 mb-0\">Bioinformatics and Computational Biology</h6>\n      <p class=\"bio-desc\">\n        Highly successful track record of integrating biology and bigdata analytics with over 14 years\u2019 experience in\n        bioinformatics, computational biology, and scientific programming. In-depth knowledge of bioinformatics data\n        analysis tools and databases, information management, and integration to support diverse activities essential\n        for organismal improvement and genomics-enabled studies.\n      </p>\n      <h6 class=\"bio-header mt-4 mb-0\">Research Interests</h6>\n      <p class=\"bio-desc mt-0\">\n        Next-generation sequencing data (analysis, alignment, assembly, annotation); Computational modeling of -omics big data;\n        Systems biology, develop algorithms to study intra- and inter-species interaction networks (e.g. host-pathogen interactions),\n        predict Gene Regulatory Networks; Metagenomics (e.g. rhizosphere microbiome interacting with the host); Computational\n        genomics. Develop workflows to facilitate data mining; Develop and maintain scientific software/tools.\n      </p>\n    </section>\n  ",
+    "image": "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/RK_2.jpg",
+    "imageAlt": "Dr. Rakesh Kaundal",
+    "imageFit": "cover",
+    "focalX": 50,
+    "focalY": 35,
+    "email": "rkaundal@usu.edu",
+    "phone": "+1 (435) 797-4117",
+    "social": [
+      {
+        "type": "Google Scholar",
+        "link": "https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&hl=en&oi=ao"
+      },
+      {
+        "type": "ORCID",
+        "link": "https://orcid.org/0000-0001-8683-1240"
+      },
+      {
+        "type": "ResearchGate",
+        "link": "https://www.researchgate.net/profile/Rakesh_Kaundal"
+      },
+      {
+        "type": "LinkedIn",
+        "link": "https://www.linkedin.com/in/r-kaundal"
+      }
+    ],
+    "education": [
+      {
+        "date": "2007-2011",
+        "title": "Postdoctoral Fellow (Bioinformatics)",
+        "description": "Noble Foundation, Ardmore (OK), USA",
+        "link": ""
+      },
+      {
+        "date": "2006",
+        "title": "Ph.D. (Plant Breeding & Genetics)",
+        "description": "Dr. B.R. Ambedkar University, India",
+        "link": ""
+      },
+      {
+        "date": "2004",
+        "title": "PGDBI (Bioinformatics)",
+        "description": "Sikkim Manipal University, India",
+        "link": ""
+      },
+      {
+        "date": "1998",
+        "title": "M.Sc. (Plant Breeding & Genetics)",
+        "description": "CSK HP Agricultural University, India",
+        "link": ""
+      },
+      {
+        "date": "1995",
+        "title": "B.Sc. (Agriculture)",
+        "description": "CSK HP Agricultural University, India",
+        "link": ""
+      }
+    ],
+    "appointments": [
+      {
+        "date": "Jul 2017 - Present",
+        "title": "Associate Professor, Bioinformatics",
+        "description": "Utah State University (USU), Logan, Utah, USA",
+        "link": ""
+      },
+      {
+        "date": "Jul 2017 - Present",
+        "title": "Director, Bioinformatics Facility, Center for Integrated BioSystems (CIB)",
+        "description": "Utah State University (USU), Logan, Utah, USA",
+        "link": ""
+      },
+      {
+        "date": "Jul 2017 - Present",
+        "title": "Adjunct Associate Professor, Computer Science",
+        "description": "Utah State University (USU), Logan, Utah, USA",
+        "link": ""
+      },
+      {
+        "date": "Jul 2014 - May 2017",
+        "title": "Director, High-Performance Computing | Bioinformatics Facility, Institute for Integrative Genome Biology (IIGB)",
+        "description": "University of California, Riverside (UCR), California, USA",
+        "link": ""
+      },
+      {
+        "date": "Apr 2007 - Mar 2011",
+        "title": "Postdoctoral Research Fellow, Bioinformatics Lab, Plant Biology Division",
+        "description": "The Samuel Roberts Noble Foundation, Ardmore, Oklahoma, USA",
+        "link": ""
+      }
+    ],
+    "awards": [
+      {
+        "date": "2013",
+        "title": "2013 - 1st Prize",
+        "description": "OSU President\u2019s Cup for creative interdisciplinarity in bioinformatics and computational biology",
+        "link": "https://go.okstate.edu/"
+      },
+      {
+        "date": "2012",
+        "title": "2012 - 3rd Prize",
+        "description": "OSU President\u2019s Cup for creative interdisciplinarity on the project \u201c EDNA : Powerful New Technology for E lectronic D iagnostic N ucleic acid A nalysis\u201d",
+        "link": "https://go.okstate.edu/"
+      },
+      {
+        "date": "2003",
+        "title": "2003 - Qualified National Eligibility Test (NET-ICAR)",
+        "description": "Conducted by Indian Council of Agricultural Research (ICAR) , New Delhi, India",
+        "link": "https://icar.org.in/"
+      },
+      {
+        "date": "2002",
+        "title": "2002 - 3rd Prize best award for poster paper presentation (Weather-based forewarning of rice blast in H.P.)",
+        "description": "International Conference on Challenges and Options for Sustainable Development of the Himalayas - Beyond 2002, held at CSK HPAU , Palampur, India",
+        "link": "http://www.hillagric.ac.in/"
+      }
+    ]
+  }
+]

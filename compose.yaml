@@ -1,0 +1,22 @@
+services:
+  website:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
+      DATA_DIR: /app/data
+    volumes:
+      - bioinfo_data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  bioinfo_data:

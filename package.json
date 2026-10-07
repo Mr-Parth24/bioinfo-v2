@@ -1,0 +1,18 @@
+{
+  "name": "usu-bioinfo-v2",
+  "version": "2.0.0-preview.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test --test-isolation=none test/*.test.mjs",
+    "preview:export": "node scripts/export-preview.mjs",
+    "manage": "node scripts/manage.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}
