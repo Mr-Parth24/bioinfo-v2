@@ -255,3 +255,31 @@
   }
  });
 })();
+
+// v2 polish: header state, count-up numbers, back-to-top and reading progress. All optional enhancements.
+(()=>{
+  const header=document.querySelector('.site-header');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const top=document.createElement('button');top.type='button';top.className='to-top';top.setAttribute('aria-label','Back to top');
+  top.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>';
+  top.addEventListener('click',()=>scrollTo({top:0,behavior:reduce?'auto':'smooth'}));document.body.append(top);
+  const bar=document.createElement('div');bar.className='read-progress';bar.setAttribute('aria-hidden','true');document.body.append(bar);
+  let ticking=false;
+  const onScroll=()=>{
+    if(ticking)return;ticking=true;
+    requestAnimationFrame(()=>{
+      const y=scrollY,max=document.documentElement.scrollHeight-innerHeight;
+      header?.classList.toggle('is-scrolled',y>24);top.classList.toggle('show',y>700);
+      bar.style.transform='scaleX('+(max>0?Math.min(1,y/max):0)+')';ticking=false;
+    });
+  };
+  addEventListener('scroll',onScroll,{passive:true});onScroll();
+  const counters=document.querySelectorAll('[data-countup]');
+  if(counters.length&&'IntersectionObserver'in window&&!reduce){
+    const io=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;io.unobserve(entry.target);
+      const el=entry.target,end=Number(el.dataset.countup),t0=performance.now(),dur=1100;
+      const tick=now=>{const k=Math.min(1,(now-t0)/dur),eased=1-Math.pow(1-k,3);el.textContent=Math.round(end*eased);if(k<1)requestAnimationFrame(tick);};
+      el.textContent='0';requestAnimationFrame(tick);}},{threshold:.4});
+    counters.forEach(c=>io.observe(c));
+  }
+})();
