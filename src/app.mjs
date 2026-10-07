@@ -13,7 +13,7 @@ import { readLimited,saveImage,uploadedImage,removeImage } from './uploads.mjs';
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
 const assetManifest=JSON.parse(await readFile(join(publicDir,'asset-map.json'),'utf8'));
 const mediaNames=new Set(Object.values(assetManifest).map(x=>x.url?.replace('/assets/','')).filter(Boolean));
-const assets={'site.css':'text/css; charset=utf-8','site.js':'text/javascript; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'text/javascript; charset=utf-8','favicon.svg':'image/svg+xml','theme.css':'text/css; charset=utf-8','fonts/inter-latin-wght-normal.woff2':'font/woff2','fonts/fraunces-latin-wght-normal.woff2':'font/woff2','fonts/fraunces-latin-wght-italic.woff2':'font/woff2'};
+const assets={'site.css':'text/css; charset=utf-8','site.js':'text/javascript; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'text/javascript; charset=utf-8','favicon.svg':'image/svg+xml','fonts/inter-latin-wght-normal.woff2':'font/woff2','fonts/source-serif-4-latin-wght-normal.woff2':'font/woff2','fonts/source-serif-4-latin-wght-italic.woff2':'font/woff2'};
 const securityHeaders={
  'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin',
  'permissions-policy':'camera=(), microphone=(), geolocation=()',
