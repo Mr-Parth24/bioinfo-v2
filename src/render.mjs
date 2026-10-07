@@ -296,7 +296,8 @@ function personProfile(record, records) {
   const interests = (record.researchInterests || '').split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 80);
   const links = profileLinks([...(record.social || []), ...(record.workLinks || [])]);
   const phone = String(record.phone || '').replace(/[^+0-9]/g, '');
-  const span = record.startYear || record.endYear ? `${record.startYear || '…'} – ${record.endYear || (alum ? '…' : 'present')}` : '';
+  const when = (month, year) => year ? [month ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month - 1] : '', year].filter(Boolean).join(' ') : '';
+  const span = record.startYear || record.endYear ? `${when(record.startMonth, record.startYear) || '…'} – ${when(record.endMonth, record.endYear) || (alum ? '…' : 'present')}` : '';
   const background = [['education', 'Education'], ['appointments', 'Experience'], ['awards', 'Honours & awards']].filter(([k]) => record[k]?.length);
   const sections = [
     ['about', 'About', record.body || record.researchInterests],

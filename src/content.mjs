@@ -22,6 +22,9 @@ export const FIELDS={
   eventIds:{label:'Selected event',type:'relations',collection:'events',ordered:true},
   opportunityMode:{label:'Homepage opportunity panel',type:'select',options:['automatic','selected','hidden']},
   opportunityIds:{label:'Selected opportunity',type:'relations',collection:'opportunities',ordered:true},
+  heroMode:{label:'Hero picture',type:'select',options:['single','selected','latest','random']},
+  heroSlideIds:{label:'Slideshow slides (move into display order)',type:'relations',collection:['news','events','research'],ordered:true},
+  heroSlideCount:{label:'Slides taken from news, events & research',type:'number',min:1,maxValue:8},
   showEvents:{label:'Show upcoming event',type:'select',options:['yes','no']},
   showOpportunities:{label:'Show current opportunity',type:'select',options:['yes','no']},
   announcement:{label:'Announcement',type:'text',max:600},
@@ -56,14 +59,25 @@ export const FIELDS={
   link:{label:'External or related link',type:'url',max:4000},
   route:{label:'Website path',type:'text',max:300},
   authors:{label:'Authors (formatting supported)',type:'richtext',max:20000},
-  presentationType:{label:'Presentation type',type:'text',max:200},
+  presentationType:{label:'Presentation type',type:'text',max:200,choices:[['Presentation types',['Oral presentation','Poster','Invited talk','Keynote','Virtual presentation','Lightning talk','Workshop','Panel discussion']]]},
   location:{label:'Location',type:'text',max:2000},
   email:{label:'Email',type:'email',max:254},
   memberStatus:{label:'Lab membership (Current or Past/Alumni)',type:'select',options:['current','alumni']},
-  role:{label:'Role / position',type:'text',max:300},
-  department:{label:'Department / Academic program',type:'text',max:300,suggestions:['Department of Plants, Soils & Climate','Department of Computer Science','Department of Biology','Department of Animal, Dairy & Veterinary Sciences','Center for Integrated BioSystems','Bioinformatics Facility']},
-  startYear:{label:'Joined (year)',type:'text',max:4},
-  endYear:{label:'Finished (year)',type:'text',max:4},
+  role:{label:'Role / position',type:'text',max:300,choices:[
+    ['Faculty & leadership',['Principal Investigator','Lab Director','Associate Professor','Assistant Professor','Research Assistant Professor','Adjunct Faculty']],
+    ['Research & technical staff',['Research Scientist','Staff Scientist','Bioinformatics Scientist','Bioinformatics Analyst','Bioinformatics Programmer','Data Scientist','Software Engineer','Web Developer','Systems Administrator','Lab Manager','Research Technician']],
+    ['Postdoctoral researchers',['Postdoctoral Fellow','Postdoctoral Research Associate']],
+    ['Graduate students',['PhD Student','PhD Candidate',"Master's Student (M.S.)","Master's Student (M.C.S.)",'Graduate Research Assistant','Graduate Teaching Assistant']],
+    ['Undergraduate students',['Undergraduate Researcher','Undergraduate Research Assistant','Student Intern','Summer Intern']],
+    ['Visitors & collaborators',['Visiting Scholar','Visiting Researcher','Visiting PhD Student','Collaborator']]]},
+  department:{label:'Department / Academic program',type:'text',max:300,choices:[
+    ['Utah State University departments',['Department of Plants, Soils & Climate','Department of Biology','Department of Biological Engineering','Department of Chemistry & Biochemistry','Department of Animal, Dairy & Veterinary Sciences','Department of Computer Science','Department of Mathematics & Statistics','Department of Data Analytics & Information Systems','Department of Electrical & Computer Engineering','Department of Civil & Environmental Engineering','Department of Wildland Resources']],
+    ['Centers & facilities',['Center for Integrated BioSystems','Bioinformatics Facility']],
+    ['Programs',['Bioinformatics graduate program','Plant Science graduate program','Computer Science graduate program']]]},
+  startYear:{label:'Joined (year)',type:'text',max:4,suggestions:Array.from({length:new Date().getFullYear()-1994},(_,i)=>String(new Date().getFullYear()+1-i))},
+  startMonth:{label:'Joined (month)',type:'select',options:['','1','2','3','4','5','6','7','8','9','10','11','12']},
+  endYear:{label:'Finished (year, empty while current)',type:'text',max:4,suggestions:Array.from({length:new Date().getFullYear()-1994},(_,i)=>String(new Date().getFullYear()+1-i))},
+  endMonth:{label:'Finished (month)',type:'select',options:['','1','2','3','4','5','6','7','8','9','10','11','12']},
   researchInterests:{label:'Research interests',type:'textarea',max:12000},
   dissertationTitle:{label:'Dissertation / thesis title',type:'text',max:1000},
   dissertationUrl:{label:'Dissertation / thesis URL',type:'url',max:4000},
@@ -79,7 +93,7 @@ export const COLLECTION_FIELDS={
  news:['title','summary','body','date','category','image','imageAlt','link','route','status'],
  events:['title','summary','body','date','location','image','imageAlt','gallery','link','route','status'],
  publications:['title','authors','body','year','date','category','location','presentationType','link','status'],
- people:['title','summary','memberStatus','peopleGroup','category','role','department','startYear','endYear','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
+ people:['title','summary','memberStatus','peopleGroup','category','role','department','startYear','startMonth','endYear','endMonth','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
  research:['title','summary','body','image','imageAlt','route','status'],
  tools:['title','summary','category','image','imageAlt','link','status'],
  pages:['title','summary','body','image','imageAlt','route','status']
@@ -87,7 +101,7 @@ export const COLLECTION_FIELDS={
 COLLECTION_FIELDS.opportunities=['title','summary','body','category','location','deadline','openingStatus','email','link','route','status'];
 COLLECTION_FIELDS.settings=['title'];
 export const SETTINGS_FIELDS={
- 'settings:home':['title','summary','image','imageAlt','imageCaption','imageFit','focalX','focalY','primaryLabel','primaryLink','secondaryLabel','secondaryLink','announcement','announcementLink','feedMode','feedCount','featuredIds','eventMode','eventIds','opportunityMode','opportunityIds','status'],
+ 'settings:home':['title','summary','image','imageAlt','imageCaption','imageFit','focalX','focalY','heroMode','heroSlideIds','heroSlideCount','gallery','primaryLabel','primaryLink','secondaryLabel','secondaryLink','announcement','announcementLink','feedMode','feedCount','featuredIds','eventMode','eventIds','opportunityMode','opportunityIds','status'],
  'settings:site':['title','footerText','address','email','phone','social','resourceLinks','affiliationLinks','status'],
  'settings:director':['title','summary','body','image','imageAlt','imageFit','focalX','focalY','email','phone','social','education','appointments','awards','publicationIds','status']
 };
@@ -119,7 +133,7 @@ export function validateRecord(record) {
   if(record.collection==='settings'&&!Object.hasOwn(SETTINGS_FIELDS,record.id))throw new InputError('Unknown settings record.');
   for(const key of ['education','appointments','awards'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(r=>!r||typeof r.title!=='string'||!r.title.trim()||r.title.length>1000||typeof r.date!=='string'||r.date.length>100||typeof r.description!=='string'||r.description.length>12000||(r.link&&!safeUrl(r.link)))))throw new InputError('Timeline rows need a title, date, description and valid link URL.');
   for(const key of ['resourceLinks','affiliationLinks'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>40||record[key].some(x=>!x||typeof x.type!=='string'||!safeUrl(x.link))))throw new InputError('Links require a label and valid URL.');
-  for(const key of ['featuredIds','eventIds','opportunityIds','researchIds','peopleIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');
+  for(const key of ['featuredIds','eventIds','opportunityIds','researchIds','peopleIds','heroSlideIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');
   if(record.startDate&&record.endDate&&record.startDate>record.endDate)throw new InputError('Event end date must follow its start date.');
   if(record.social!==undefined&&(!Array.isArray(record.social)||record.social.length>30||record.social.some(x=>!x||typeof x.type!=='string'||!safeUrl(x.link))))throw new InputError('Social links require a label and valid URL.');
   if(record.imageVariants!==undefined&&(!Array.isArray(record.imageVariants)||record.imageVariants.length>5||record.imageVariants.some(v=>!v||!safeUrl(v.url,{image:true})||!Number.isInteger(v.width)||v.width<1||v.width>20000)))throw new InputError('Invalid image variants.');
@@ -127,6 +141,7 @@ export function validateRecord(record) {
   for(const key of ['startYear','endYear'])if(record[key]&&!/^[12][0-9]{3}$/.test(record[key]))throw new InputError('Enter a four-digit year.');
   if(record.year&&!/^[12][0-9]{3}(?:\s*[-–—]\s*[12][0-9]{3})?(?:\s*\([A-Za-z0-9\s]+\))?$/.test(record.year.trim()))throw new InputError('Enter a valid year (e.g. 2024 or 2020–2024).');
   if(record.startYear&&record.endYear&&record.startYear>record.endYear)throw new InputError('End year must not precede start year.');
+  if(record.startYear&&record.startYear===record.endYear&&record.startMonth&&record.endMonth&&Number(record.startMonth)>Number(record.endMonth))throw new InputError('The finishing month must not precede the joining month.');
   if(record.dissertationUrl&&(!/^https?:\/\//.test(record.dissertationUrl)||!safeUrl(record.dissertationUrl)))throw new InputError('Dissertation URL must use HTTP or HTTPS.');
   if(record.workLinks!==undefined&&(!Array.isArray(record.workLinks)||record.workLinks.length>30||record.workLinks.some(x=>!x||typeof x.type!=='string'||!x.type.trim()||x.type.length>300||!safeUrl(x.link))))throw new InputError('Work links require a label and valid URL.');
   for(const key of ['publicationIds','toolIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>500||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');

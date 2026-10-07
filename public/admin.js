@@ -519,13 +519,84 @@
     `;
   }
 
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const yearOptions = () => Array.from({ length: new Date().getFullYear() - 1969 }, (_, i) => String(new Date().getFullYear() + 1 - i));
+
+  /** Grouped options for a field: the schema's choices or suggestions, then values already used on the site. */
+  function choiceGroups(key, value) {
+    const field = session.fields[key];
+    const collection = current?.collection;
+    let groups = field.choices || [];
+    if (!groups.length && field.suggestions) {
+      const list = Array.isArray(field.suggestions) ? field.suggestions : field.suggestions[collection] || [];
+      if (list.length) groups = [[key.endsWith('Year') || key === 'year' ? 'Years' : 'Suggested', list]];
+    }
+    if (!groups.length) return [];
+    const known = new Set(groups.flatMap(([, options]) => options));
+    const used = [...new Set([value, ...records.filter(r => r.collection === collection).map(r => r[key])])]
+      .filter(v => typeof v === 'string' && v.trim() && !known.has(v)).sort((a, b) => a.localeCompare(b));
+    return used.length ? [...groups, ['Used on this site', used]] : groups;
+  }
+
+  /** A dropdown of sensible options with a "Custom…" entry that reveals a text box. */
+  function choiceControl(key, field, value) {
+    const groups = choiceGroups(key, value);
+    const inList = groups.some(([, options]) => options.includes(value));
+    return `
+      <div class="choice-field" data-choice>
+        <select id="field-${key}" name="${key}" class="styled-select" data-choice-select>
+          <option value=""${value ? '' : ' selected'}>Not set</option>
+          ${groups.map(([label, options]) => `<optgroup label="${escape(label)}">${options.map(o => `<option value="${escape(o)}"${o === value ? ' selected' : ''}>${escape(o)}</option>`).join('')}</optgroup>`).join('')}
+          <option value="__custom"${value && !inList ? ' selected' : ''}>Custom…</option>
+        </select>
+        <input type="text" data-choice-custom data-choice-for="${key}" class="styled-input" maxlength="${field.max || 300}" placeholder="Type a custom ${escape(field.label.toLowerCase())}" value="${value && !inList ? escape(value) : ''}"${value && !inList ? '' : ' hidden'}>
+      </div>
+    `;
+  }
+  const choiceValue = select => select.value === '__custom' ? select.closest('[data-choice]').querySelector('[data-choice-custom]').value.trim() : select.value;
+
+  /** Reads "Jul 2017 – Present", "2007-2011" or "2006" into picker values; anything else stays free text. */
+  function parsePeriod(text) {
+    const point = s => {
+      const m = String(s || '').trim().match(/^(?:([A-Za-z]{3,9})\.?\s+)?(\d{4})$/);
+      if (!m) return /^(present|now|current)$/i.test(String(s || '').trim()) ? { year: 'present', month: '' } : null;
+      const month = m[1] ? MONTHS.findIndex(name => name.toLowerCase().startsWith(m[1].toLowerCase().slice(0, 3))) + 1 : 0;
+      return { year: m[2], month: month ? String(month) : '' };
+    };
+    const [a, b] = String(text || '').split(/\s*[-–—]\s*|\s+to\s+/i);
+    const from = point(a), to = b === undefined ? { year: '', month: '' } : point(b);
+    return from && to && from.year !== 'present' ? { from, to } : null;
+  }
+  function formatPeriod(fromMonth, fromYear, toMonth, toYear) {
+    const label = (month, year) => [month ? MONTHS[month - 1].slice(0, 3) : '', year].filter(Boolean).join(' ');
+    if (!fromYear) return '';
+    const end = toYear === 'present' ? 'Present' : toYear ? label(toMonth, toYear) : '';
+    return end ? `${label(fromMonth, fromYear)} – ${end}` : label(fromMonth, fromYear);
+  }
+  function periodPicker(text) {
+    const p = parsePeriod(text) || { from: { month: '', year: '' }, to: { month: '', year: '' } };
+    const months = selected => `<option value="">Month</option>${MONTHS.map((m, i) => `<option value="${i + 1}"${String(i + 1) === selected ? ' selected' : ''}>${m.slice(0, 3)}</option>`).join('')}`;
+    const years = (selected, present) => `<option value="">Year</option>${present ? `<option value="present"${selected === 'present' ? ' selected' : ''}>Present</option>` : ''}${yearOptions().map(y => `<option${y === selected ? ' selected' : ''}>${y}</option>`).join('')}`;
+    return `
+      <div class="period-picker" data-period>
+        <span class="period-label">From</span>
+        <select class="styled-select" data-period-part="fromMonth" aria-label="Start month">${months(p.from.month)}</select>
+        <select class="styled-select" data-period-part="fromYear" aria-label="Start year">${years(p.from.year)}</select>
+        <span class="period-label">to</span>
+        <select class="styled-select" data-period-part="toMonth" aria-label="End month"${p.to.year === 'present' ? ' disabled' : ''}>${months(p.to.month)}</select>
+        <select class="styled-select" data-period-part="toYear" aria-label="End year or present">${years(p.to.year, true)}</select>
+      </div>
+    `;
+  }
+
   function rowHTML(value = { title: '', date: '', description: '', link: '' }) {
     return `
       <div class="profile-edit-row">
         <div class="profile-row-header">
           <label><span>Degree / Position / Award Title *</span><input data-row-title placeholder="e.g. Ph.D. in Bioinformatics" value="${escape(value.title)}" required class="styled-input"></label>
-          <label><span>Year / Period</span><input data-row-date placeholder="e.g. 2022–Present" value="${escape(value.date)}" class="styled-input"></label>
+          <label><span>Year / Period (pick below or type)</span><input data-row-date placeholder="e.g. Aug 2022 – Present" value="${escape(value.date)}" class="styled-input"></label>
         </div>
+        ${periodPicker(value.date)}
         <label><span>Institution / Description</span><textarea data-row-description rows="2" placeholder="e.g. Utah State University" class="styled-input">${escape(value.description)}</textarea></label>
         <label><span>Related URL (Drop or paste URL)</span><input type="url" data-row-link placeholder="https://…" value="${escape(value.link)}" class="styled-input"></label>
         <div class="profile-row-actions">
@@ -598,7 +669,7 @@
 
     if (value === undefined || value === null) {
       if (['range'].includes(field.type)) value = 50;
-      else if (field.type === 'number') value = key === 'feedCount' ? 3 : 0;
+      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 4 : 0;
       else if (key === 'memberStatus') value = current.category?.split(/\s*\/\s*/).includes('Alumni') ? 'alumni' : 'current';
       else if (key === 'imageFit') value = 'cover';
       else value = '';
@@ -627,6 +698,8 @@
             let optLabel = titleCase(o);
             if (key === 'memberStatus') optLabel = o === 'current' ? 'Current Lab Member' : 'Alumnus / Former Member';
               if (key === 'peopleGroup') optLabel = o === '' ? 'Automatic (from role)' : o;
+            if (key === 'startMonth' || key === 'endMonth') optLabel = o === '' ? 'Month (optional)' : MONTHS[o - 1];
+            if (key === 'heroMode') optLabel = { single: 'Single photo (the image above)', selected: 'Slideshow: slides I choose below', latest: 'Slideshow: latest news, events & research', random: 'Slideshow: random mix, new on every visit' }[o];
             if (key === 'status') optLabel = o === 'published' ? 'Published (Live on website)' : 'Draft (Editor only)';
             if (key === 'openingStatus') optLabel = o === 'open' ? 'Open (Accepting applications)' : 'Closed';
             if (key === 'homeVisibility') optLabel = o === 'include' ? 'Eligible for homepage feed' : 'Exclude from homepage feed';
@@ -660,11 +733,12 @@
           <button type="button" class="small-button" data-choose-gallery>Choose Existing Image</button>
         </div>
       `;
+    } else if (field.type === 'text' && choiceGroups(key, value).length) {
+      control = choiceControl(key, field, value);
     } else if (field.type === 'textarea') {
       control = `<textarea id="${name}" name="${key}" rows="${key === 'summary' ? 3 : 5}" maxlength="${field.max || 12000}" placeholder="Enter ${escape(field.label.toLowerCase())}…" class="styled-input">${escape(value)}</textarea>`;
     } else {
       const inputType = field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : field.type === 'range' ? 'range' : field.type === 'email' ? 'email' : 'text';
-      const listId = key === 'category' ? 'categories' : key === 'year' ? 'years' : key === 'department' ? 'departments' : key === 'role' ? 'roles' : '';
 
       let placeholder = `Enter ${escape(field.label.toLowerCase())}…`;
       if (key === 'department') placeholder = 'e.g. Department of Plants, Soils & Climate';
@@ -679,50 +753,9 @@
           value="${escape(value)}"
           ${field.max ? ` maxlength="${field.max}"` : ''}
           ${field.required ? ' required' : ''}
-          ${listId ? ` list="${listId}"` : ''}
           placeholder="${placeholder}"
           class="styled-input">
       `;
-    }
-
-    if (key === 'category') {
-      const suggestions = session.fields.category.suggestions?.[current.collection] || [];
-      const existing = [...new Set(records.filter(r => r.collection === current.collection).map(r => r.category).filter(Boolean))];
-      const all = [...new Set([...suggestions, ...existing])];
-      control += `<datalist id="categories">${all.map(c => `<option value="${escape(c)}">`).join('')}</datalist>`;
-    }
-
-    if (key === 'role') {
-      const suggestions = [
-        'Graduate Research Assistant',
-        'PhD Candidate',
-        'Postdoctoral Fellow',
-        'Bioinformatics Analyst',
-        'Software Engineer',
-        'Laboratory Technician',
-        'Lab Manager',
-        'Undergraduate Researcher',
-        'Visiting Scholar',
-        'Research Scientist'
-      ];
-      control += `<datalist id="roles">${suggestions.map(r => `<option value="${escape(r)}">`).join('')}</datalist>`;
-    }
-
-    if (key === 'department') {
-      const suggestions = session.fields.department?.suggestions || [
-        'Department of Plants, Soils & Climate',
-        'Department of Computer Science',
-        'Department of Biology',
-        'Department of Animal, Dairy & Veterinary Sciences',
-        'Center for Integrated BioSystems',
-        'Bioinformatics Facility'
-      ];
-      control += `<datalist id="departments">${suggestions.map(d => `<option value="${escape(d)}">`).join('')}</datalist>`;
-    }
-
-    if (key === 'year') {
-      const suggestions = session.fields.year.suggestions || [];
-      control += `<datalist id="years">${suggestions.map(y => `<option value="${escape(y)}">`).join('')}</datalist>`;
     }
 
     if (key === 'image') {
@@ -773,13 +806,13 @@
     const fullWidthKeys = [
       'education', 'appointments', 'awards', 'image', 'featuredIds', 'eventIds', 'opportunityIds',
       'body', 'summary', 'gallery', 'social', 'authors', 'publicationIds', 'toolIds', 'workLinks',
-      'researchInterests', 'resourceLinks', 'affiliationLinks', 'researchIds', 'peopleIds', 'address', 'footerText'
+      'researchInterests', 'resourceLinks', 'affiliationLinks', 'researchIds', 'peopleIds', 'heroSlideIds', 'address', 'footerText'
     ];
 
     return `
       <div class="editor-field ${fullWidthKeys.includes(key) ? 'full-width' : ''}">
         <label id="label-${key}" for="${name}" class="field-label">
-          <span>${escape(field.label)}</span>
+          <span>${escape(key === 'gallery' && current.id === 'settings:home' ? 'Extra lab photos for the slideshow (shown after the main photo)' : field.label)}</span>
           ${field.required ? '<span class="required-mark">*</span>' : ''}
         </label>
         ${control}
@@ -801,6 +834,7 @@
       return [
         { title: 'Homepage Hero & Announcement', keys: ['title', 'summary', 'announcement', 'announcementLink', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink'] },
         { title: 'Hero Artwork & Media', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
+        { title: 'Hero Slideshow', keys: ['heroMode', 'heroSlideCount', 'heroSlideIds', 'gallery'] },
         { title: 'Homepage Feed Selection', keys: ['feedMode', 'feedCount', 'featuredIds', 'eventMode', 'eventIds', 'opportunityMode', 'opportunityIds'] },
         { title: 'Publishing', keys: ['status'] }
       ];
@@ -815,7 +849,7 @@
 
     if (col === 'people') {
       return [
-        { title: 'Essential Identity & Position', keys: ['title', 'category', 'role', 'department', 'memberStatus', 'peopleGroup', 'email', 'phone', 'startYear', 'endYear'] },
+        { title: 'Essential Identity & Position', keys: ['title', 'category', 'role', 'department', 'memberStatus', 'peopleGroup', 'email', 'phone', 'startYear', 'startMonth', 'endYear', 'endMonth'] },
         { title: 'Profile Photo & Focal Studio', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
         { title: 'Biography & Research Focus', keys: ['researchInterests', 'summary', 'body'] },
         { title: 'Connected Lab Publications & Tools', keys: ['publicationIds', 'toolIds'] },
@@ -1044,8 +1078,8 @@
   // Client-Side Input Validation
   function validateField(input) {
     if (!input) return true;
-    const name = input.name || input.dataset.rich || input.id?.replace('field-', '');
-    const val = input.value !== undefined ? String(input.value).trim() : input.innerText?.trim() || '';
+    const name = input.name || input.dataset.rich || input.dataset.choiceFor || input.id?.replace('field-', '');
+    const val = input.matches?.('[data-choice-select]') ? choiceValue(input) : input.value !== undefined ? String(input.value).trim() : input.innerText?.trim() || '';
     let errorMsg = '';
 
     // Title / Name required
@@ -1075,7 +1109,8 @@
     }
     // Year range check
     else if (name === 'endYear' && val) {
-      const start = $('#field-startYear')?.value?.trim();
+      const startField = $('#field-startYear');
+      const start = startField ? choiceValue(startField) : '';
       if (start && /^[12][0-9]{3}$/.test(start) && Number(val) < Number(start)) {
         errorMsg = 'End year cannot precede start year.';
       }
@@ -1299,6 +1334,25 @@
 
   // Handle Relation Checkbox Toggles
   $('#record-editor').addEventListener('change', event => {
+    if (event.target.matches('[data-choice-select]')) {
+      const custom = event.target.closest('[data-choice]').querySelector('[data-choice-custom]');
+      custom.hidden = event.target.value !== '__custom';
+      if (!custom.hidden) custom.focus();
+      dirty = true;
+      return;
+    }
+    if (event.target.matches('[data-period-part]')) {
+      const picker = event.target.closest('[data-period]');
+      const part = name => picker.querySelector(`[data-period-part="${name}"]`).value;
+      const toMonth = picker.querySelector('[data-period-part="toMonth"]');
+      toMonth.disabled = part('toYear') === 'present';
+      if (toMonth.disabled) toMonth.value = '';
+      const input = picker.closest('.profile-edit-row').querySelector('[data-row-date]');
+      input.value = formatPeriod(part('fromMonth'), part('fromYear'), toMonth.value, part('toYear'));
+      pulseSuccess(input);
+      dirty = true;
+      return;
+    }
     if (event.target.matches('.relation-option-card input[type="checkbox"]')) {
       const checkbox = event.target;
       const card = checkbox.closest('.relation-picker-card');
@@ -1483,7 +1537,7 @@
         const type = session.fields[key].type;
         const field = $('#field-' + key);
         if (!field) continue;
-        record[key] = type === 'richtext' ? field.innerHTML : field.value;
+        record[key] = type === 'richtext' ? field.innerHTML : field.matches('[data-choice-select]') ? choiceValue(field) : field.value;
         if (['number', 'range'].includes(type)) record[key] = Number(field.value);
         if (type === 'rows') {
           record[key] = [...field.querySelectorAll('.profile-edit-row')].map(row => ({

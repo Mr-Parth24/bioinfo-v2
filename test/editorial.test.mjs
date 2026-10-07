@@ -49,3 +49,18 @@ test('legacy director migration preserves drafts and explicit image removal',asy
  const snapshot=exportPreview({records:store.list(),out:join(dir,'preview')});assert.ok(!snapshot.routes.includes(r.route));assert.ok(!readFileSync(join(dir,'preview/index.html'),'utf8').includes('PRIVATE_SUMMARY'));
  }finally{store.close();rmSync(dir,{recursive:true,force:true});}
 });
+
+test('homepage hero becomes a slideshow of chosen, latest or random items',async()=>{
+ const {renderPage}=await import('../src/render.mjs');
+ const {defaults}=await import('../src/editorial.mjs');
+ const home=defaults.find(r=>r.id==='settings:home');
+ const pic=(id,date,status='published')=>({...news(id,date,status),route:'/news/'+id,image:'https://example.org/'+id+'.jpg'});
+ const items=[pic('a','2026-01-01'),pic('b','2026-02-01'),pic('c','2026-03-01','draft'),{...news('d','2026-04-01'),route:'/news/d'}];
+ const slides=settings=>[...renderPage('/',new URLSearchParams(),[{...home,...settings},...items]).html.matchAll(/class="hero-slide[^"]*"[^>]*>.*?(?:<a href="([^"]+)">|<\/div><\/div>)/g)].map(m=>m[1]||'photo');
+ assert.equal(slides({heroMode:'single'}).length,0,'single photo stays a plain figure');
+ assert.deepEqual(slides({heroMode:'latest',heroSlideCount:4}),['photo','/news/b','/news/a'],'latest, published, with images');
+ assert.deepEqual(slides({heroMode:'selected',heroSlideIds:['news:a','news:c']}),['photo','/news/a'],'chosen order, drafts skipped');
+ assert.equal(slides({heroMode:'random',heroSlideCount:1}).length,2);
+ assert.equal(slides({heroMode:'latest',heroSlideCount:1,gallery:['https://example.org/lab.jpg']}).length,3,'extra lab photos join');
+ assert.throws(()=>validateRecord({...home,heroSlideIds:['news:a','news:a']}),/related/i);
+});

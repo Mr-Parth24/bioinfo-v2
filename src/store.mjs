@@ -38,7 +38,7 @@ export class Store {
   _save(record,expectedVersion,actor,batch=[]){
     validateRecord(record);
     // Batch lookup supports forward references in a full content export/import.
-    for(const [field,collection] of [['publicationIds','publications'],['toolIds','tools'],['eventIds','events'],['opportunityIds','opportunities'],['researchIds','research'],['peopleIds','people'],['featuredIds',['news','events','publications']]]){
+    for(const [field,collection] of [['publicationIds','publications'],['toolIds','tools'],['eventIds','events'],['opportunityIds','opportunities'],['researchIds','research'],['peopleIds','people'],['featuredIds',['news','events','publications']],['heroSlideIds',['news','events','research']]]){
       for(const id of record[field]||[]){
         const target=batch.find(item=>item.id===id)||this.get(id);
         if(!target||!(Array.isArray(collection)?collection:[collection]).includes(target.collection))throw new InputError(`Invalid ${collection} reference: ${id}`);

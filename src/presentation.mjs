@@ -216,6 +216,36 @@ function pickOpportunity(records, c) {
   return open[0] || null;
 }
 
+const SLIDE_LABEL = { news: 'News', events: 'Event', research: 'Research' };
+/** Hero slides: the homepage photo, any extra lab photos, then chosen, latest or random records with images. */
+function heroSlides(records, c) {
+  const slides = c.image ? [{ record: c, caption: c.imageCaption || '' }] : [];
+  if (!c.heroMode || c.heroMode === 'single') return slides;
+  for (const url of c.gallery || []) slides.push({ record: { image: url, imageAlt: 'Life in the KAABiL lab', title: 'KAABiL lab' }, caption: '' });
+  const pool = published(records).filter(r => SLIDE_LABEL[r.collection] && r.image && r.route);
+  let picked;
+  if (c.heroMode === 'selected') picked = (c.heroSlideIds || []).map(id => pool.find(r => r.id === id)).filter(Boolean);
+  else {
+    const ordered = [...pool].sort((a, b) => dateValue(b) - dateValue(a));
+    if (c.heroMode === 'random') for (let i = ordered.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ordered[i], ordered[j]] = [ordered[j], ordered[i]]; }
+    picked = ordered.slice(0, Number(c.heroSlideCount) || 4);
+  }
+  return slides.concat(picked.map(r => ({ record: r, label: SLIDE_LABEL[r.collection], href: r.route })));
+}
+function heroFigure(records, c) {
+  const slides = heroSlides(records, c);
+  if (slides.length < 2) return `<figure class="home-hero-figure">${image(c, 'home-hero-image', false)}${c.imageCaption ? `<figcaption>${e(c.imageCaption)}</figcaption>` : ''}</figure>`;
+  const caption = s => s.href
+    ? `<figcaption class="slide-caption"><span class="slide-tag">${e(s.label)}</span><a href="${e(s.href)}">${e(s.record.title)}</a></figcaption>`
+    : s.caption ? `<figcaption class="slide-caption"><span>${e(s.caption)}</span></figcaption>` : '';
+  return `<figure class="home-hero-figure hero-slideshow" data-slideshow aria-roledescription="carousel" aria-label="Highlights from the lab">`
+    + `<div class="slides">${slides.map((s, i) => `<div class="hero-slide${i ? '' : ' is-active'}" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${slides.length}"${i ? ' aria-hidden="true"' : ''}>${image(s.record, 'home-hero-image', false)}${caption(s)}</div>`).join('')}</div>`
+    + `<div class="slide-controls"><button type="button" class="slide-arrow" data-slide-prev aria-label="Previous slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>`
+    + `<div class="slide-dots">${slides.map((_, i) => `<button type="button" data-slide-to="${i}" aria-label="Show slide ${i + 1}"${i ? '' : ' aria-current="true"'}></button>`).join('')}</div>`
+    + `<button type="button" class="slide-arrow" data-slide-next aria-label="Next slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>`
+    + `<button type="button" class="slide-pause" data-slide-pause aria-label="Pause slideshow"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-pause" d="M9 6v12M15 6v12"/><path class="i-play" d="M8 5l11 7-11 7z"/></svg></button></div></figure>`;
+}
+
 export function homepage(records) {
   const c = setting(records, 'settings:home');
   const live = published(records);
@@ -238,7 +268,7 @@ export function homepage(records) {
   const hero = `<section class="home-hero"><div class="wrap home-hero-grid">`
     + `<div class="home-hero-text"><p class="eyebrow">Kaundal Artificial Intelligence &amp; Advanced Bioinformatics Lab</p><h1>${e(c.title)}</h1><p class="lede">${e(c.summary)}</p>`
     + `<div class="hero-actions"><a class="button" href="${e(safeUrl(c.primaryLink) || '/research')}">${e(c.primaryLabel || 'Explore our research')} ${arrow}</a><a class="button button-ghost" href="${e(safeUrl(c.secondaryLink) || '/people')}">${e(c.secondaryLabel || 'Meet the team')}</a></div></div>`
-    + `<figure class="home-hero-figure">${image(c, 'home-hero-image', false)}${c.imageCaption ? `<figcaption>${e(c.imageCaption)}</figcaption>` : ''}</figure>`
+    + heroFigure(records, c)
     + `</div>`
     + (facts.length ? `<div class="wrap"><dl class="facts" aria-label="The lab at a glance">${facts.map(([n, label, href]) => `<div class="fact"><dt><a href="${href}">${e(label)}</a></dt><dd data-countup="${n}">${n}</dd></div>`).join('')}</dl></div>` : '')
     + `</section>`;
