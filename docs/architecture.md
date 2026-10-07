@@ -48,11 +48,13 @@ A news update takes this path:
 | `src/content.mjs` | Collections, field metadata, editor field order and record validation | `FIELDS`, `COLLECTION_FIELDS`, `validateRecord()` |
 | `src/security.mjs` | Password hashing, constant-time comparisons, URL checks, HTML escaping and rich-text allowlist | `hashPassword()`, `verifyPassword()`, `safeUrl()`, `sanitizeHtml()` |
 | `src/uploads.mjs` | Bounded body reads, accepted image signatures and generated upload names | `readLimited()`, `saveImage()`, `uploadedImage()` |
-| `src/render.mjs` | Public page templates, navigation/footer, route aliases, research tools, archives and detail pages | `renderPage(path, searchParams, records)` |
+| `src/render.mjs` | Document shell, router and page templates: research, people and profiles, publications, tools, news, events, articles, contact, search | `renderPage(path, searchParams, records)`, `shell()` |
+| `src/presentation.mjs` | Shared building blocks (icons, images, page header, breadcrumbs), navigation, header, footer, homepage, director profile, opportunities | `header()`, `footer()`, `homepage()`, `image()`, `pageHeader()` |
 | `src/admin-render.mjs` | Editor/login HTML shell; no secrets embedded | `adminPage()` |
-| `public/site.css` | Shared design tokens, components and responsive layouts | CSS layers: reset, base, layout, components, responsive |
-| `public/site.js` | Mobile menu, filters, image failures, reduced-motion-aware entrance effects | Progressive enhancement |
-| `public/admin.css` | Editor layout and mobile adaptations | Depends on the shared site tokens |
+| `public/site.css` | The whole public design: self-hosted fonts, tokens, chrome, components, page layouts, motion, print | Sections in that order; token names used by `admin.css` are kept |
+| `public/fonts/` | Inter and Source Serif 4 (SIL Open Font License); the CSP forbids external fonts | Allowlisted in `src/app.mjs` |
+| `public/site.js` | Navigation panels and mobile menu, directory filters, news tabs, copy buttons, image viewer, reveal and count-up motion | Progressive enhancement; every page works without it |
+| `public/admin.css` | Content Studio: widget styles, then a final "Studio layer" with the app bar, list and editor layout | Loaded after `site.css` on `/admin` |
 | `public/admin.js` | Editor state, forms, uploads, publishing, revision loading and login | Calls `/admin/api/*` |
 | `content/seed.json` | Initial imported content, stable record IDs and provenance | Imported once for a new database |
 | `scripts/migrate.py` | One-time source migration without executing the old code | Original ZIP → seed and migration report |
@@ -133,7 +135,7 @@ Exported content JSON is useful for versioning or migration, but does not contai
 
 **Connect the image bundle:** compare the supplied folders against `docs/migration-report.json → assetReferences`; preserve directory names. Prefer a media host or controlled import into `data/uploads`, then update records. Do not place the complete 800 MB bundle inside a Docker application layer or overwrite source paths without a mapping.
 
-**Change the design:** shared colors/type/spacing are in `:root` in `public/site.css`. Public composition is in `src/render.mjs`. Test search, keyboard focus, mobile menu, long titles, missing images and reduced motion after layout edits.
+**Change the design:** colours, type and spacing are tokens in `:root` at the top of `public/site.css`; the design rules are in [redesign-plan.md](redesign-plan.md). Page structure lives in `src/render.mjs` (pages) and `src/presentation.mjs` (shared chrome and homepage). The CSP forbids inline `style` attributes and `data:` images, so put all styling in the stylesheet. After layout edits, check search, keyboard focus, the mobile menu, long titles, missing images and reduced motion, and run `scripts/cms-e2e.cjs` against a disposable editor account.
 
 ## Verification boundary
 
@@ -154,3 +156,7 @@ People records now have optional `memberStatus`, `role`, `startYear`, `endYear`,
 `public/asset-map.json` records cached derivatives from 116 original image URLs, with dimensions and source mappings. Original URLs remain in content/provenance and full-size links. Four unavailable image sources retain placeholders. The 800 MB archive has not been imported.
 
 The media table stores upload metadata, dimensions and variant URLs. Sharp validates decoding and a 40-million-pixel limit; uploaded originals are retained, normalized 320/640/1200-pixel WebP display variants are generated where useful. Per-placement fit/focal values belong to the content record. Original and variant references in current records and revisions prevent permanent deletion. Asset references are not automatically garbage-collected. Back up both SQLite and uploads.
+
+## Redesign (October 2026)
+
+The public templates were rewritten in readable form and `public/theme.css` was folded into a single `public/site.css`. The homepage now reads every Homepage setting: announcement, latest-updates mode (automatic, selected, hidden) and count, event panel (automatic, selected, hidden), opportunity panel and image caption. The studio has its own app bar and no longer loads the public header. See [redesign-plan.md](redesign-plan.md).
