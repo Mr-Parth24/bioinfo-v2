@@ -5,7 +5,7 @@
  */
 import {
   header, footer, homepage, director, opportunities, related,
-  image, pageHeader, breadcrumbs, icons, arrow, asset, media, profileLinks, linkButtons,
+  image, pageHeader, breadcrumbs, icons, arrow, asset, media, profileLinks, linkButtons, toneFor,
 } from './presentation.mjs';
 import { setting, dateValue, activeOpportunities, displayDate } from './editorial.mjs';
 import { escapeHtml as e, sanitizeHtml, safeUrl, plainText } from './security.mjs';
@@ -99,7 +99,7 @@ function researchArea(record, records) {
     + (tools.length ? `<section class="area-section" id="tools"><h2>Tools &amp; databases</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Resource</th><th scope="col">What it does</th><th scope="col">Category</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead><tbody>${tools.map(t => `<tr><th scope="row"><a href="${e(t.link)}" target="_blank" rel="noopener noreferrer">${e(t.title)}</a></th><td>${e(t.summary || '')}</td><td><span class="tag">${e(t.category || 'Tool')}</span></td><td><a class="small-link" href="${e(t.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${e(t.title)} at ${e(host(t.link))}">Open ${icons.external}</a></td></tr>`).join('')}</tbody></table></div></section>` : '')
     + (pubs.length ? `<section class="area-section" id="publications"><div class="profile-section-head"><h2>Publications</h2><span class="count-badge">${pubs.length}</span></div><ol class="publication-entries compact">${pubs.map(p => publicationRow(p, { compact: true })).join('')}</ol><p><a class="link-more" href="/publications">All publications ${arrow}</a></p></section>` : '')
     + `</div><aside class="area-aside"><div class="aside-panel"><p class="eyebrow">On this page</p><ul class="aside-links"><li><a href="#main">Overview</a></li>${tools.length ? '<li><a href="#tools">Tools &amp; databases</a></li>' : ''}${pubs.length ? '<li><a href="#publications">Publications</a></li>' : ''}</ul></div><div class="aside-panel aside-opportunity"><p class="eyebrow">Work with us</p><p>Students and researchers interested in this area are welcome to get in touch.</p><a class="link-more" href="/opportunities">Opportunities ${arrow}</a></div></aside></div>`
-    + `<div class="wrap">${areas.length > 1 ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${areas.filter(r => r.id !== record.id).map(r => `<li><a href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : ''}<p class="back-link"><a href="/research">${icons.back} Back to research</a></p></div></article>`;
+    + `<div class="wrap">${areas.length > 1 ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${areas.filter(r => r.id !== record.id).map(r => `<li><a class="glow" href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : ''}<p class="back-link"><a href="/research">${icons.back} Back to research</a></p></div></article>`;
 }
 
 /* ---------- Tools ---------- */
@@ -109,17 +109,19 @@ function toolsPage(records) {
     category: r.category || 'Other tools',
     anchor: r.anchor || 'category-' + (r.category || 'other').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   }));
-  const groups = [...new Set(tools.map(r => r.category))].map(name => ({ name, anchor: tools.find(r => r.category === name).anchor, items: tools.filter(r => r.category === name) }));
-  const card = r => {
-    let host = '';
-    try { host = new URL(r.link).hostname.replace(/^www\./, ''); } catch { host = ''; }
-    return `<li class="tool-card" data-item data-category="${e(r.category)}" data-search="${e(r.title + ' ' + r.category + ' ' + (r.summary || ''))}"><a class="tool-card-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer"><div class="tool-shot">${r.image ? image({ ...r, imageFit: r.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(r.title.slice(0, 2))}</span>`}</div><div class="tool-card-body"><h3>${e(r.title)} ${icons.external}<span class="sr-only">(opens in a new tab)</span></h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="tool-host">${e(host)}</p></div></a>${r.resourceLinks?.length ? `<div class="tool-resources">${r.resourceLinks.map(x => `<a href="${e(safeUrl(x.link))}">${e(x.type)}</a>`).join('')}</div>` : ''}</li>`;
-  };
+  const groups = [...new Set(tools.map(r => r.category))].map(name => ({ name, tone: toneFor(name), anchor: tools.find(r => r.category === name).anchor, items: tools.filter(r => r.category === name) }));
+  const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  const card = r => `<li class="tool-card glow" data-tone="${toneFor(r.category)}" data-item data-category="${e(r.category)}" data-search="${e(r.title + ' ' + r.category + ' ' + (r.summary || ''))}"><a class="tool-card-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer">`
+    + `<div class="tool-window"><div class="tool-window-bar" aria-hidden="true"><i></i><i></i><i></i><span>${e(hostOf(r.link))}</span></div><div class="tool-shot">${r.image ? image({ ...r, imageFit: r.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(r.title.slice(0, 2))}</span>`}</div></div>`
+    + `<div class="tool-card-body"><span class="tool-cat">${e(r.category)}</span><h3>${e(r.title)}</h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<span class="tool-open">Open tool ${icons.external}<span class="sr-only">(opens ${e(hostOf(r.link))} in a new tab)</span></span></div></a>`
+    + `${r.resourceLinks?.length ? `<div class="tool-resources">${r.resourceLinks.map(x => `<a href="${e(safeUrl(x.link))}">${e(x.type)}</a>`).join('')}</div>` : ''}</li>`;
+  const chips = `<div class="filter-chips tone-chips" role="group" aria-label="Filter by category"><label class="chip"><input type="radio" name="category" value="" data-category-filter checked><span>All<small>${tools.length}</small></span></label>${groups.map(g => `<label class="chip" data-tone="${g.tone}"><input type="radio" name="category" value="${e(g.name)}" data-category-filter><span><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}<small>${g.items.length}</small></span></label>`).join('')}</div>`;
   return pageHeader('Tools & databases', 'Web servers, prediction tools and databases developed at KAABiL. Each opens on its original site and is free for academic research.', 'Resources', {
     aside: `<dl class="header-facts"><div><dt>Resources</dt><dd>${tools.length}</dd></div><div><dt>Categories</dt><dd>${groups.length}</dd></div></dl>`,
   })
-    + `<div class="wrap page-body tools-layout" data-directory><nav class="side-nav" aria-label="Tool categories"><p class="eyebrow">Categories</p><ul>${groups.map(g => `<li><a href="#${e(g.anchor)}">${e(g.name)}<span>${g.items.length}</span></a></li>`).join('')}</ul></nav>`
-    + `<div class="tools-main">${filterBar(tools, 'tools', { categories: false })}${groups.map(g => `<section class="tool-group" data-filter-group id="${e(g.anchor)}" aria-labelledby="tg-${e(g.anchor)}"><div class="group-head"><h2 id="tg-${e(g.anchor)}">${e(g.name)}</h2><span>${count(g.items.length, 'resource')}</span></div><ul class="tool-grid">${g.items.map(card).join('')}</ul></section>`).join('')}</div></div>`;
+    + `<div class="wrap page-body tools-layout" data-directory>`
+    + `<div class="tools-main"><form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search tools</span>${icons.search}<input name="q" type="search" placeholder="Search tools, e.g. localization, wheat, deep learning…" data-search-input autocomplete="off"></label><p class="result-count" aria-live="polite"><span data-count>${tools.length}</span> tools</p>${chips}</form><p class="empty-state" data-empty hidden>No tool matches that search.</p>`
+    + groups.map(g => `<section class="tool-group" data-tone="${g.tone}" data-filter-group id="${e(g.anchor)}" aria-labelledby="tg-${e(g.anchor)}"><div class="group-head"><h2 id="tg-${e(g.anchor)}"><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}</h2><span>${count(g.items.length, 'resource')}</span></div><ul class="tool-grid">${g.items.map(card).join('')}</ul></section>`).join('') + `</div></div>`;
 }
 
 /* ---------- Publications ---------- */
@@ -241,7 +243,7 @@ function peoplePage(records, path) {
   const directorVisible = d && d.status === 'published';
   const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length + (directorVisible ? 1 : 0)}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
   const lead = !showingAlumni && directorVisible
-    ? `<a class="lead-card reveal" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
+    ? `<a class="lead-card reveal glow" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
     : '';
   const groups = PEOPLE_GROUPS.map(name => ({ name, rows: list.filter(r => peopleGroup(r) === name) })).filter(g => g.rows.length);
   const chips = groups.length > 1
@@ -257,7 +259,7 @@ function timeline(rows, linkLabel = 'Related link') {
   return `<ol class="timeline">${rows.map(item => `<li><span class="timeline-date">${e(item.date)}</span><div><h3>${e(item.title)}</h3>${item.description ? `<p>${e(item.description)}</p>` : ''}${item.link ? `<a class="link-more" href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">${linkLabel} ${icons.external}</a>` : ''}</div></li>`).join('')}</ol>`;
 }
 function toolTiles(tools) {
-  return `<ul class="profile-tools">${tools.map(t => `<li><a href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer"><div class="tool-shot">${t.image ? image({ ...t, imageFit: t.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(t.title.slice(0, 2))}</span>`}</div><div><h3>${e(t.title)} ${icons.external}</h3>${t.category ? `<p>${e(t.category)}</p>` : ''}</div></a></li>`).join('')}</ul>`;
+  return `<ul class="profile-tools">${tools.map(t => `<li><a class="glow" data-tone="${toneFor(t.category)}" href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer"><div class="tool-shot">${t.image ? image({ ...t, imageFit: t.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(t.title.slice(0, 2))}</span>`}</div><div><h3>${e(t.title)} ${icons.external}</h3>${t.category ? `<p>${e(t.category)}</p>` : ''}</div></a></li>`).join('')}</ul>`;
 }
 function personProfile(record, records) {
   const alum = isAlumnus(record);
@@ -378,7 +380,7 @@ function detail(input, records) {
     + (record.id === 'pages:home' ? '<p class="article-aside-link"><a class="link-more" href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s journey ' + icons.external + '</a></p>' : '')
     + (record.gallery?.length ? `<section class="gallery-section"><h2>Gallery <span class="count-badge">${record.gallery.length}</span></h2><div class="gallery" aria-label="Photo gallery">${record.gallery.map((url, i) => `<div>${image({ title: record.title, image: url, imageAlt: record.title + ' — photo ' + (i + 1) })}</div>`).join('')}</div></section>` : '')
     + related(record, records)
-    + (siblings.length ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${siblings.map(r => `<li><a href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : '')
+    + (siblings.length ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${siblings.map(r => `<li><a class="glow" href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : '')
     + `<p class="back-link"><a href="${section[1]}">${icons.back} Back to ${e(section[0].toLowerCase())}</a></p></div></article>`;
 }
 
