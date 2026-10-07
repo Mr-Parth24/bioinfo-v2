@@ -126,39 +126,64 @@ function toolsPage(records) {
 
 /* ---------- Publications ---------- */
 /* ---------- Author roles (the original list's $ * ^ marks, underline and italic) ---------- */
-const ROLE_ICON = {
-  equal: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6h8M4 10h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-  corresponding: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="11" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m3 5 5 3.5L13 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-  mentored: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14V8m0 0c0-3 2-4.5 5-4.5 0 3-2 4.5-5 4.5Zm0 0c0-2.4-1.7-3.8-4.5-3.8 0 2.4 1.7 3.8 4.5 3.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-};
-/** id, original mark, label, short description. The order is the order of the legend. */
+/** id, label, short description. The order is the order of the legend and of stacked highlight lines. */
 const AUTHOR_ROLES = [
-  ['corresponding', '*', 'Corresponding author', 'Marked * in the original list'],
-  ['equal', '$', 'Equal contribution', 'Authors who contributed equally ($)'],
-  ['grad', 'underline', 'Graduate student', 'Underlined names'],
-  ['undergrad', 'italic', 'Undergraduate student', 'Names in italics'],
-  ['mentored', '^', 'Mentored student', 'A collaborator’s student mentored by Dr. Kaundal (^)'],
+  ['corresponding', 'Corresponding author', 'Marked * in the original list'],
+  ['equal', 'Equal contribution', 'Authors who contributed equally ($)'],
+  ['grad', 'Graduate student', 'Underlined in the original list'],
+  ['undergrad', 'Undergraduate student', 'In italics in the original list'],
+  ['mentored', 'Mentored student', 'A collaborator’s student mentored by Dr. Kaundal (^)'],
 ];
 const MARK = { $: 'equal', '*': 'corresponding', '^': 'mentored' };
-const roleLabel = id => AUTHOR_ROLES.find(r => r[0] === id)[2];
-/** Sanitised author list; the $ * ^ superscripts become labelled role badges. */
+const roleLabel = id => AUTHOR_ROLES.find(r => r[0] === id)[1];
+const decode = text => text.replace(/&(amp|lt|gt|quot|#39);/g, (_, x) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" })[x]);
+/** Splits an author list into names with their roles. Underline, italics and superscript marks are
+    read as roles; a comma followed only by initials ("Duhan, N.") stays inside the name. */
+function parseAuthors(authors) {
+  const chars = [], marks = [];
+  let u = 0, it = 0, bold = 0, sup = false;
+  for (const m of sanitizeHtml(authors).matchAll(/<(\/?)(\w+)[^>]*>|([^<]+)/g)) {
+    if (m[3] !== undefined) {
+      const text = decode(m[3]);
+      if (sup) { for (const c of text) if (MARK[c]) marks.push({ at: chars.length, role: MARK[c] }); }
+      else for (const ch of text) chars.push({ ch, u: u > 0, it: it > 0, bold: bold > 0 });
+      continue;
+    }
+    const d = m[1] ? -1 : 1, tag = m[2].toLowerCase();
+    if (tag === 'u') u += d; else if (tag === 'em' || tag === 'i') it += d; else if (tag === 'b' || tag === 'strong') bold += d; else if (tag === 'sup') sup = d > 0;
+  }
+  const text = chars.map(c => c.ch).join('');
+  const parts = [];
+  let from = 0;
+  for (const m of text.matchAll(/\s*[,;&]\s*(?:and\s+)?|\s+and\s+/g)) {
+    if (m[0].trim().startsWith(',') && /^(?:[A-Z]\.?\s?-?){1,4}(?=\s*(?:[,;.&]|and\b|$))/.test(text.slice(m.index + m[0].length))) continue;
+    parts.push({ start: from, end: m.index }, { sep: text.slice(m.index, m.index + m[0].length) });
+    from = m.index + m[0].length;
+  }
+  parts.push({ start: from, end: text.length });
+  const names = parts.filter(p => !p.sep);
+  for (const mark of marks) {
+    const owner = names.filter(n => n.start < mark.at || n === names[0]).pop();
+    (owner.marks ||= new Set()).add(mark.role);
+  }
+  return parts.map(p => {
+    if (p.sep !== undefined) return p;
+    const span = chars.slice(p.start, p.end);
+    const roles = AUTHOR_ROLES.map(r => r[0]).filter(id => id === 'grad' ? span.some(c => c.u) : id === 'undergrad' ? span.some(c => c.it) : p.marks?.has(id));
+    let html = '';
+    for (const c of span) html += c.bold ? `<strong>${e(c.ch)}</strong>` : e(c.ch);
+    return { html: html.replaceAll('</strong><strong>', ''), roles };
+  });
+}
+/** Author list with a span per role-bearing name; coloured dots name its roles. site.js draws the highlight lines. */
 function authorsHtml(authors) {
-  return sanitizeHtml(authors).replace(/<sup>\s*([$*^])\s*<\/sup>/g, (_, m) => `<span class="role-badge role-${MARK[m]}" title="${roleLabel(MARK[m])}">${ROLE_ICON[MARK[m]]}<span class="sr-only"> (${roleLabel(MARK[m]).toLowerCase()})</span></span>`);
+  return parseAuthors(authors).map(p => p.sep !== undefined ? e(p.sep)
+    : !p.roles.length ? p.html
+    : `<span class="author" data-roles="${p.roles.join(' ')}" title="${e(p.roles.map(roleLabel).join(', '))}">${p.html}<span class="role-dots" aria-hidden="true">${p.roles.map(id => `<span class="role-dot role-${id}"></span>`).join('')}</span><span class="sr-only"> (${e(p.roles.map(roleLabel).join(', ').toLowerCase())})</span></span>`).join('');
 }
 function authorRoles(authors) {
-  const html = sanitizeHtml(authors);
-  const roles = [];
-  if (/<sup>\s*\*\s*<\/sup>/.test(html)) roles.push('corresponding');
-  if (/<sup>\s*\$\s*<\/sup>/.test(html)) roles.push('equal');
-  if (/<u>/.test(html)) roles.push('grad');
-  if (/<(em|i)>/.test(html)) roles.push('undergrad');
-  if (/<sup>\s*\^\s*<\/sup>/.test(html)) roles.push('mentored');
-  return roles;
-}
-function roleSwatch(id) {
-  if (id === 'grad') return '<span class="role-swatch swatch-grad" aria-hidden="true">Aa</span>';
-  if (id === 'undergrad') return '<span class="role-swatch swatch-undergrad" aria-hidden="true">Aa</span>';
-  return `<span class="role-badge role-${id}" aria-hidden="true">${ROLE_ICON[id]}</span>`;
+  const roles = new Set(parseAuthors(authors).flatMap(p => p.roles || []));
+  return AUTHOR_ROLES.map(r => r[0]).filter(id => roles.has(id));
 }
 function yearRanges(years) {
   const nums = years.map(Number).filter(Boolean);
@@ -189,14 +214,14 @@ function publicationPage(records, params) {
   const rangeChips = ranges.length > 1
     ? `<div class="control-row"><p class="control-label" id="years-label">Years</p><div class="filter-chips range-chips" role="group" aria-labelledby="years-label"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div></div>`
     : '';
-  const roleCounts = AUTHOR_ROLES.map(([id, , label, help]) => ({ id, label, help, n: selected.filter(r => authorRoles(r.authors).includes(id)).length })).filter(x => x.n);
+  const roleCounts = AUTHOR_ROLES.map(([id, label, help]) => ({ id, label, help, n: selected.filter(r => authorRoles(r.authors).includes(id)).length })).filter(x => x.n);
   const roleControl = roleCounts.length
-    ? `<div class="control-row"><p class="control-label" id="roles-label">Author roles</p><div class="role-filter"><div class="filter-chips" role="group" aria-labelledby="roles-label">${roleCounts.map(x => `<button type="button" class="role-chip" data-author-key="${x.id}" aria-pressed="false" title="${e(x.help)}">${roleSwatch(x.id)}<span>${e(x.label)}</span><small>${x.n}</small></button>`).join('')}</div><label class="only-toggle" hidden><input type="checkbox" data-role-only><span>Only show these publications</span></label></div></div>`
+    ? `<div class="control-row"><p class="control-label" id="roles-label">Author roles</p><div class="role-filter"><div class="filter-chips" role="group" aria-labelledby="roles-label">${roleCounts.map(x => `<button type="button" class="role-chip role-${x.id}" data-author-key="${x.id}" aria-pressed="false" title="${e(x.help)}"><span class="role-dot" aria-hidden="true"></span><span>${e(x.label)}</span><small>${x.n}</small></button>`).join('')}</div><div class="role-actions" hidden><label class="only-toggle"><input type="checkbox" data-role-only><span>Only show these publications</span></label><button type="button" class="role-clear" data-role-clear>Clear selection</button></div></div></div>`
     : '';
   return pageHeader('Publications', 'Journal articles, conference presentations and editorial work from the lab, newest first.', 'Scholarship', { trail: mode === 'Papers' ? [['Publications']] : [['Publications', '/publications'], [modes.find(m => m[0] === mode)[2]]] })
     + `<div class="wrap page-body">${tabs}<div data-directory><div class="pub-controls">${filterBar(selected, 'publications', { categories: false })}${rangeChips}${roleControl}</div>`
-    + `<div class="publication-list" data-highlight="">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(r => publicationRow(r, { venue: venueOf(r) })).join('')}</ol></section>`).join('')}</div></div>`
-    + `<p class="footnote">Author roles follow the lab’s original publication list: * corresponding author, $ equal contribution, ^ a collaborator’s student mentored by Dr. Kaundal, underlined graduate students and italic undergraduate students.</p></div>`;
+    + `<div class="publication-list">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(r => publicationRow(r, { venue: venueOf(r) })).join('')}</ol></section>`).join('')}</div></div>`
+    + `<p class="footnote">Coloured dots after a name show that author’s roles. Select one or more roles above to underline those names, one colour per role. The roles follow the lab’s original publication list: * corresponding author, $ equal contribution, ^ a collaborator’s student mentored by Dr. Kaundal, underlined graduate students and italic undergraduate students.</p></div>`;
 }
 
 /* ---------- People ---------- */
