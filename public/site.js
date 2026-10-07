@@ -206,6 +206,23 @@
     document.querySelectorAll('.profile-section[id]').forEach(s => observer.observe(s));
   }
 
+  /* ---------- Glow cards: the gradient border follows the pointer ---------- */
+  if (matchMedia('(hover: hover)').matches) {
+    let pending = null;
+    document.addEventListener('pointermove', event => {
+      const card = event.target.closest?.('.glow');
+      if (!card) return;
+      pending = { card, x: event.clientX, y: event.clientY };
+      requestAnimationFrame(() => {
+        if (!pending) return;
+        const r = pending.card.getBoundingClientRect();
+        pending.card.style.setProperty('--mx', `${pending.x - r.left}px`);
+        pending.card.style.setProperty('--my', `${pending.y - r.top}px`);
+        pending = null;
+      });
+    }, { passive: true });
+  }
+
   /* ---------- Copy buttons (citations, email addresses) ---------- */
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-copy]');

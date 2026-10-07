@@ -88,6 +88,19 @@ export function profileLinks(rows = []) {
 }
 export const linkButtons = links => links.length ? `<ul class="profile-links">${links.map(l => `<li><a href="${e(l.href)}" target="_blank" rel="noopener noreferrer"><span class="link-mono" aria-hidden="true">${e(l.mono)}</span><span>${e(l.label)}</span>${icons.external}</a></li>`).join('')}</ul>` : '';
 
+/* ---------- Category colours ("tones") shared by tool cards, chips and homepage tiles ---------- */
+const TONES = ['rose', 'blue', 'teal', 'amber', 'green', 'violet', 'orange', 'indigo', 'pink', 'cyan'];
+const TONE_BY_CATEGORY = {
+  'Host-Pathogen Interactions': 'rose', 'Subcellular Localization Prediction': 'blue', 'Databases': 'teal',
+  'Bioenergy': 'amber', 'Metagenomics': 'green', 'Descriptors': 'violet', 'Disease Forecasting': 'orange',
+  'NGS Packages': 'indigo', 'Functional Annotation': 'pink',
+};
+export function toneFor(category = '') {
+  if (TONE_BY_CATEGORY[category]) return TONE_BY_CATEGORY[category];
+  let h = 0; for (const c of category) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return TONES[h % TONES.length];
+}
+
 /* ---------- Navigation ---------- */
 const published = records => records.filter(r => r.status === 'published');
 const toolGroups = records => {
@@ -241,7 +254,7 @@ export function homepage(records) {
 
   const groups = toolGroups(records);
   const tools = groups.length ? `<section class="home-section home-tools"><div class="wrap">${sectionHead('Resources', 'Open tools for the research community', '/tools', 'Browse all tools', 'Web servers and databases developed by the lab, free to use for academic research.')}`
-    + `<ul class="tool-categories">${groups.map(g => `<li class="reveal"><a href="/tools#${e(g.anchor)}"><span class="tool-category-name">${e(g.name)}</span><span class="tool-category-count">${g.count} ${g.count === 1 ? 'resource' : 'resources'}</span>${arrow}</a></li>`).join('')}</ul></div></section>` : '';
+    + `<ul class="tool-categories">${groups.map(g => `<li class="reveal glow" data-tone="${toneFor(g.name)}"><a href="/tools#${e(g.anchor)}"><span class="tone-dot" aria-hidden="true"></span><span class="tool-category-name">${e(g.name)}</span><span class="tool-category-count">${g.count} ${g.count === 1 ? 'resource' : 'resources'}</span>${arrow}</a></li>`).join('')}</ul></div></section>` : '';
 
   const pubs = papers.length ? `<section class="home-section"><div class="wrap">${sectionHead('Scholarship', 'Recent publications', '/publications', 'All publications')}`
     + `<ol class="pub-teaser">${papers.slice(0, 4).map(r => `<li class="reveal"><span class="pub-teaser-year">${e(r.year)}</span><div><h3>${r.link ? `<a href="${e(safeUrl(r.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3><p class="authors">${sanitizeHtml(r.authors)}</p></div></li>`).join('')}</ol></div></section>` : '';
@@ -285,7 +298,7 @@ export function related(record, records) {
   const items = records.filter(r => r.status === 'published' && ids.has(r.id) && r.id !== record.id);
   const label = { research: 'Research', people: 'Person', publications: 'Publication', tools: 'Tool' };
   return items.length
-    ? `<section class="related"><h2>Related work</h2><ul class="related-grid">${items.map(r => `<li><a href="${e(safeUrl(r.route || r.link) || '/publications')}"><span class="tag">${e(label[r.collection] || r.collection)}</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>`
+    ? `<section class="related"><h2>Related work</h2><ul class="related-grid">${items.map(r => `<li><a class="glow" href="${e(safeUrl(r.route || r.link) || '/publications')}"><span class="tag">${e(label[r.collection] || r.collection)}</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>`
     : '';
 }
 
@@ -294,7 +307,7 @@ export function opportunities(records) {
   const all = records.filter(r => r.collection === 'opportunities');
   const active = activeOpportunities(records);
   const closed = all.filter(r => !active.includes(r));
-  const cards = rows => `<ul class="opportunity-list">${rows.map(r => `<li class="opportunity-card"><div><p class="eyebrow">${e(r.category || 'Research opportunity')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="meta">${[r.location, r.deadline ? 'Apply by ' + r.deadline : ''].filter(Boolean).map(e).join(' · ')}</p></div><a class="button button-ghost" href="${e(r.route)}">Details ${arrow}</a></li>`).join('')}</ul>`;
+  const cards = rows => `<ul class="opportunity-list">${rows.map(r => `<li class="opportunity-card glow"><div><p class="eyebrow">${e(r.category || 'Research opportunity')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="meta">${[r.location, r.deadline ? 'Apply by ' + r.deadline : ''].filter(Boolean).map(e).join(' · ')}</p></div><a class="button button-ghost" href="${e(r.route)}">Details ${arrow}</a></li>`).join('')}</ul>`;
   const empty = `<div class="notice-panel"><div><h2>No open positions are listed right now</h2><p>We still welcome enquiries from prospective graduate students, postdoctoral researchers and visiting scholars. Send Dr. Kaundal a short note about your interests and background.</p></div><div class="join-actions"><a class="button" href="/contact">How to apply ${arrow}</a></div></div>`;
   return pageHeader('Opportunities', 'Find your next research chapter with KAABiL.', 'Join the lab', { trail: [['About', '/about'], ['Opportunities']] })
     + `<div class="wrap page-body">${active.length ? cards(active) : empty}${closed.length ? `<details class="archive-panel"><summary>Past opportunities (${closed.length})</summary>${cards(closed)}</details>` : ''}`
