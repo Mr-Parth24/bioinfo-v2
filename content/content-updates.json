@@ -62,5 +62,112 @@
     "tools:PRGminer": { "summary": "Deep learning to identify and classify plant resistance (R) genes." },
     "tools:HuPoxNET": { "summary": "Atlas of the human–monkeypox virus interactome for functional insights." },
     "tools:HPIpy": { "summary": "Python toolkit to predict host–pathogen protein interactions." }
+  },
+  "replacements": {
+    "about": "Image changes, October 2026: the six research areas get original illustrations (scripts/research-art.mjs). A replacement applies only while the record still has the image it replaces, so an image an editor has chosen is never overwritten.",
+    "records": {
+      "research:ai": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/AI-processor-LowRes-v1.jpg"
+        },
+        "set": {
+          "image": "/assets/media/research-ai-1600.webp",
+          "imageAlt": "Illustration: a DNA sequence feeding a neural network whose highlighted paths lead to a confident prediction",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-ai-640.webp", "width": 640 },
+            { "url": "/assets/media/research-ai-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-ai-1600.webp", "width": 1600 }
+          ]
+        }
+      },
+      "research:hpi": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/HPI_new.gif"
+        },
+        "set": {
+          "image": "/assets/media/research-hpi-1600.webp",
+          "imageAlt": "Illustration: spiked virus particles docking on receptors of a host cell membrane, linked by a protein interaction network",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-hpi-640.webp", "width": 640 },
+            { "url": "/assets/media/research-hpi-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-hpi-1600.webp", "width": 1600 }
+          ]
+        }
+      },
+      "research:pfp": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/functionalbg_resized.png"
+        },
+        "set": {
+          "image": "/assets/media/research-pfp-1600.webp",
+          "imageAlt": "Illustration: a folded protein chain of helices and strands with annotated functional domains",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-pfp-640.webp", "width": 640 },
+            { "url": "/assets/media/research-pfp-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-pfp-1600.webp", "width": 1600 }
+          ]
+        }
+      },
+      "research:metagenomics": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/meta_new.png"
+        },
+        "set": {
+          "image": "/assets/media/research-metagenomics-1600.webp",
+          "imageAlt": "Illustration: a diverse microbial community seen through a lens among soil and plant roots, beside a tree of life",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-metagenomics-640.webp", "width": 640 },
+            { "url": "/assets/media/research-metagenomics-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-metagenomics-1600.webp", "width": 1600 }
+          ]
+        }
+      },
+      "research:pa": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/sabbi-post/p_agr.jpg"
+        },
+        "set": {
+          "image": "/assets/media/research-pa-1600.webp",
+          "imageAlt": "Illustration: a drone scanning crop rows at sunrise and flagging weeds among the crop plants",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-pa-640.webp", "width": 640 },
+            { "url": "/assets/media/research-pa-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-pa-1600.webp", "width": 1600 }
+          ]
+        }
+      },
+      "research:ngs": {
+        "when": {
+          "image": "https://bioinfocore.usu.edu/raikou/image/bioinfo/datamining-lowres.png"
+        },
+        "set": {
+          "image": "/assets/media/research-ngs-1600.webp",
+          "imageAlt": "Illustration: a DNA double helix above aligned sequencing reads, a coverage curve and a highlighted variant",
+          "imageOriginal": "",
+          "imageWidth": 1600,
+          "imageHeight": 1200,
+          "imageVariants": [
+            { "url": "/assets/media/research-ngs-640.webp", "width": 640 },
+            { "url": "/assets/media/research-ngs-1200.webp", "width": 1200 },
+            { "url": "/assets/media/research-ngs-1600.webp", "width": 1600 }
+          ]
+        }
+      }
+    }
   }
 }

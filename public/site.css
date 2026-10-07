@@ -705,8 +705,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pub-controls{display:grid;gap:16px;margin-bottom:36px;padding:20px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
 .pub-controls .filter-bar{margin-bottom:0}
 .pub-controls .search-field{background:#fff}
-.control-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:start;padding-top:14px;border-top:1px solid var(--rule)}
-.control-label{font:600 12.5px/2.6 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.control-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;align-items:start;padding-top:14px;border-top:1px solid var(--rule)}
+.control-label{white-space:nowrap;font:600 12.5px/2.6 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .chip span small,.role-chip small{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .chip span{gap:8px}
 .chip input:checked+span small{color:rgb(255 255 255/.75)}
@@ -718,32 +718,34 @@ button,input,select,textarea{font:inherit;color:inherit}
 .only-toggle{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;color:var(--navy);cursor:pointer;width:fit-content}
 .only-toggle input{width:18px;height:18px;accent-color:var(--crimson)}
 
-/* Role badges inside author lists, and the matching swatches in the controls */
-.role-badge{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:2px;border-radius:50%;vertical-align:-3px;color:#fff}
-.role-badge svg{width:12px;height:12px}
-.role-corresponding{background:#1d5d95}
-.role-equal{background:#7a4fb5}
-.role-mentored{background:#2f7a4f}
-.role-swatch{display:inline-grid;place-items:center;width:24px;height:20px;font:600 13px/1 var(--serif);color:var(--navy)}
-.swatch-grad{text-decoration:underline 2px #c2410c;text-underline-offset:3px}
-.swatch-undergrad{font-style:italic;text-decoration:underline dotted 2px #0e7490;text-underline-offset:3px}
-.role-chip .role-badge{width:22px;height:22px;margin:0}
-.role-chip[aria-pressed=true] .role-swatch{color:#fff}
-.authors u{text-decoration:underline 1.5px #c2410c;text-underline-offset:3px}
-.authors :is(em,i){font-style:italic;text-decoration:underline dotted 1.5px #0e7490;text-underline-offset:3px}
-.authors u :is(em,i){text-decoration:none}
-/* Highlighting: matching marks get a soft marker; publications without the role step back */
-.publication-list[data-highlight]:not([data-highlight=""]) .publication{transition:opacity .2s}
-.publication-list[data-highlight=corresponding] .publication:not([data-roles~=corresponding]),
-.publication-list[data-highlight=equal] .publication:not([data-roles~=equal]),
-.publication-list[data-highlight=mentored] .publication:not([data-roles~=mentored]),
-.publication-list[data-highlight=grad] .publication:not([data-roles~=grad]),
-.publication-list[data-highlight=undergrad] .publication:not([data-roles~=undergrad]){opacity:.38}
-.publication-list[data-highlight=corresponding] .role-corresponding,
-.publication-list[data-highlight=equal] .role-equal,
-.publication-list[data-highlight=mentored] .role-mentored{box-shadow:0 0 0 3px #fde68a;transform:scale(1.15)}
-.publication-list[data-highlight=grad] .authors u,
-.publication-list[data-highlight=undergrad] .authors :is(em,i){background:#fef3c7;border-radius:3px;box-shadow:0 0 0 2px #fef3c7;color:var(--ink)}
+/* Author roles: one colour per role. Dots after a name name its roles; selecting roles draws
+   one 2.5px line per selected role under matching names (stacked, never overlapping the next line). */
+:root{--role-corresponding:#2563eb;--role-equal:#7c3aed;--role-grad:#ea580c;--role-undergrad:#db2777;--role-mentored:#059669}
+.role-corresponding{--role:var(--role-corresponding)}
+.role-equal{--role:var(--role-equal)}
+.role-grad{--role:var(--role-grad)}
+.role-undergrad{--role:var(--role-undergrad)}
+.role-mentored{--role:var(--role-mentored)}
+.role-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--role)}
+.role-chip{padding:6px 12px}
+.role-chip .role-dot{width:9px;height:9px}
+.role-chip:hover{border-color:var(--role)}
+.role-chip[aria-pressed=true]{border-color:var(--role);background:color-mix(in srgb,var(--role) 9%,#fff);color:var(--ink);box-shadow:inset 0 -3px 0 var(--role)}
+.role-chip[aria-pressed=true] small{color:var(--muted)}
+.role-chip:focus-visible{outline:2px solid var(--role);outline-offset:2px}
+.role-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+.role-actions[hidden]{display:none}
+.role-clear{padding:0;border:0;background:none;font:500 14.5px/1.4 var(--sans);color:var(--link);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.role-clear:hover{color:var(--link-hover)}
+.authors{line-height:2}
+.author{white-space:nowrap}
+.role-dots{display:inline-flex;gap:2px;margin-left:3px;vertical-align:2px}
+.author[data-lines]{color:var(--ink);background-repeat:no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:color .15s}
+.author[data-lines="1"]{padding-bottom:3px;background-image:linear-gradient(var(--line-1),var(--line-1));background-size:100% 2.5px;background-position:0 100%}
+.author[data-lines="2"]{padding-bottom:7px;background-image:linear-gradient(var(--line-1),var(--line-1)),linear-gradient(var(--line-2),var(--line-2));background-size:100% 2.5px;background-position:0 calc(100% - 4px),0 100%}
+.author[data-lines="3"]{padding-bottom:11px;background-image:linear-gradient(var(--line-1),var(--line-1)),linear-gradient(var(--line-2),var(--line-2)),linear-gradient(var(--line-3),var(--line-3));background-size:100% 2.5px;background-position:0 calc(100% - 8px),0 calc(100% - 4px),0 100%}
+.publication-list.is-highlighting .publication{transition:opacity .2s}
+.publication-list.is-highlighting .publication:not(.is-match){opacity:.4}
 @media(max-width:640px){.pub-controls{padding:14px}.control-row{grid-template-columns:1fr;gap:6px}.control-label{line-height:1.4}}
 
 /* ---------- People: groups, cards and profiles ---------- */

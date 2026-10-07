@@ -88,7 +88,7 @@
       const query = (search?.value || '').toLocaleLowerCase().trim();
       const cat = directory.querySelector('input[type="radio"][data-category-filter]:checked')?.value ?? category?.value ?? '';
       const [from, to] = (directory.querySelector('input[data-year-range]:checked')?.value || '').split('-').map(Number);
-      const onlyRole = directory.querySelector('[data-role-only]')?.checked ? directory.querySelector('.publication-list')?.dataset.highlight : '';
+      const onlyRoles = directory.querySelector('[data-role-only]')?.checked ? [...directory.querySelectorAll('[data-author-key][aria-pressed="true"]')].map(b => b.dataset.authorKey) : [];
       const waiting = directory.hasAttribute('data-require-query') && !query;
       const hint = directory.querySelector('[data-search-hint]');
       if (hint) hint.hidden = !waiting;
@@ -98,7 +98,7 @@
           && (!cat || item.dataset.category === cat)
           && (!year?.value || item.dataset.year === year.value)
           && (!from || (Number(item.dataset.year) >= from && Number(item.dataset.year) <= to))
-          && (!onlyRole || (item.dataset.roles || '').split(' ').includes(onlyRole));
+          && (!onlyRoles.length || (item.dataset.roles || '').split(' ').some(r => onlyRoles.includes(r)));
         item.hidden = !match;
         if (match) shown++;
       }
@@ -107,7 +107,7 @@
       });
       if (counter) counter.textContent = shown;
       if (empty) empty.hidden = shown !== 0 || waiting;
-      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from || onlyRole));
+      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from || onlyRoles.length));
       directory.dispatchEvent(new CustomEvent('directory:update'));
     };
     search?.addEventListener('input', update);
@@ -170,20 +170,37 @@
     addEventListener('resize', () => { limits.clear(); apply(); });
   }
 
-  /* ---------- Publications: authorship key highlights matching marks ---------- */
+  /* ---------- Publications: author roles. Several can be selected; each draws its own coloured line
+     under matching names, stacked in legend order, and publications without any of them step back. ---------- */
   const keyButtons = [...document.querySelectorAll('[data-author-key]')];
   const pubList = document.querySelector('.publication-list');
-  const onlyToggle = document.querySelector('.only-toggle');
-  keyButtons.forEach(button => button.addEventListener('click', () => {
-    const on = button.getAttribute('aria-pressed') !== 'true';
-    keyButtons.forEach(b => b.setAttribute('aria-pressed', String(b === button && on)));
-    if (pubList) pubList.dataset.highlight = on ? button.dataset.authorKey : '';
-    if (onlyToggle) {
-      onlyToggle.hidden = !on;
-      if (!on) onlyToggle.querySelector('input').checked = false;
+  const roleActions = document.querySelector('.role-actions');
+  const roleOrder = keyButtons.map(b => b.dataset.authorKey);
+  const highlightRoles = () => {
+    const selected = keyButtons.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.authorKey);
+    pubList?.classList.toggle('is-highlighting', selected.length > 0);
+    pubList?.querySelectorAll('.publication').forEach(item => item.classList.toggle('is-match', (item.dataset.roles || '').split(' ').some(r => selected.includes(r))));
+    pubList?.querySelectorAll('.author').forEach(name => {
+      const roles = name.dataset.roles.split(' ');
+      const active = roleOrder.filter(r => selected.includes(r) && roles.includes(r));
+      if (active.length) name.dataset.lines = active.length; else delete name.dataset.lines;
+      [0, 1, 2, 3, 4].forEach(i => active[i] ? name.style.setProperty(`--line-${i + 1}`, `var(--role-${active[i]})`) : name.style.removeProperty(`--line-${i + 1}`));
+    });
+    if (roleActions) {
+      roleActions.hidden = !selected.length;
+      if (!selected.length) roleActions.querySelector('[data-role-only]').checked = false;
     }
-    button.closest('[data-directory]')?.dispatchEvent(new CustomEvent('roles:change'));
+    keyButtons[0]?.closest('[data-directory]')?.dispatchEvent(new CustomEvent('roles:change'));
+  };
+  keyButtons.forEach(button => button.addEventListener('click', () => {
+    button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
+    highlightRoles();
   }));
+  document.querySelector('[data-role-clear]')?.addEventListener('click', () => {
+    keyButtons.forEach(b => b.setAttribute('aria-pressed', 'false'));
+    highlightRoles();
+    keyButtons[0]?.focus();
+  });
 
   /* ---------- Profile pages: publication year filter and table of contents ---------- */
   document.querySelectorAll('[data-pub-filter]').forEach(section => {

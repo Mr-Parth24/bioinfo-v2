@@ -590,5 +590,95 @@
     "url": "/assets/media/dfa4e2076722840b9391.webp",
     "width": 894,
     "height": 894
+  },
+  "/assets/media/research-ai-640.webp": {
+    "url": "/assets/media/research-ai-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-ai-1200.webp": {
+    "url": "/assets/media/research-ai-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-ai-1600.webp": {
+    "url": "/assets/media/research-ai-1600.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "/assets/media/research-hpi-640.webp": {
+    "url": "/assets/media/research-hpi-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-hpi-1200.webp": {
+    "url": "/assets/media/research-hpi-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-hpi-1600.webp": {
+    "url": "/assets/media/research-hpi-1600.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "/assets/media/research-pfp-640.webp": {
+    "url": "/assets/media/research-pfp-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-pfp-1200.webp": {
+    "url": "/assets/media/research-pfp-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-pfp-1600.webp": {
+    "url": "/assets/media/research-pfp-1600.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "/assets/media/research-metagenomics-640.webp": {
+    "url": "/assets/media/research-metagenomics-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-metagenomics-1200.webp": {
+    "url": "/assets/media/research-metagenomics-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-metagenomics-1600.webp": {
+    "url": "/assets/media/research-metagenomics-1600.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "/assets/media/research-pa-640.webp": {
+    "url": "/assets/media/research-pa-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-pa-1200.webp": {
+    "url": "/assets/media/research-pa-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-pa-1600.webp": {
+    "url": "/assets/media/research-pa-1600.webp",
+    "width": 1600,
+    "height": 1200
+  },
+  "/assets/media/research-ngs-640.webp": {
+    "url": "/assets/media/research-ngs-640.webp",
+    "width": 640,
+    "height": 480
+  },
+  "/assets/media/research-ngs-1200.webp": {
+    "url": "/assets/media/research-ngs-1200.webp",
+    "width": 1200,
+    "height": 900
+  },
+  "/assets/media/research-ngs-1600.webp": {
+    "url": "/assets/media/research-ngs-1600.webp",
+    "width": 1600,
+    "height": 1200
   }
 }
