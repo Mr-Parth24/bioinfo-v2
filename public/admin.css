@@ -1823,3 +1823,11 @@ body.admin-body .header-utilities a:hover {
 }
 .studio-bar .preview-site-btn,.studio-bar .logout-btn{color:#e6edf5!important;background:none!important;border-color:rgb(255 255 255/.18)!important}
 .studio-bar .preview-site-btn:hover,.studio-bar .logout-btn:hover{color:var(--navy)!important;background:#fff!important;border-color:#fff!important}
+
+/* Choice fields (suggested options + Custom…) and the period picker for career rows */
+.choice-field{display:grid;gap:8px}
+.choice-field [data-choice-custom][hidden]{display:none}
+.period-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 4px;padding:10px 12px;border:1px dashed var(--rule-strong);border-radius:var(--radius-sm);background:var(--surface)}
+.period-picker .styled-select{width:auto;min-width:0;min-height:38px;padding:6px 10px;font-size:14px}
+.period-picker .styled-select:disabled{opacity:.45}
+.period-label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}

@@ -56,14 +56,25 @@ export const FIELDS={
   link:{label:'External or related link',type:'url',max:4000},
   route:{label:'Website path',type:'text',max:300},
   authors:{label:'Authors (formatting supported)',type:'richtext',max:20000},
-  presentationType:{label:'Presentation type',type:'text',max:200},
+  presentationType:{label:'Presentation type',type:'text',max:200,choices:[['Presentation types',['Oral presentation','Poster','Invited talk','Keynote','Virtual presentation','Lightning talk','Workshop','Panel discussion']]]},
   location:{label:'Location',type:'text',max:2000},
   email:{label:'Email',type:'email',max:254},
   memberStatus:{label:'Lab membership (Current or Past/Alumni)',type:'select',options:['current','alumni']},
-  role:{label:'Role / position',type:'text',max:300},
-  department:{label:'Department / Academic program',type:'text',max:300,suggestions:['Department of Plants, Soils & Climate','Department of Computer Science','Department of Biology','Department of Animal, Dairy & Veterinary Sciences','Center for Integrated BioSystems','Bioinformatics Facility']},
-  startYear:{label:'Joined (year)',type:'text',max:4},
-  endYear:{label:'Finished (year)',type:'text',max:4},
+  role:{label:'Role / position',type:'text',max:300,choices:[
+    ['Faculty & leadership',['Principal Investigator','Lab Director','Associate Professor','Assistant Professor','Research Assistant Professor','Adjunct Faculty']],
+    ['Research & technical staff',['Research Scientist','Staff Scientist','Bioinformatics Scientist','Bioinformatics Analyst','Bioinformatics Programmer','Data Scientist','Software Engineer','Web Developer','Systems Administrator','Lab Manager','Research Technician']],
+    ['Postdoctoral researchers',['Postdoctoral Fellow','Postdoctoral Research Associate']],
+    ['Graduate students',['PhD Student','PhD Candidate',"Master's Student (M.S.)","Master's Student (M.C.S.)",'Graduate Research Assistant','Graduate Teaching Assistant']],
+    ['Undergraduate students',['Undergraduate Researcher','Undergraduate Research Assistant','Student Intern','Summer Intern']],
+    ['Visitors & collaborators',['Visiting Scholar','Visiting Researcher','Visiting PhD Student','Collaborator']]]},
+  department:{label:'Department / Academic program',type:'text',max:300,choices:[
+    ['Utah State University departments',['Department of Plants, Soils & Climate','Department of Biology','Department of Biological Engineering','Department of Chemistry & Biochemistry','Department of Animal, Dairy & Veterinary Sciences','Department of Computer Science','Department of Mathematics & Statistics','Department of Data Analytics & Information Systems','Department of Electrical & Computer Engineering','Department of Civil & Environmental Engineering','Department of Wildland Resources']],
+    ['Centers & facilities',['Center for Integrated BioSystems','Bioinformatics Facility']],
+    ['Programs',['Bioinformatics graduate program','Plant Science graduate program','Computer Science graduate program']]]},
+  startYear:{label:'Joined (year)',type:'text',max:4,suggestions:Array.from({length:new Date().getFullYear()-1994},(_,i)=>String(new Date().getFullYear()+1-i))},
+  startMonth:{label:'Joined (month)',type:'select',options:['','1','2','3','4','5','6','7','8','9','10','11','12']},
+  endYear:{label:'Finished (year, empty while current)',type:'text',max:4,suggestions:Array.from({length:new Date().getFullYear()-1994},(_,i)=>String(new Date().getFullYear()+1-i))},
+  endMonth:{label:'Finished (month)',type:'select',options:['','1','2','3','4','5','6','7','8','9','10','11','12']},
   researchInterests:{label:'Research interests',type:'textarea',max:12000},
   dissertationTitle:{label:'Dissertation / thesis title',type:'text',max:1000},
   dissertationUrl:{label:'Dissertation / thesis URL',type:'url',max:4000},
@@ -79,7 +90,7 @@ export const COLLECTION_FIELDS={
  news:['title','summary','body','date','category','image','imageAlt','link','route','status'],
  events:['title','summary','body','date','location','image','imageAlt','gallery','link','route','status'],
  publications:['title','authors','body','year','date','category','location','presentationType','link','status'],
- people:['title','summary','memberStatus','peopleGroup','category','role','department','startYear','endYear','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
+ people:['title','summary','memberStatus','peopleGroup','category','role','department','startYear','startMonth','endYear','endMonth','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
  research:['title','summary','body','image','imageAlt','route','status'],
  tools:['title','summary','category','image','imageAlt','link','status'],
  pages:['title','summary','body','image','imageAlt','route','status']
@@ -127,6 +138,7 @@ export function validateRecord(record) {
   for(const key of ['startYear','endYear'])if(record[key]&&!/^[12][0-9]{3}$/.test(record[key]))throw new InputError('Enter a four-digit year.');
   if(record.year&&!/^[12][0-9]{3}(?:\s*[-–—]\s*[12][0-9]{3})?(?:\s*\([A-Za-z0-9\s]+\))?$/.test(record.year.trim()))throw new InputError('Enter a valid year (e.g. 2024 or 2020–2024).');
   if(record.startYear&&record.endYear&&record.startYear>record.endYear)throw new InputError('End year must not precede start year.');
+  if(record.startYear&&record.startYear===record.endYear&&record.startMonth&&record.endMonth&&Number(record.startMonth)>Number(record.endMonth))throw new InputError('The finishing month must not precede the joining month.');
   if(record.dissertationUrl&&(!/^https?:\/\//.test(record.dissertationUrl)||!safeUrl(record.dissertationUrl)))throw new InputError('Dissertation URL must use HTTP or HTTPS.');
   if(record.workLinks!==undefined&&(!Array.isArray(record.workLinks)||record.workLinks.length>30||record.workLinks.some(x=>!x||typeof x.type!=='string'||!x.type.trim()||x.type.length>300||!safeUrl(x.link))))throw new InputError('Work links require a label and valid URL.');
   for(const key of ['publicationIds','toolIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>500||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');

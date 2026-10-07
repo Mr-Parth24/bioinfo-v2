@@ -50,3 +50,10 @@ test('content imports resolve forward references and roll back invalid relations
   assert.equal(store.get(person.id).title,person.title);
  }finally{store.close();}
 });
+
+test('joining and finishing months are validated and shown on the profile',()=>{
+ assert.throws(()=>validateRecord({...person,startYear:'2022',startMonth:'9',endYear:'2022',endMonth:'3'}),/month/i);
+ assert.throws(()=>validateRecord({...person,startMonth:'13'}),/startMonth/);
+ const html=renderPage('/people/new-member',new URLSearchParams(),[{...person,startYear:'2021',startMonth:'8',endYear:'2024',endMonth:'5'}]).html;
+ assert.match(html,/Aug 2021 – May 2024/);
+});
