@@ -135,9 +135,18 @@ work branch  ──push──▶  pull request  ──merge──▶  main  ─�
   non-root user with a read-only filesystem, renders the main pages, runs the security probe against it
   and checks that content survives a rebuild.
 
-**The Pages site is a static snapshot** built from `content/seed.json` + `content/content-updates.json`.
-It has no editor: CMS edits and uploads made on a running server do **not** appear there. Build the same
-snapshot locally with `npm run preview:export` and open `preview/index.html`.
+**The Pages site is a static snapshot.** It is built from the committed `data/content.sqlite` and
+`data/uploads/` when they exist, otherwise from `content/seed.json` + `content/content-updates.json`.
+It has no editor. Build the same snapshot locally with `npm run preview:export` and open `preview/index.html`.
+
+To publish local CMS edits to Pages:
+
+1. Stop the server (Ctrl+C), then run `npm run manage checkpoint`. SQLite keeps recent edits in
+   `content.sqlite-wal`; this folds them into `content.sqlite`.
+2. Commit `data/content.sqlite` and `data/uploads/`, and merge to `main`.
+
+Never commit `content.sqlite-wal` / `-shm` (they are git-ignored). A stale WAL committed next to a newer
+database makes it read as corrupt ("database disk image is malformed") and the Pages build fails.
 
 ---
 
@@ -287,6 +296,7 @@ If the probe says sign-in is rate-limited, wait 15 minutes — that is the brute
 
 ```sh
 node scripts/manage.mjs inventory                       # record counts
+node scripts/manage.mjs checkpoint                      # fold the WAL into content.sqlite (before a commit)
 node scripts/manage.mjs backup  /safe/content.sqlite    # database (content, accounts, revisions)
 node scripts/manage.mjs export  /safe/content.json      # content as JSON
 node scripts/manage.mjs import  /safe/revised.json      # validated, atomic import
