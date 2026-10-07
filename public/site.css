@@ -717,3 +717,30 @@ button,input,select,textarea{font:inherit;color:inherit}
 .prose div:has(> a):not(:has(> :not(a)))>a{display:inline-flex;align-items:center;padding:10px 16px;border:1px solid var(--rule-strong);border-radius:var(--radius-sm);font-size:15.5px;font-weight:600;text-decoration:none;color:var(--navy);background:#fff}
 .prose div:has(> a):not(:has(> :not(a)))>a:first-child{background:var(--crimson);border-color:var(--crimson);color:#fff}
 .prose div:has(> a):not(:has(> :not(a)))>a:hover{border-color:var(--navy)}
+
+/* ---------- Publications: controls, year ranges and authorship key ---------- */
+.pub-controls{display:grid;gap:14px;margin-bottom:36px;padding:20px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+.pub-controls .filter-bar{margin-bottom:0}
+.pub-controls .search-field{background:#fff}
+.range-chips .chip span{gap:8px}
+.range-chips .chip small{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.range-chips .chip input:checked+span small{color:rgb(255 255 255/.75)}
+.author-key{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--rule)}
+.author-key-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.author-key-hint{font-size:13.5px;color:var(--muted)}
+.author-key ul{display:flex;flex-wrap:wrap;gap:8px}
+.key-chip{display:inline-flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font:500 14px/1.3 var(--sans);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s}
+.key-chip:hover{border-color:var(--crimson)}
+.key-chip[aria-pressed=true]{border-color:var(--crimson);background:var(--crimson-tint);box-shadow:0 0 0 3px rgb(163 18 62/.12)}
+.key-sym{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--crimson-tint);color:var(--crimson);font:700 15px/1 var(--sans)}
+.key-chip[aria-pressed=true] .key-sym{background:var(--crimson);color:#fff}
+.key-underline{text-decoration:underline;text-underline-offset:2px}
+.key-italic{font-family:var(--serif);font-style:italic}
+.authors .au-mark{color:var(--crimson);font-weight:700;padding-inline:1px}
+.authors u{text-decoration-color:var(--rule-strong);text-underline-offset:3px}
+.publication-list[data-highlight=dollar] .au-mark[data-mark=dollar],
+.publication-list[data-highlight=asterisk] .au-mark[data-mark=asterisk],
+.publication-list[data-highlight=caret] .au-mark[data-mark=caret],
+.publication-list[data-highlight=underline] .authors u,
+.publication-list[data-highlight=italic] .authors :is(em,i){background:#ffe7a3;color:var(--ink);border-radius:3px;box-shadow:0 0 0 2px #ffe7a3;text-decoration-color:var(--crimson)}
+@media(max-width:640px){.pub-controls{padding:14px}.author-key-hint{display:none}}

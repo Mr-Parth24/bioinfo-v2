@@ -78,6 +78,7 @@
     const category = directory.querySelector('select[data-category-filter]');
     const radios = directory.querySelectorAll('input[type="radio"][data-category-filter]');
     const year = directory.querySelector('[data-year-filter]');
+    const ranges = directory.querySelectorAll('input[data-year-range]');
     const items = [...directory.querySelectorAll('[data-item]')];
     const counter = directory.querySelector('[data-count]');
     const empty = directory.querySelector('[data-empty]');
@@ -86,6 +87,7 @@
     const update = () => {
       const query = (search?.value || '').toLocaleLowerCase().trim();
       const cat = directory.querySelector('input[type="radio"][data-category-filter]:checked')?.value ?? category?.value ?? '';
+      const [from, to] = (directory.querySelector('input[data-year-range]:checked')?.value || '').split('-').map(Number);
       const waiting = directory.hasAttribute('data-require-query') && !query;
       const hint = directory.querySelector('[data-search-hint]');
       if (hint) hint.hidden = !waiting;
@@ -93,7 +95,8 @@
       for (const item of items) {
         const match = !waiting && (!query || (item.dataset.search || item.textContent).toLocaleLowerCase().includes(query))
           && (!cat || item.dataset.category === cat)
-          && (!year?.value || item.dataset.year === year.value);
+          && (!year?.value || item.dataset.year === year.value)
+          && (!from || (Number(item.dataset.year) >= from && Number(item.dataset.year) <= to));
         item.hidden = !match;
         if (match) shown++;
       }
@@ -102,13 +105,14 @@
       });
       if (counter) counter.textContent = shown;
       if (empty) empty.hidden = shown !== 0 || waiting;
-      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value));
+      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from));
       directory.dispatchEvent(new CustomEvent('directory:update'));
     };
     search?.addEventListener('input', update);
     category?.addEventListener('change', update);
     year?.addEventListener('change', update);
     radios.forEach(r => r.addEventListener('change', update));
+    ranges.forEach(r => r.addEventListener('change', update));
     directory.querySelector('form')?.addEventListener('submit', event => { event.preventDefault(); update(); });
     update();
   });
@@ -161,6 +165,15 @@
     setView(match ? match.dataset.view : 'all', false);
     addEventListener('resize', () => { limits.clear(); apply(); });
   }
+
+  /* ---------- Publications: authorship key highlights matching marks ---------- */
+  const keyButtons = [...document.querySelectorAll('[data-author-key]')];
+  const pubList = document.querySelector('.publication-list');
+  keyButtons.forEach(button => button.addEventListener('click', () => {
+    const on = button.getAttribute('aria-pressed') !== 'true';
+    keyButtons.forEach(b => b.setAttribute('aria-pressed', String(b === button && on)));
+    if (pubList) pubList.dataset.highlight = on ? button.dataset.authorKey : '';
+  }));
 
   /* ---------- Profile pages: publication year filter and table of contents ---------- */
   document.querySelectorAll('[data-pub-filter]').forEach(section => {

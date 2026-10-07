@@ -103,6 +103,30 @@ function toolsPage(records) {
 }
 
 /* ---------- Publications ---------- */
+/** Authorship marks used by the original publication list (see AUTHOR_KEY). */
+const AUTHOR_KEY = [
+  ['dollar', '$', 'Equal contribution'],
+  ['asterisk', '*', 'Corresponding author'],
+  ['caret', '^', 'Collaborator’s student mentored by Dr. Kaundal'],
+  ['underline', 'U', 'Graduate student (underlined)'],
+  ['italic', 'I', 'Undergraduate student (italic)'],
+];
+const MARK = { $: 'dollar', '*': 'asterisk', '^': 'caret' };
+/** Sanitised author list with the $ * ^ superscripts tagged so the key can highlight them. */
+function authorsHtml(authors) {
+  return sanitizeHtml(authors).replace(/<sup>\s*([$*^])\s*<\/sup>/g, (_, m) => `<sup class="au-mark" data-mark="${MARK[m]}">${m}</sup>`);
+}
+function yearRanges(years) {
+  const nums = years.map(Number).filter(Boolean);
+  if (!nums.length) return [];
+  const ranges = [];
+  for (let end = Math.max(...nums); end >= Math.min(...nums); end -= 3) {
+    const start = end - 2;
+    const n = nums.filter(y => y >= start && y <= end).length;
+    if (n) ranges.push({ start, end, n });
+  }
+  return ranges;
+}
 function publicationPage(records, params) {
   const pubs = records.filter(r => r.collection === 'publications');
   const modes = [['Papers', 'pub', 'Journal papers', '/publications'], ['Conferences', 'conf', 'Conferences', '/publications/conferences'], ['Editorials', 'edit', 'Editorials', '/publications/editorials']];
@@ -115,13 +139,21 @@ function publicationPage(records, params) {
       ? [r.location ?? r.original?.location ?? '', r.date, r.presentationType ?? r.original?.type ?? ''].filter(Boolean).map(e).join(' · ')
       : '';
     const link = safeUrl(r.link);
-    return `<li class="publication" data-item data-year="${e(yearOf(r))}" data-search="${e(plainText(r.title + ' ' + r.authors + ' ' + r.year + ' ' + (r.location || '')))}"><div class="publication-text"><h3>${link ? `<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3>${r.authors ? `<p class="authors">${sanitizeHtml(r.authors)}</p>` : ''}${venue || mode === 'Conferences' ? `<p class="venue">${venue}</p>` : ''}</div><div class="publication-actions">${link ? `<a class="small-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(plainText(r.title))}">${/doi\.org/.test(link) ? 'DOI' : 'Open'} ${icons.external}</a>` : ''}${copyButton(citation(r))}</div></li>`;
+    return `<li class="publication" data-item data-year="${e(yearOf(r))}" data-search="${e(plainText(r.title + ' ' + r.authors + ' ' + r.year + ' ' + (r.location || '')))}"><div class="publication-text"><h3>${link ? `<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3>${r.authors ? `<p class="authors">${authorsHtml(r.authors)}</p>` : ''}${venue || mode === 'Conferences' ? `<p class="venue">${venue}</p>` : ''}</div><div class="publication-actions">${link ? `<a class="small-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(plainText(r.title))}">${/doi\.org/.test(link) ? 'DOI' : 'Open'} ${icons.external}</a>` : ''}${copyButton(citation(r))}</div></li>`;
   };
   const tabs = `<nav class="tabs" aria-label="Publication types">${modes.map(([key, , label, href]) => `<a href="${href}"${mode === key ? ' aria-current="page"' : ''}>${label}<span>${pubs.filter(r => r.category === key).length}</span></a>`).join('')}<a class="tabs-external" href="https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&amp;hl=en&amp;oi=ao" target="_blank" rel="noopener noreferrer">Google Scholar ${icons.external}</a></nav>`;
+  const ranges = yearRanges(selected.map(yearOf));
+  const rangeChips = ranges.length > 1
+    ? `<div class="filter-chips range-chips" role="group" aria-label="Filter by years"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All years<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div>`
+    : '';
+  const used = AUTHOR_KEY.filter(([key]) => selected.some(r => key === 'underline' ? /<u>/.test(r.authors || '') : key === 'italic' ? /<(em|i)>/.test(r.authors || '') : authorsHtml(r.authors).includes(`data-mark="${key}"`)));
+  const authorKey = used.length
+    ? `<section class="author-key" aria-labelledby="author-key-title"><div class="author-key-head"><h2 id="author-key-title" class="eyebrow">Authorship key</h2><p class="author-key-hint">Select a mark to highlight it in the list.</p></div><ul>${used.map(([key, sym, label]) => `<li><button type="button" class="key-chip" data-author-key="${key}" aria-pressed="false"><span class="key-sym key-${key}" aria-hidden="true">${sym}</span><span>${e(label)}</span></button></li>`).join('')}</ul></section>`
+    : '';
   return pageHeader('Publications', 'Journal articles, conference presentations and editorial work from the lab, newest first.', 'Scholarship', { trail: mode === 'Papers' ? [['Publications']] : [['Publications', '/publications'], [modes.find(m => m[0] === mode)[2]]] })
-    + `<div class="wrap page-body">${tabs}<div data-directory>${filterBar(selected, 'publications', { categories: false, years: true })}`
-    + `<div class="publication-list">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(row).join('')}</ol></section>`).join('')}</div></div>`
-    + `<p class="footnote">Author emphasis and symbols follow the original publication list. Bold names are lab members.</p></div>`;
+    + `<div class="wrap page-body">${tabs}<div data-directory><div class="pub-controls">${filterBar(selected, 'publications', { categories: false })}${rangeChips}${authorKey}</div>`
+    + `<div class="publication-list" data-highlight="">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(row).join('')}</ol></section>`).join('')}</div></div>`
+    + `<p class="footnote">Author symbols and formatting follow the lab’s original publication list.</p></div>`;
 }
 
 /* ---------- People ---------- */
@@ -170,7 +202,7 @@ function personProfile(record, records) {
     + (record.researchInterests ? `<section class="profile-section"><h2>Research interests</h2>${interests.length >= 2 && interests.length <= 16 ? `<ul class="tag-list">${interests.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : ''}<p>${e(record.researchInterests)}</p></section>` : '')
     + (record.body || record.summary ? `<section class="profile-section"><h2>Biography</h2><div class="prose">${record.body ? richBody(record.body, records) : `<p>${e(record.summary)}</p>`}</div></section>` : '')
     + credentials.map(([k, label]) => `<section class="profile-section"><h2>${label}</h2>${timeline(record[k])}</section>`).join('')
-    + (pubs.length ? `<section class="profile-section member-pubs" data-pub-filter><div class="profile-section-head"><h2>Selected publications</h2><span class="count-badge">${pubs.length}</span></div>${years.length > 1 ? `<div class="filter-chips" role="toolbar" aria-label="Filter publications by year"><button type="button" class="chip is-active" data-pub-year="all">All</button>${years.map(y => `<button type="button" class="chip" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>` : ''}<ol class="publication-entries compact">${pubs.map(p => `<li class="publication member-pub" data-year="${e(p.year || '')}"><div class="publication-text"><h3>${p.link ? `<a href="${e(safeUrl(p.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(p.title)}</a>` : sanitizeHtml(p.title)}</h3>${p.authors ? `<p class="authors">${sanitizeHtml(p.authors)}</p>` : ''}<p class="venue">${e(p.year || '')}</p></div><div class="publication-actions">${copyButton(citation(p))}</div></li>`).join('')}</ol></section>` : '')
+    + (pubs.length ? `<section class="profile-section member-pubs" data-pub-filter><div class="profile-section-head"><h2>Selected publications</h2><span class="count-badge">${pubs.length}</span></div>${years.length > 1 ? `<div class="filter-chips" role="toolbar" aria-label="Filter publications by year"><button type="button" class="chip is-active" data-pub-year="all">All</button>${years.map(y => `<button type="button" class="chip" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>` : ''}<ol class="publication-entries compact">${pubs.map(p => `<li class="publication member-pub" data-year="${e(p.year || '')}"><div class="publication-text"><h3>${p.link ? `<a href="${e(safeUrl(p.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(p.title)}</a>` : sanitizeHtml(p.title)}</h3>${p.authors ? `<p class="authors">${authorsHtml(p.authors)}</p>` : ''}<p class="venue">${e(p.year || '')}</p></div><div class="publication-actions">${copyButton(citation(p))}</div></li>`).join('')}</ol></section>` : '')
     + (tools.length ? `<section class="profile-section"><h2>Software &amp; tools</h2><ul class="link-tiles">${tools.map(t => `<li><a href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer">${e(t.title)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
     + ((record.workLinks || []).length ? `<section class="profile-section"><h2>Projects &amp; links</h2><ul class="link-tiles">${record.workLinks.map(w => `<li><a href="${e(safeUrl(w.link))}" target="_blank" rel="noopener noreferrer">${e(w.type)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
     + `<p class="back-link"><a href="${alum ? '/people/alumni' : '/people'}">${icons.back} Back to ${alum ? 'alumni' : 'people'}</a></p></div></div>`;
