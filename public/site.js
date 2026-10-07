@@ -46,153 +46,6 @@
       slides[current].classList.add('active');
     }, 5000);
   });
-  // Modern responsive news pagination: 5 per page on desktop, 3 per page on phone
-  function initNewsPagination() {
-    const cols = document.querySelectorAll('.news-category-col');
-    if (!cols.length) return;
-
-    function getPageSize() {
-      // 3 items per page on mobile viewports (<=768px), 5 items per page on desktop
-      return window.innerWidth <= 768 ? 3 : 5;
-    }
-
-    cols.forEach(col => {
-      const items = Array.from(col.querySelectorAll('.news-item-page'));
-      const paginationBar = col.querySelector('.news-pagination-bar');
-      if (!items.length || !paginationBar) return;
-
-      let currentPage = 1;
-
-      function render() {
-        const pageSize = getPageSize();
-        const totalPages = Math.ceil(items.length / pageSize) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
-
-        const start = (currentPage - 1) * pageSize;
-        const end = Math.min(start + pageSize, items.length);
-
-        // Update items visibility with smooth subtle fade
-        items.forEach((item, idx) => {
-          const isVisible = idx >= start && idx < end;
-          item.style.display = isVisible ? '' : 'none';
-          if (isVisible) {
-            item.classList.remove('news-fade-in');
-            void item.offsetWidth;
-            item.classList.add('news-fade-in');
-          }
-        });
-
-        // Update range label
-        const rangeLabel = paginationBar.querySelector('.page-range-label');
-        if (rangeLabel) {
-          rangeLabel.textContent = `Showing ${start + 1}–${end} of ${items.length} stories`;
-        }
-
-        // Update Prev / Next buttons
-        const prevBtn = paginationBar.querySelector('.prev-btn');
-        const nextBtn = paginationBar.querySelector('.next-btn');
-        if (prevBtn) prevBtn.disabled = currentPage <= 1;
-        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
-
-        // Update page numbers list
-        const listWrap = paginationBar.querySelector('.page-numbers-list');
-        if (listWrap) {
-          listWrap.innerHTML = '';
-          for (let p = 1; p <= totalPages; p++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `page-num-btn ${p === currentPage ? 'is-active' : ''}`;
-            btn.textContent = String(p);
-            btn.setAttribute('data-page', String(p));
-            btn.setAttribute('aria-label', `Go to page ${p}`);
-            if (p === currentPage) {
-              btn.setAttribute('aria-current', 'page');
-            }
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              if (currentPage !== p) {
-                currentPage = p;
-                render();
-                scrollToColTop();
-              }
-            });
-            listWrap.appendChild(btn);
-          }
-        }
-      }
-
-      function scrollToColTop() {
-        const rect = col.getBoundingClientRect();
-        if (rect.top < 80 || rect.top > window.innerHeight) {
-          col.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-
-      const prevBtn = paginationBar.querySelector('.prev-btn');
-      const nextBtn = paginationBar.querySelector('.next-btn');
-
-      prevBtn?.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentPage > 1) {
-          currentPage--;
-          render();
-          scrollToColTop();
-        }
-      });
-
-      nextBtn?.addEventListener('click', (e) => {
-        e.preventDefault();
-        const pageSize = getPageSize();
-        const totalPages = Math.ceil(items.length / pageSize);
-        if (currentPage < totalPages) {
-          currentPage++;
-          render();
-          scrollToColTop();
-        }
-      });
-
-      render();
-    });
-
-    // Mobile category selector tabs
-    const mobileTabs = document.querySelectorAll('.mobile-cat-pill');
-    mobileTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.catTarget;
-        mobileTabs.forEach(t => {
-          t.classList.remove('is-active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        tab.classList.add('is-active');
-        tab.setAttribute('aria-selected', 'true');
-
-        cols.forEach(col => {
-          if (target === 'all' || col.dataset.col === target) {
-            col.style.display = '';
-          } else {
-            col.style.display = 'none';
-          }
-        });
-      });
-    });
-
-    // Handle responsive resize between mobile (3 items) and desktop (5 items)
-    let lastWidth = window.innerWidth;
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        const newWidth = window.innerWidth;
-        const crossedThreshold = (lastWidth <= 768 && newWidth > 768) || (lastWidth > 768 && newWidth <= 768);
-        if (crossedThreshold) {
-          lastWidth = newWidth;
-          initNewsPagination();
-        }
-      }, 150);
-    });
-  }
-  initNewsPagination();
   if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
     const observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}},{threshold:.05});
     document.querySelectorAll('.section-top,.research-card,.career-timeline article,.award-grid article,.story-card,.person-card,.tool-card,.task-paths > a,.publication-row,.event-row,.home-intro').forEach(element=>{element.classList.add('fade-ready');observer.observe(element);});
@@ -282,4 +135,40 @@
       el.textContent='0';requestAnimationFrame(tick);}},{threshold:.4});
     counters.forEach(c=>io.observe(c));
   }
+})();
+
+// News board: section tabs (all / General / Science / Media) and "show more" per column.
+(()=>{
+  const board=document.querySelector('.news-board');if(!board)return;
+  const directory=board.closest('[data-directory]'),tabs=[...document.querySelectorAll('.news-tab')];
+  const cols=[...board.querySelectorAll('.news-col')];
+  const small=()=>matchMedia('(max-width:700px)').matches;
+  const step=view=>view==='all'?(small()?4:6):(small()?6:12);
+  let view='all';const limits=new Map();
+  const apply=()=>{
+    const searching=directory?.classList.contains('is-searching');
+    for(const col of cols){
+      const limit=limits.get(col)||step(view);
+      let shown=0,more=0;
+      for(const card of col.querySelectorAll('.news-card')){
+        if(card.hidden){card.classList.remove('is-extra');continue;}
+        if(searching||shown<limit){card.classList.remove('is-extra');shown++;}else{card.classList.add('is-extra');more++;}
+      }
+      const btn=col.querySelector('.news-more');btn.hidden=more===0;
+      if(more)btn.textContent='Show '+Math.min(more,step(view))+' more · '+more+' remaining';
+    }
+  };
+  const setView=(next,push=true)=>{
+    view=next;board.dataset.view=next;limits.clear();
+    tabs.forEach(t=>{const on=t.dataset.view===next;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',String(on));});
+    if(push){try{history.replaceState(null,'',next==='all'?location.pathname+location.search:'#'+next.toLowerCase());}catch{}}
+    apply();
+  };
+  tabs.forEach(t=>t.addEventListener('click',()=>setView(t.dataset.view)));
+  cols.forEach(col=>col.querySelector('.news-more').addEventListener('click',()=>{limits.set(col,(limits.get(col)||step(view))+step(view));apply();}));
+  const search=directory?.querySelector('[data-search-input]');
+  search?.addEventListener('input',()=>{directory.classList.toggle('is-searching',search.value.trim()!=='');requestAnimationFrame(apply);});
+  const wanted=location.hash.slice(1).toLowerCase(),match=tabs.find(t=>t.dataset.view.toLowerCase()===wanted);
+  setView(match?match.dataset.view:'all',false);
+  addEventListener('resize',()=>{limits.clear();apply();});
 })();

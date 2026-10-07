@@ -26,7 +26,6 @@ function linkFor(record,records){
  return safeUrl(href)||'#';
 }
 function categoryRecord(record){return `<span class="category-label">${e(record.category||record.collection)}</span>`;}
-function newsCard(input,records){const record={...input,date:displayDate(input)};return `<article class="story-card" data-item data-category="${e(record.category)}" data-search="${e(plainText(record.title+' '+record.summary+' '+record.date))}">${image(record)}<div class="story-card-body"><div class="meta">${categoryRecord(record)}<span>${e(record.date)}</span></div><h3><a href="${e(record.route||linkFor(record,records))}">${e(record.title)}</a></h3><p>${e(record.summary)}</p><a class="text-link" href="${e(record.route||linkFor(record,records))}">Read story ${arrow}</a></div></article>`;}
 // Display dates remain verbatim; ranges use their first day only for ordering.
 function dateStart(value){
  const first=String(value||'').replace(/(\b[A-Za-z]+\s+\d{1,2})\s*[-–—]\s*(?:[A-Za-z]+\s+)?\d{1,2}(,?\s+\d{4})/,'$1$2');
@@ -45,78 +44,26 @@ function publicationPage(records,params){const pubs=records.filter(r=>r.collecti
 function isAlumnus(record){return record.memberStatus?record.memberStatus==='alumni':record.category?.split(/\s*\/\s*/).includes('Alumni');}
 function peoplePage(records,path){const allCurrent=records.filter(r=>r.collection==='people'&&!isAlumnus(r));const allAlumni=records.filter(r=>r.collection==='people'&&isAlumnus(r));const alumni=path==='/people/alumni';const people=alumni?allAlumni:allCurrent;return pageHeader(alumni?'Our alumni':pageTitles.people,intros.people,'THE KAABiL COMMUNITY')+`<section class="wrap section-bottom"><nav class="tabs" aria-label="People"><a href="/people"${!alumni?' aria-current="page"':''}>Current team<span>${allCurrent.length}</span></a><a href="/people/alumni"${alumni?' aria-current="page"':''}>Alumni<span>${allAlumni.length}</span></a></nav>${alumni?'':`<a class="director-feature" href="/people/rakesh">${image({title:'Dr. Rakesh Kaundal',image:media+'/image/raw/bioinfo/profile/RK_2.jpg'},'',false)}<div><p class="eyebrow">PRINCIPAL INVESTIGATOR</p><h2>Dr. Rakesh Kaundal</h2><p class="director-dept">Director, Bioinformatics Facility<br>Department of Plants, Soils & Climate · Utah State University</p><span class="text-link">Meet Dr. Kaundal ${arrow}</span></div></a>`}<div data-directory>${filterBar(people,'people',{categories:true})}<div class="people-grid">${people.map(r=>`<article class="person-card" data-item data-category="${e(r.category)}" data-search="${e(plainText(r.title+' '+(r.role||'')+' '+(r.department||'')+' '+(r.category||'')+' '+r.summary))}">${image(r,'person-portrait')}<div class="person-card-content"><div class="person-card-top"><span class="category-label">${e(r.category)}</span>${r.role?`<span class="person-role-tag">${e(r.role)}</span>`:''}</div><h2><a href="${e(r.route)}">${e(r.title)}</a></h2><p class="person-dept">${e(r.department||'Department of Plants, Soils & Climate')}</p>${r.summary?`<p class="person-summary">${e(r.summary)}</p>`:''}<a class="text-link" href="${e(r.route)}">View profile ${arrow}</a></div></article>`).join('')}</div></div></section>`;}
 function eventRow(input){const r={...input,date:displayDate(input)};const date=r.date||'';const day=date.match(/\b\d{1,2}(?:-\d{1,2})?\b/)?.[0]||'—';const month=date.match(/[A-Za-z]+/)?.[0]?.slice(0,3)||'EVENT';return `<article class="event-row" data-item data-year="${e(date.match(/\d{4}/)?.[0]||'')}" data-search="${e(r.title+' '+date+' '+(r.location||r.original?.location||''))}"><div class="event-date"><strong>${e(day)}</strong><span>${e(month)}</span></div><div><p class="meta">${e(date)} ${r.location?' / '+e(r.location):''}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2></div><a class="round-arrow" href="${e(r.route)}" aria-label="Read about ${e(r.title)}">↗</a></article>`;}
-function newsListing(list, records) {
-  const categories = [
-    { id: 'General', label: 'General News', desc: 'Department updates, awards, and community announcements' },
-    { id: 'Science', label: 'Science & Research', desc: 'Breakthrough publications, pipelines, and discovery milestones' },
-    { id: 'Media', label: 'Media & Features', desc: 'Press coverage, interviews, and public lab features' }
-  ];
-
-  return `
-    <div class="mobile-news-bar" role="tablist" aria-label="Filter news by category on phone">
-      <button type="button" role="tab" class="mobile-cat-pill is-active" data-cat-target="all" aria-selected="true">
-        All Sections <span class="pill-count">${list.length}</span>
-      </button>
-      ${categories.map(cat => {
-        const count = list.filter(r => r.category === cat.id || (!r.category && cat.id === 'General')).length;
-        return count ? `<button type="button" role="tab" class="mobile-cat-pill" data-cat-target="${cat.id}" aria-selected="false">
-          ${cat.id} <span class="pill-count">${count}</span>
-        </button>` : '';
-      }).join('')}
-    </div>
-
-    <div class="news-three-col">
-      ${categories.map(cat => {
-        const items = list.filter(r => r.category === cat.id || (!r.category && cat.id === 'General'));
-        if (!items.length) return '';
-        const totalDesktopPages = Math.ceil(items.length / 5);
-
-        return `<section class="news-category-col" data-col="${cat.id}" aria-labelledby="cat-heading-${cat.id}">
-          <header class="news-col-header">
-            <div class="news-col-title-wrap">
-              <span class="news-col-eyebrow">${cat.id.toUpperCase()}</span>
-              <h2 id="cat-heading-${cat.id}" class="news-col-title">${e(cat.label)}</h2>
-            </div>
-            <span class="news-col-badge">${items.length} stories</span>
-          </header>
-          <p class="news-col-desc">${e(cat.desc)}</p>
-
-          <div class="story-grid-col" data-items-container>
-            ${items.map((r, i) => `
-              <div class="news-item-page" data-item-idx="${i}" style="${i >= 5 ? 'display:none;' : ''}">
-                ${newsCard(r, records)}
-              </div>
-            `).join('')}
-          </div>
-
-          ${items.length > 3 ? `
-            <nav class="news-pagination-bar" aria-label="${e(cat.label)} pagination" data-total="${items.length}">
-              <div class="news-pagination-info">
-                <span class="page-range-label">Showing 1–${Math.min(5, items.length)} of ${items.length} stories</span>
-              </div>
-              <div class="news-pagination-controls">
-                <button type="button" class="page-nav-btn prev-btn" data-action="prev" aria-label="Previous page" disabled>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-                  <span>Prev</span>
-                </button>
-                <div class="page-numbers-list" role="navigation" aria-label="Page numbers">
-                  ${Array.from({ length: totalDesktopPages }, (_, idx) => `
-                    <button type="button" class="page-num-btn ${idx === 0 ? 'is-active' : ''}" data-page="${idx + 1}" ${idx === 0 ? 'aria-current="page"' : ''}>
-                      ${idx + 1}
-                    </button>
-                  `).join('')}
-                </div>
-                <button type="button" class="page-nav-btn next-btn" data-action="next" aria-label="Next page" ${totalDesktopPages <= 1 ? 'disabled' : ''}>
-                  <span>Next</span>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
-              </div>
-            </nav>
-          ` : ''}
-        </section>`;
-      }).join('')}
-    </div>
-  `;
+const NEWS_SECTIONS=[
+ {id:'General',label:'General News',short:'General',desc:'Awards, people and community announcements'},
+ {id:'Science',label:'Science & Research',short:'Science',desc:'Publications, tools and discovery milestones'},
+ {id:'Media',label:'Media & Features',short:'Media',desc:'Press coverage, interviews and lab features'}
+];
+const newsSection=r=>NEWS_SECTIONS.some(c=>c.id===r.category)?r.category:'General';
+function newsCard(input,records){
+ const r={...input,date:displayDate(input)};const href=r.route||linkFor(r,records);const external=/^https?:/i.test(href);const sec=newsSection(r);
+ const chip=r.category&&r.category!==sec?`<span class="news-chip">${e(r.category)}</span>`:'';
+ return `<article class="news-card${r.image?' has-thumb':''}" data-item data-category="${e(sec)}" data-search="${e(plainText(r.title+' '+r.summary+' '+r.date))}"><a class="news-card-link" href="${e(href)}"${external?' target="_blank" rel="noopener noreferrer"':''}>${r.image?`<div class="news-thumb">${image(r,'',false)}</div>`:''}<div class="news-card-text"><p class="meta"><time>${e(r.date)}</time>${chip}</p><h3>${e(r.title)}</h3>${r.summary?`<p class="news-sum">${e(r.summary)}</p>`:''}<span class="news-read">${external?'Read at source':'Read story'} <span aria-hidden="true">${external?'↗':'→'}</span></span></div></a></article>`;
+}
+function newsListing(list,records){
+ const featured=list.slice(0,3);
+ const [lead,...side]=featured;
+ const leadHref=lead&&(lead.route||linkFor(lead,records));
+ const feat=lead?`<section class="news-featured" aria-label="Latest stories"><a class="news-lead${lead.image?' has-image':''}" href="${e(leadHref)}">${lead.image?image(lead,'news-lead-img',false):''}<div class="news-lead-text"><p class="eyebrow">LATEST · ${e(newsSection(lead).toUpperCase())}</p><h2>${e(lead.title)}</h2>${lead.summary?`<p>${e(lead.summary)}</p>`:''}<span class="news-read">Read story <span aria-hidden="true">→</span></span></div></a><div class="news-side">${side.map(r=>`<a class="news-side-card" href="${e(r.route||linkFor(r,records))}"><p class="meta"><time>${e(displayDate(r))}</time><span class="news-chip">${e(newsSection(r))}</span></p><h3>${e(r.title)}</h3></a>`).join('')}</div></section>`:'';
+ const groups=NEWS_SECTIONS.map(c=>({...c,items:list.filter(r=>newsSection(r)===c.id)})).filter(c=>c.items.length);
+ const tabs=`<div class="news-tabs" role="tablist" aria-label="News sections"><button type="button" role="tab" class="news-tab is-active" aria-selected="true" data-view="all">All sections <span>${list.length}</span></button>${groups.map(c=>`<button type="button" role="tab" class="news-tab" aria-selected="false" data-view="${e(c.id)}" data-tone="${e(c.id)}">${e(c.short)} <span>${c.items.length}</span></button>`).join('')}</div>`;
+ const cols=groups.map(c=>`<section class="news-col" data-col="${e(c.id)}" data-filter-group aria-labelledby="nc-${e(c.id)}"><header class="news-col-head"><span class="news-dot" aria-hidden="true"></span><div><h2 id="nc-${e(c.id)}">${e(c.label)}</h2><p>${e(c.desc)}</p></div><span class="news-col-count">${c.items.length}</span></header><div class="news-list">${c.items.map(r=>newsCard(r,records)).join('')}</div><button type="button" class="news-more" hidden>Show more</button></section>`).join('');
+ return `${feat}${filterBar(list,'news',{categories:false})}${tabs}<div class="news-board" data-view="all">${cols}</div>`;
 }
 
 const eventYear=r=>(displayDate(r).match(/\d{4}/)||[''])[0];
