@@ -50,12 +50,22 @@ function fill(record, fields) {
   for (const [key, value] of Object.entries(fields)) if (isEmpty(next[key])) { next[key] = value; changed = true; }
   return changed ? next : null;
 }
+/* Replacements swap a value (e.g. an image) only while every field in `when` still holds the value
+   being replaced, so a record an editor has already changed is left alone. */
+function replace(record, update) {
+  if (!update || !Object.entries(update.when).every(([key, value]) => record[key] === value)) return null;
+  return { ...record, ...update.set };
+}
+const REPLACE_KEY = 'content-replacements:2026-10';
 /** Pure version for exports built straight from content/seed.json. */
 export function withContentUpdates(records) {
-  return records.map(record => (contentUpdates.records[record.id] && fill(record, contentUpdates.records[record.id])) || record);
+  return records.map(record => {
+    const filled = (contentUpdates.records[record.id] && fill(record, contentUpdates.records[record.id])) || record;
+    return replace(filled, contentUpdates.replacements?.records[record.id]) || filled;
+  });
 }
 export function applyContentUpdates(store) {
-  if (store.meta(UPDATE_KEY)) return 0;
+  if (store.meta(UPDATE_KEY)) return applyReplacements(store);
   let count = 0;
   for (const [id, fields] of Object.entries(contentUpdates.records)) {
     const current = store.get(id);
@@ -63,5 +73,16 @@ export function applyContentUpdates(store) {
     if (next) { store.save(next, current.version, 'content-update'); count++; }
   }
   store.setMeta(UPDATE_KEY, new Date().toISOString());
+  return count + applyReplacements(store);
+}
+function applyReplacements(store) {
+  if (store.meta(REPLACE_KEY)) return 0;
+  let count = 0;
+  for (const [id, update] of Object.entries(contentUpdates.replacements?.records || {})) {
+    const current = store.get(id);
+    const next = current && replace(current, update);
+    if (next) { store.save(next, current.version, 'content-update'); count++; }
+  }
+  store.setMeta(REPLACE_KEY, new Date().toISOString());
   return count;
 }

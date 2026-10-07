@@ -37,3 +37,20 @@ test('research area pages show the area’s tools and publications',()=>{
  assert.match(html,/data-table/);
  assert.match(renderPage('/research',new URLSearchParams(),records).html,/area-counts/);
 });
+
+test('research illustrations replace only the original images, once',()=>{
+ const store=new Store(':memory:');store.seed(seed);
+ const chosen={...store.get('research:hpi'),image:'https://example.org/editor-choice.jpg'};
+ store.save(chosen,chosen.version,'editor');
+ applyContentUpdates(store);
+ assert.equal(store.get('research:hpi').image,'https://example.org/editor-choice.jpg','an editor’s image is kept');
+ const ai=store.get('research:ai');
+ assert.equal(ai.image,'/assets/media/research-ai-1600.webp');
+ assert.equal(ai.imageVariants.length,3);
+ const reverted={...ai,image:seed.find(r=>r.id==='research:ai').image};store.save(reverted,ai.version,'editor');
+ assert.equal(applyContentUpdates(store),0,'runs once per database');
+ assert.equal(store.get('research:ai').image,reverted.image,'a deliberate revert stays');
+ const html=renderPage('/research',new URLSearchParams(),withContentUpdates(seed)).html;
+ assert.match(html,/srcset="\/assets\/media\/research-ngs-640\.webp 640w/);
+ store.close();
+});
