@@ -37,3 +37,31 @@ export function selectUpdates(records,config){
  return result.slice(0,config.feedCount||3);
 }
 export function activeOpportunities(records,now=new Date()){const today=now.toISOString().slice(0,10);return records.filter(r=>r.collection==='opportunities'&&r.status==='published'&&r.openingStatus!=='closed'&&(!r.deadline||r.deadline>=today));}
+
+/* Editorial content added after the original migration (content/content-updates.json).
+   A field is filled only while it is empty, and each database applies an update set once,
+   so later edits — including deliberately emptied fields — are never overwritten. */
+const contentUpdates = JSON.parse(readFileSync(new URL('../content/content-updates.json', import.meta.url)));
+const UPDATE_KEY = 'content-updates:2026-10';
+const isEmpty = value => value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length);
+function fill(record, fields) {
+  const next = { ...record };
+  let changed = false;
+  for (const [key, value] of Object.entries(fields)) if (isEmpty(next[key])) { next[key] = value; changed = true; }
+  return changed ? next : null;
+}
+/** Pure version for exports built straight from content/seed.json. */
+export function withContentUpdates(records) {
+  return records.map(record => (contentUpdates.records[record.id] && fill(record, contentUpdates.records[record.id])) || record);
+}
+export function applyContentUpdates(store) {
+  if (store.meta(UPDATE_KEY)) return 0;
+  let count = 0;
+  for (const [id, fields] of Object.entries(contentUpdates.records)) {
+    const current = store.get(id);
+    const next = current && fill(current, fields);
+    if (next) { store.save(next, current.version, 'content-update'); count++; }
+  }
+  store.setMeta(UPDATE_KEY, new Date().toISOString());
+  return count;
+}
