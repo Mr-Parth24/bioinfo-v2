@@ -128,4 +128,11 @@ python -m unittest discover -s test -p 'test_*.py'
 npm run preview:export
 ```
 
-Node tests exercise real SQLite and Request/Response handlers without opening network sockets. They check routes, tool destinations, authentication, CSRF/origin checks, drafts, publishing, conflicts, uploads, revisions and backup restoration. The single-process test flag supports restricted workspaces. Browser and Docker checks have also passed; see `docs/verification.md` for scope and remaining limitations. Run `python scripts/browser-check.py --all` for the full responsive route crawl and `python scripts/browser-cms-check.py` for the disposable-account editorial workflow.
+Node tests exercise real SQLite and Request/Response handlers without opening network sockets. They check routes, tool destinations, authentication, CSRF/origin checks, drafts, publishing, conflicts, uploads, revisions and backup restoration. The single-process test flag supports restricted workspaces. Browser and Docker checks have also passed; see `docs/verification.md` for scope and remaining limitations. To exercise the whole editor workflow in a real browser against a running site (draft privacy, preview, publish, image upload, homepage settings, revisions, delete), use a disposable editor account:
+
+```sh
+npm i --no-save playwright && npx playwright install chromium
+EDITOR_EMAIL=... EDITOR_PASSWORD=... node scripts/cms-e2e.cjs
+```
+
+Run `python scripts/browser-check.py --all` for the full responsive route crawl and `python scripts/browser-cms-check.py` for the disposable-account editorial workflow.

@@ -1,194 +1,353 @@
 /**
- * Public presentation layer. Layout comes from these shared templates; factual content comes from records. Tool services stay on their original hosts.
- * See docs/architecture.md for the full data flow and extension guide.
+ * Public presentation layer: page templates and the router. Layout comes from these shared templates;
+ * factual content comes from records. Tool services stay on their original hosts.
+ * See docs/architecture.md for the data flow and docs/redesign-plan.md for the design rules.
  */
-import {dimensions as assetDimensions,header as newHeader,footer as newFooter,homepage,director,opportunities,related,asset} from './presentation.mjs';
-import {setting,dateValue,activeOpportunities,displayDate} from './editorial.mjs';
+import {
+  header, footer, homepage, director, opportunities, related,
+  image, pageHeader, breadcrumbs, icons, arrow, asset, media,
+} from './presentation.mjs';
+import { setting, dateValue, activeOpportunities, displayDate } from './editorial.mjs';
 import { escapeHtml as e, sanitizeHtml, safeUrl, plainText } from './security.mjs';
-const nav=[['Research','/research'],['People','/people'],['Publications','/publications'],['Tools','/tools'],['News','/news'],['Events','/events']];
-const arrow='<svg class="link-arrow" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 19 19 5M5 5h14v14"/></svg>';
-const right='<span aria-hidden="true">→</span>';
-const media='https://bioinfocore.usu.edu/raikou';
-export const legacyRedirects={'/admin/run-local':'/guides/run-local','/admin/dev-env':'/guides/dev-env','/admin/scm-setup':'/guides/scm-setup'};
-export const baseRoutes=['/home','/search','/opportunities','/','/research','/research/research-areas','/people','/people/our-team','/people/alumni','/publications','/publications/conferences','/publications/editorials','/tools','/news','/events','/contact','/about'];
-const pageTitles={research:'Research',people:'Our people',publications:'Publications',tools:'Tools & databases',news:'News & perspectives',events:'Life at the lab'};
-const intros={research:'Bringing biology, computation, and engineering together to turn complex data into new understanding.',people:'Different disciplines. Shared curiosity. Meet the researchers and staff behind KAABiL.',publications:'Explore our journal articles, conference presentations, and editorial contributions.',tools:'Software and databases developed by KAABiL researchers. Find a resource and go directly to its original website.',news:'Research milestones, new ideas, and stories from our community.',events:'Conferences, presentations, and moments that bring our research community together.'};
 
-export function shell(title,body,{path='/',description='Kaundal Artificial Intelligence & Advanced Bioinformatics Lab at Utah State University.',admin=false,records=[]}={}) {
- return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${e(description)}"><meta name="theme-color" content="#12324f"><link rel="canonical" href="${e(path==='/home'?'/':path)}"><title>${e(title)} · KAABiL · Utah State University</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script>${admin?'<link rel="stylesheet" href="/assets/admin.css"><script src="/assets/admin.js" defer></script>':''}</head><body${admin?' class="admin-body"':''}><a class="skip-link" href="#main">Skip to content</a>${newHeader(path,records)}<main id="main">${body}</main>${admin?'':newFooter(records)}<div class="image-announcement sr-only" aria-live="polite"></div></body></html>`;
+export const legacyRedirects = {
+  '/admin/run-local': '/guides/run-local',
+  '/admin/dev-env': '/guides/dev-env',
+  '/admin/scm-setup': '/guides/scm-setup',
+};
+export const baseRoutes = ['/home', '/search', '/opportunities', '/', '/research', '/research/research-areas', '/people', '/people/our-team', '/people/alumni', '/publications', '/publications/conferences', '/publications/editorials', '/tools', '/news', '/events', '/contact', '/about'];
+
+const DEFAULT_DEPARTMENT = 'Department of Plants, Soils & Climate';
+
+/* ---------- Document shell ---------- */
+export function shell(title, body, { path = '/', description = 'Kaundal Artificial Intelligence & Advanced Bioinformatics Lab (KAABiL) at Utah State University: machine learning, multi-omics and open bioinformatics tools.', admin = false, records = [] } = {}) {
+  const head = `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${e(description)}"><meta name="theme-color" content="#0f2439"><link rel="canonical" href="${e(path === '/home' ? '/' : path)}"><title>${e(title)} · KAABiL · Utah State University</title><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="/assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/assets/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/assets/site.css">`;
+  if (admin) {
+    return `<!doctype html><html lang="en"><head>${head}<link rel="stylesheet" href="/assets/admin.css"><script src="/assets/admin.js" defer></script></head><body class="admin-body"><a class="skip-link" href="#main">Skip to content</a><main id="main">${body}</main></body></html>`;
+  }
+  return `<!doctype html><html lang="en"><head>${head}<script src="/assets/site.js" defer></script></head><body><a class="skip-link" href="#main">Skip to content</a>${header(path, records)}<main id="main">${body}</main>${footer(records)}<div class="image-announcement sr-only" aria-live="polite"></div></body></html>`;
 }
-function pageHeader(title,intro,eyebrow='EXPLORE KAABiL'){return `<header class="page-hero"><div class="page-heading wrap"><p class="eyebrow">${e(eyebrow)}</p><h1>${e(title)}</h1><p class="intro">${e(intro)}</p></div></header>`;}
-function image(record,cls='',expand=true){const dimensions=assetDimensions(record.image);const url=safeUrl(asset(record.image),{image:true});return `<div class="media-frame ${cls}" data-fit="${e(record.imageFit||'cover')}" data-focal-x="${Number(record.focalX??50)}" data-focal-y="${Number(record.focalY??50)}"><div class="media-fallback" aria-hidden="true"><span>${e((record.title||'K').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join(''))}</span><span class="fallback-line"></span></div>${url?`${expand?`<a class="image-expand" href="${e(safeUrl(record.imageOriginal||record.image,{image:true}))}" target="_blank" rel="noopener noreferrer" aria-label="Expand image: ${e(record.imageAlt||record.title)}">`:''}<img ${expand?'data-expand-image':''} data-original="${e(safeUrl(record.imageOriginal||record.image,{image:true}))}" data-caption="${e(record.imageCaption||'')}" src="${e(url)}"${record.imageVariants?.length?` srcset="${record.imageVariants.map(v=>e(v.url)+' '+v.width+'w').join(', ')}" sizes="(max-width:600px) 90vw, 50vw"`:dimensions?` width="${dimensions.width}" height="${dimensions.height}"`:record.imageWidth?` width="${record.imageWidth}" height="${record.imageHeight}"`: ''} alt="${e(record.imageAlt||record.title)}" loading="lazy" decoding="async">${expand?'</a>':''}`:''}</div>`;}
-function linkFor(record,records){
- const href=record.link||record.route||'';
- if(!href)return record.route||'#';
- if(href.startsWith('/')&&!baseRoutes.includes(href.split(/[?#]/)[0].replace(/\/$/,''))&&!records.some(r=>r.route===href.replace(/\/$/,'')))return 'https://bioinfo.usu.edu'+href;
- return safeUrl(href)||'#';
+
+/* ---------- Helpers ---------- */
+function linkFor(record, records) {
+  const href = record.link || record.route || '';
+  if (!href) return record.route || '#';
+  if (href.startsWith('/') && !baseRoutes.includes(href.split(/[?#]/)[0].replace(/\/$/, '')) && !records.some(r => r.route === href.replace(/\/$/, ''))) return 'https://bioinfo.usu.edu' + href;
+  return safeUrl(href) || '#';
 }
-function categoryRecord(record){return `<span class="category-label">${e(record.category||record.collection)}</span>`;}
-function newsCard(input,records){const record={...input,date:displayDate(input)};return `<article class="story-card" data-item data-category="${e(record.category)}" data-search="${e(plainText(record.title+' '+record.summary+' '+record.date))}">${image(record)}<div class="story-card-body"><div class="meta">${categoryRecord(record)}<span>${e(record.date)}</span></div><h3><a href="${e(record.route||linkFor(record,records))}">${e(record.title)}</a></h3><p>${e(record.summary)}</p><a class="text-link" href="${e(record.route||linkFor(record,records))}">Read story ${arrow}</a></div></article>`;}
-// Display dates remain verbatim; ranges use their first day only for ordering.
-function dateStart(value){
- const first=String(value||'').replace(/(\b[A-Za-z]+\s+\d{1,2})\s*[-–—]\s*(?:[A-Za-z]+\s+)?\d{1,2}(,?\s+\d{4})/,'$1$2');
- const parsed=Date.parse(first);return Number.isNaN(parsed)?0:parsed;
+const sortDate = records => [...records].sort((a, b) => dateValue(b) - dateValue(a));
+const count = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+const external = href => /^https?:/i.test(href) ? ' target="_blank" rel="noopener noreferrer"' : '';
+
+/** Search + optional category/year filters. site.js drives it through the data-* hooks. */
+function filterBar(records, label, { categories = true, years = false, categoryMode = 'select' } = {}) {
+  const cats = [...new Set(records.map(r => r.category).filter(Boolean))];
+  const ys = [...new Set(records.map(r => r.year || (r.startDate || r.publishDate || r.date)?.match(/\d{4}/)?.[0]).filter(Boolean))].sort().reverse();
+  const catControl = !categories ? '' : categoryMode === 'tabs'
+    ? `<div class="filter-chips" role="group" aria-label="Filter by category"><label class="chip"><input type="radio" name="category" value="" data-category-filter checked><span>All</span></label>${cats.map(c => `<label class="chip"><input type="radio" name="category" value="${e(c)}" data-category-filter><span>${e(c)}</span></label>`).join('')}</div>`
+    : `<label class="select"><span class="sr-only">Filter by category</span><select data-category-filter><option value="">All categories</option>${cats.map(c => `<option>${e(c)}</option>`).join('')}</select></label>`;
+  const yearControl = years ? `<label class="select"><span class="sr-only">Filter by year</span><select data-year-filter><option value="">All years</option>${ys.map(y => `<option>${e(y)}</option>`).join('')}</select></label>` : '';
+  return `<form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search ${e(label)}</span>${icons.search}<input name="q" type="search" placeholder="Search ${e(label)}…" data-search-input autocomplete="off"></label>${categoryMode === 'tabs' ? '' : catControl}${yearControl}<p class="result-count" aria-live="polite"><span data-count>${records.length}</span> ${records.length === 1 ? 'result' : 'results'}</p>${categoryMode === 'tabs' ? catControl : ''}</form><p class="empty-state" data-empty hidden>Nothing matches that search. Try a different word or clear the filters.</p>`;
 }
-function sortDate(records){return [...records].sort((a,b)=>{return dateValue(b)-dateValue(a);});}
-function sectionTop(label,title,link,labelLink){return `<div class="section-top"><div><p class="eyebrow">${e(label)}</p><h2>${e(title)}</h2></div>${link?`<a class="text-link" href="${link}">${labelLink} ${arrow}</a>`:''}</div>`;}
-function home(records){return homepage(records,{image,newsCard,eventRow});}
-function filterBar(records,label,{categories=true,years=false,categoryMode='select'}={}){
- const cats=[...new Set(records.map(r=>r.category).filter(Boolean))];const ys=[...new Set(records.map(r=>r.year||(r.startDate||r.publishDate||r.date)?.match(/\d{4}/)?.[0]).filter(Boolean))].sort().reverse();
- return `<form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search ${label}</span><span aria-hidden="true">⌕</span><input name="q" type="search" placeholder="Search ${label}…" data-search-input autocomplete="off"></label>${categories?(categoryMode==='tabs'?`<div class="filter-tabs" role="group" aria-label="Filter by category"><label class="filter-tab"><input type="radio" name="category" value="" data-category-filter checked><span>All</span></label>${cats.map(c=>`<label class="filter-tab"><input type="radio" name="category" value="${e(c)}" data-category-filter><span>${e(c)}</span></label>`).join('')}</div>`:`<label><span class="sr-only">Filter by category</span><select data-category-filter><option value="">All categories</option>${cats.map(c=>`<option>${e(c)}</option>`).join('')}</select></label>`):''}${years?`<label><span class="sr-only">Filter by year</span><select data-year-filter><option value="">All years</option>${ys.map(y=>`<option>${e(y)}</option>`).join('')}</select></label>`:''}<span class="result-count" aria-live="polite"><span data-count>${records.length}</span> entries</span></form><p class="empty-state" data-empty hidden>No matching entries. Try a different search or clear your filters.</p>`;
+
+/** Imported article HTML: keep old relative links working and map remote images to local copies. */
+function richBody(body, records) {
+  let out = sanitizeHtml(body);
+  out = out.replace(/href="([^"]+)"/g, (whole, value) => {
+    let url = value.replaceAll('&amp;', '&');
+    if (!safeUrl(url, { relative: true })) return whole;
+    if (url.startsWith('#') || /^[a-z][\w+.-]*:/i.test(url)) return whole;
+    if (!url.startsWith('/')) url = '/' + url;
+    const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/';
+    if (path.startsWith('/admin/')) url = url.replace('/admin/', '/guides/');
+    else if (!baseRoutes.includes(path) && !records.some(r => r.route === path)) url = 'https://bioinfo.usu.edu' + url;
+    return `href="${e(url)}"`;
+  });
+  return out.replace(/src="([^"]+)"/g, (_, url) => `src="${e(asset(url.replaceAll('&amp;', '&')))}"`);
 }
-function researchPage(records){const rs=records.filter(r=>r.collection==='research');const overview=records.find(r=>r.id==='pages:research');return pageHeader(pageTitles.research,intros.research,'INFORMATION TO INFERENCE')+`<section class="wrap section-bottom"><div class="research-grid">${rs.map((r,i)=>`<article class="research-card">${image(r)}<p class="eyebrow">0${i+1} / RESEARCH AREA</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2><p>${e(r.summary)}</p><a class="text-link" href="${e(r.route)}">Explore area ${arrow}</a></article>`).join('')}</div><details class="research-overview"><summary>Our research program & objectives ${right}</summary><div class="prose">${richBody(overview?.body,records)}</div></details></section>`;}
-function toolsPage(records){const tools=records.filter(r=>r.collection==='tools').map(r=>({...r,category:r.category||'Other tools',anchor:r.anchor||('category-'+(r.category||'other').toLowerCase().replace(/[^a-z0-9]+/g,'-'))})),groups=[...new Set(tools.map(r=>r.category))];return pageHeader(pageTitles.tools,intros.tools,'RESOURCES / SOFTWARE & DATABASES')+`<section class="wrap section-bottom" data-directory>${filterBar(tools,'tools',{categoryMode:'tabs'})}${groups.map(category=>`<section class="tool-group" data-filter-group id="${e(tools.find(r=>r.category===category).anchor)}"><div class="group-heading"><h2>${e(category)}</h2><span>${tools.filter(r=>r.category===category).length.toString().padStart(2,'0')} RESOURCES</span></div><div class="tool-grid">${tools.filter(r=>r.category===category).map(r=>`<article class="tool-card" data-item data-category="${e(category)}" data-search="${e(r.title+' '+category+' '+r.summary)}">${r.image?image({...r,imageFit:r.imageFit||'contain'}):`<span class="tool-mark">${e(r.title.slice(0,2))}</span>`}<h3><a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${e(r.title)} ${arrow}</a></h3>${r.summary?`<p>${e(r.summary)}</p>`:''}<span class="tool-domain">${e(new URL(r.link).hostname)}</span>${r.resourceLinks?.length?`<div class="tool-resources">${r.resourceLinks.map(x=>`<a href="${e(x.link)}">${e(x.type)}</a>`).join('')}</div>`:''}<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer" class="text-link">Open tool <span class="sr-only">${e(r.title)} (new tab)</span>${arrow}</a></article>`).join('')}</div></section>`).join('')}</section>`;}
-function publicationPage(records,params){const pubs=records.filter(r=>r.collection==='publications');const mode={pub:'Papers',conf:'Conferences',edit:'Editorials'}[params.get('content')]||'Papers';const selected=pubs.filter(r=>r.category===mode);return pageHeader(pageTitles.publications,intros.publications,'RESEARCH / SELECTED SCHOLARSHIP')+`<section class="wrap section-bottom"><nav class="tabs" aria-label="Publication types">${[['Papers','pub'],['Conferences','conf'],['Editorials','edit']].map(([label,key])=>`<a href="/publications?content=${key}"${mode===label?' aria-current="page"':''}>${label}<span>${pubs.filter(r=>r.category===label).length}</span></a>`).join('')}<a class="scholar" href="https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&amp;hl=en&amp;oi=ao">Google Scholar ${arrow}</a></nav><div data-directory>${filterBar(selected,'publications',{categories:false,years:true})}<div class="publication-list">${selected.map((r,i)=>`<article class="publication-row" data-item data-year="${e(r.year||r.startDate?.slice(0,4)||r.publishDate?.slice(0,4))}" data-search="${e(plainText(r.title+' '+r.authors+' '+r.year+' '+r.location))}"><div class="pub-year">${e(r.year)}<small>${(i+1).toString().padStart(2,'0')}</small></div><div><p class="pub-authors">${sanitizeHtml(r.authors)}</p><h2>${r.link?`<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body||r.title)}</a>`:sanitizeHtml(r.body||r.title)}</h2>${r.location||r.original?.location||r.category==='Conferences'?`<p class="pub-location">${e(r.location??r.original?.location??'')} ${e(r.date)} · ${e(r.presentationType??r.original?.type??'')}</p>`:''}</div><div class="pub-row-actions"><button type="button" class="copy-cite-btn" data-copy="${e(plainText((r.authors||'KAABiL')+'. ('+(r.year||'')+'). '+r.title+'. '+(r.link||'')))}" title="Copy APA citation"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span class="copy-text">Cite</span></button>${r.link?`<a class="round-arrow" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(r.title)}">${arrow}</a>`:''}</div></article>`).join('')}</div></div><details class="publication-key"><summary>Authorship notation</summary><p>Authorship emphasis and symbols are preserved from the original publication list.</p></details></section>`;}
-function isAlumnus(record){return record.memberStatus?record.memberStatus==='alumni':record.category?.split(/\s*\/\s*/).includes('Alumni');}
-function peoplePage(records,path){const allCurrent=records.filter(r=>r.collection==='people'&&!isAlumnus(r));const allAlumni=records.filter(r=>r.collection==='people'&&isAlumnus(r));const alumni=path==='/people/alumni';const people=alumni?allAlumni:allCurrent;return pageHeader(alumni?'Our alumni':pageTitles.people,intros.people,'THE KAABiL COMMUNITY')+`<section class="wrap section-bottom"><nav class="tabs" aria-label="People"><a href="/people"${!alumni?' aria-current="page"':''}>Current team<span>${allCurrent.length}</span></a><a href="/people/alumni"${alumni?' aria-current="page"':''}>Alumni<span>${allAlumni.length}</span></a></nav>${alumni?'':`<a class="director-feature" href="/people/rakesh">${image({title:'Dr. Rakesh Kaundal',image:media+'/image/raw/bioinfo/profile/RK_2.jpg'},'',false)}<div><p class="eyebrow">PRINCIPAL INVESTIGATOR</p><h2>Dr. Rakesh Kaundal</h2><p class="director-dept">Director, Bioinformatics Facility<br>Department of Plants, Soils & Climate · Utah State University</p><span class="text-link">Meet Dr. Kaundal ${arrow}</span></div></a>`}<div data-directory>${filterBar(people,'people',{categories:true})}<div class="people-grid">${people.map(r=>`<article class="person-card" data-item data-category="${e(r.category)}" data-search="${e(plainText(r.title+' '+(r.role||'')+' '+(r.department||'')+' '+(r.category||'')+' '+r.summary))}">${image(r,'person-portrait')}<div class="person-card-content"><div class="person-card-top"><span class="category-label">${e(r.category)}</span>${r.role?`<span class="person-role-tag">${e(r.role)}</span>`:''}</div><h2><a href="${e(r.route)}">${e(r.title)}</a></h2><p class="person-dept">${e(r.department||'Department of Plants, Soils & Climate')}</p>${r.summary?`<p class="person-summary">${e(r.summary)}</p>`:''}<a class="text-link" href="${e(r.route)}">View profile ${arrow}</a></div></article>`).join('')}</div></div></section>`;}
-function eventRow(input){const r={...input,date:displayDate(input)};const date=r.date||'';const day=date.match(/\b\d{1,2}(?:-\d{1,2})?\b/)?.[0]||'—';const month=date.match(/[A-Za-z]+/)?.[0]?.slice(0,3)||'EVENT';return `<article class="event-row" data-item data-year="${e(date.match(/\d{4}/)?.[0]||'')}" data-search="${e(r.title+' '+date+' '+(r.location||r.original?.location||''))}"><div class="event-date"><strong>${e(day)}</strong><span>${e(month)}</span></div><div><p class="meta">${e(date)} ${r.location?' / '+e(r.location):''}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2></div><a class="round-arrow" href="${e(r.route)}" aria-label="Read about ${e(r.title)}">↗</a></article>`;}
+
+const citation = r => plainText((r.authors || 'KAABiL') + '. (' + (r.year || 'n.d.') + '). ' + (r.title || '') + '.' + (r.link ? ' ' + r.link : ''));
+const copyButton = (text, label = 'Cite') => `<button type="button" class="copy-button" data-copy="${e(text)}" aria-label="Copy ${label === 'Cite' ? 'citation' : label.toLowerCase()}">${icons.copy}<span class="copy-text">${e(label)}</span></button>`;
+
+/* ---------- Research ---------- */
+function researchPage(records) {
+  const areas = records.filter(r => r.collection === 'research');
+  const overview = records.find(r => r.id === 'pages:research');
+  const tools = records.filter(r => r.collection === 'tools').length;
+  return pageHeader('Research', 'We combine biology, computer science and engineering to turn complex biological data into new understanding — and share the results as open tools.', 'Research program', {
+    aside: `<dl class="header-facts"><div><dt>Research areas</dt><dd>${areas.length}</dd></div><div><dt>Open tools</dt><dd>${tools}</dd></div></dl>`,
+  })
+    + `<div class="wrap page-body"><ol class="area-rows">${areas.map((r, i) => `<li class="area-row reveal"><a class="area-row-media" href="${e(r.route)}" tabindex="-1" aria-hidden="true">${image(r, '', false)}</a><div class="area-row-text"><span class="area-index">${String(i + 1).padStart(2, '0')}</span><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<a class="link-more" href="${e(r.route)}">Explore this area ${arrow}</a></div></li>`).join('')}</ol>`
+    + (overview?.body ? `<section class="split-section reveal" id="program"><div class="split-head"><p class="eyebrow">Program</p><h2>Objectives &amp; approach</h2></div><div class="prose">${richBody(overview.body, records)}</div></section>` : '')
+    + `</div>`;
+}
+
+/* ---------- Tools ---------- */
+function toolsPage(records) {
+  const tools = records.filter(r => r.collection === 'tools').map(r => ({
+    ...r,
+    category: r.category || 'Other tools',
+    anchor: r.anchor || 'category-' + (r.category || 'other').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  }));
+  const groups = [...new Set(tools.map(r => r.category))].map(name => ({ name, anchor: tools.find(r => r.category === name).anchor, items: tools.filter(r => r.category === name) }));
+  const card = r => {
+    let host = '';
+    try { host = new URL(r.link).hostname.replace(/^www\./, ''); } catch { host = ''; }
+    return `<li class="tool-card" data-item data-category="${e(r.category)}" data-search="${e(r.title + ' ' + r.category + ' ' + (r.summary || ''))}"><a class="tool-card-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer"><div class="tool-shot">${r.image ? image({ ...r, imageFit: r.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(r.title.slice(0, 2))}</span>`}</div><div class="tool-card-body"><h3>${e(r.title)} ${icons.external}<span class="sr-only">(opens in a new tab)</span></h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="tool-host">${e(host)}</p></div></a>${r.resourceLinks?.length ? `<div class="tool-resources">${r.resourceLinks.map(x => `<a href="${e(safeUrl(x.link))}">${e(x.type)}</a>`).join('')}</div>` : ''}</li>`;
+  };
+  return pageHeader('Tools & databases', 'Web servers, prediction tools and databases developed at KAABiL. Each opens on its original site and is free for academic research.', 'Resources', {
+    aside: `<dl class="header-facts"><div><dt>Resources</dt><dd>${tools.length}</dd></div><div><dt>Categories</dt><dd>${groups.length}</dd></div></dl>`,
+  })
+    + `<div class="wrap page-body tools-layout" data-directory><nav class="side-nav" aria-label="Tool categories"><p class="eyebrow">Categories</p><ul>${groups.map(g => `<li><a href="#${e(g.anchor)}">${e(g.name)}<span>${g.items.length}</span></a></li>`).join('')}</ul></nav>`
+    + `<div class="tools-main">${filterBar(tools, 'tools', { categories: false })}${groups.map(g => `<section class="tool-group" data-filter-group id="${e(g.anchor)}" aria-labelledby="tg-${e(g.anchor)}"><div class="group-head"><h2 id="tg-${e(g.anchor)}">${e(g.name)}</h2><span>${count(g.items.length, 'resource')}</span></div><ul class="tool-grid">${g.items.map(card).join('')}</ul></section>`).join('')}</div></div>`;
+}
+
+/* ---------- Publications ---------- */
+function publicationPage(records, params) {
+  const pubs = records.filter(r => r.collection === 'publications');
+  const modes = [['Papers', 'pub', 'Journal papers', '/publications'], ['Conferences', 'conf', 'Conferences', '/publications/conferences'], ['Editorials', 'edit', 'Editorials', '/publications/editorials']];
+  const mode = { pub: 'Papers', conf: 'Conferences', edit: 'Editorials' }[params.get('content')] || 'Papers';
+  const selected = sortDate(pubs.filter(r => r.category === mode));
+  const yearOf = r => r.year || r.startDate?.slice(0, 4) || r.publishDate?.slice(0, 4) || '';
+  const years = [...new Set(selected.map(yearOf))];
+  const row = r => {
+    const venue = mode === 'Conferences'
+      ? [r.location ?? r.original?.location ?? '', r.date, r.presentationType ?? r.original?.type ?? ''].filter(Boolean).map(e).join(' · ')
+      : '';
+    const link = safeUrl(r.link);
+    return `<li class="publication" data-item data-year="${e(yearOf(r))}" data-search="${e(plainText(r.title + ' ' + r.authors + ' ' + r.year + ' ' + (r.location || '')))}"><div class="publication-text"><h3>${link ? `<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3>${r.authors ? `<p class="authors">${sanitizeHtml(r.authors)}</p>` : ''}${venue || mode === 'Conferences' ? `<p class="venue">${venue}</p>` : ''}</div><div class="publication-actions">${link ? `<a class="small-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(plainText(r.title))}">${/doi\.org/.test(link) ? 'DOI' : 'Open'} ${icons.external}</a>` : ''}${copyButton(citation(r))}</div></li>`;
+  };
+  const tabs = `<nav class="tabs" aria-label="Publication types">${modes.map(([key, , label, href]) => `<a href="${href}"${mode === key ? ' aria-current="page"' : ''}>${label}<span>${pubs.filter(r => r.category === key).length}</span></a>`).join('')}<a class="tabs-external" href="https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&amp;hl=en&amp;oi=ao" target="_blank" rel="noopener noreferrer">Google Scholar ${icons.external}</a></nav>`;
+  return pageHeader('Publications', 'Journal articles, conference presentations and editorial work from the lab, newest first.', 'Scholarship', { trail: mode === 'Papers' ? [['Publications']] : [['Publications', '/publications'], [modes.find(m => m[0] === mode)[2]]] })
+    + `<div class="wrap page-body">${tabs}<div data-directory>${filterBar(selected, 'publications', { categories: false, years: true })}`
+    + `<div class="publication-list">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(row).join('')}</ol></section>`).join('')}</div></div>`
+    + `<p class="footnote">Author emphasis and symbols follow the original publication list. Bold names are lab members.</p></div>`;
+}
+
+/* ---------- People ---------- */
+function isAlumnus(record) {
+  return record.memberStatus ? record.memberStatus === 'alumni' : record.category?.split(/\s*\/\s*/).includes('Alumni');
+}
+function personCard(r) {
+  return `<li class="person-card" data-item data-category="${e(r.category)}" data-search="${e(plainText(r.title + ' ' + (r.role || '') + ' ' + (r.department || '') + ' ' + (r.category || '') + ' ' + (r.summary || '')))}"><a href="${e(r.route)}">${image(r, 'person-photo', false)}<div class="person-card-body"><p class="person-category">${e(r.category)}</p><h3>${e(r.title)}</h3>${r.role || r.summary ? `<p class="person-role">${e(r.role || r.summary)}</p>` : ''}<p class="person-dept">${e(r.department || DEFAULT_DEPARTMENT)}</p></div></a></li>`;
+}
+function peoplePage(records, path) {
+  const people = records.filter(r => r.collection === 'people');
+  const current = people.filter(r => !isAlumnus(r));
+  const alumni = people.filter(isAlumnus);
+  const showingAlumni = path === '/people/alumni';
+  const list = showingAlumni ? alumni : current;
+  const d = setting(records, 'settings:director');
+  const directorVisible = d && d.status === 'published';
+  const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
+  const lead = !showingAlumni && directorVisible
+    ? `<a class="lead-card reveal" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><p class="person-dept">${DEFAULT_DEPARTMENT} · Utah State University</p><span class="link-more">Read profile ${arrow}</span></div></a>`
+    : '';
+  return pageHeader(showingAlumni ? 'Alumni' : 'People', showingAlumni ? 'Former students, researchers and staff who trained or worked at KAABiL.' : 'Different disciplines, shared curiosity. Meet the researchers, students and staff behind KAABiL.', 'The KAABiL community', { trail: showingAlumni ? [['People', '/people'], ['Alumni']] : [['People']] })
+    + `<div class="wrap page-body">${tabs}${lead}<div data-directory>${filterBar(list, showingAlumni ? 'alumni' : 'people', { categories: !showingAlumni })}<ul class="people-grid${showingAlumni ? ' people-grid-compact' : ''}">${list.map(personCard).join('')}</ul></div></div>`;
+}
+
+function personProfile(record, records) {
+  const alum = isAlumnus(record);
+  const pubs = records.filter(r => r.status === 'published' && r.collection === 'publications' && (record.publicationIds || []).includes(r.id)).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+  const tools = records.filter(r => r.status === 'published' && r.collection === 'tools' && (record.toolIds || []).includes(r.id));
+  const years = [...new Set(pubs.map(p => p.year).filter(Boolean))].sort().reverse();
+  const credentials = [['education', 'Education'], ['appointments', 'Appointments'], ['awards', 'Honours &amp; awards']].filter(([k]) => record[k]?.length);
+  const interests = (record.researchInterests || '').split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 80);
+  const phone = String(record.phone || '').replace(/[^+0-9]/g, '');
+  const facts = [
+    ['Status', alum ? 'Alumni' : 'Current member'],
+    record.role && ['Role', record.role],
+    record.category && record.category !== 'Alumni' && ['Group', record.category],
+    ['Department', record.department || DEFAULT_DEPARTMENT],
+    (record.startYear || record.endYear) && ['At KAABiL', `${record.startYear || ''} – ${record.endYear || 'present'}`],
+  ].filter(Boolean);
+  const timeline = rows => `<ol class="timeline">${rows.map(item => `<li><span class="timeline-date">${e(item.date)}</span><div><h3>${e(item.title)}</h3>${item.description ? `<p>${e(item.description)}</p>` : ''}${item.link ? `<a class="link-more" href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">Related link ${icons.external}</a>` : ''}</div></li>`).join('')}</ol>`;
+  return `<header class="profile-header"><div class="wrap">${breadcrumbs([[alum ? 'Alumni' : 'People', alum ? '/people/alumni' : '/people'], [record.title]])}<div class="profile-header-grid"><div class="profile-portrait">${image(record, 'portrait')}</div><div class="profile-intro"><p class="eyebrow">${alum ? 'KAABiL alumni' : 'Lab member'}</p><h1>${e(record.title)}</h1>${record.role || record.summary ? `<p class="lede">${e(record.role || record.summary)}</p>` : ''}`
+    + `<ul class="contact-list">${record.email ? `<li><a href="mailto:${e(record.email)}">${icons.mail}<span>${e(record.email)}</span></a>${copyButton(record.email, 'Copy')}</li>` : ''}${record.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(record.phone)}</span></a></li>` : ''}</ul>`
+    + `${(record.social || []).length ? `<ul class="chip-links">${record.social.map(s => `<li><a href="${e(safeUrl(s.link))}" target="_blank" rel="noopener noreferrer">${e(s.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}</div></div></div></header>`
+    + `<div class="wrap profile-layout"><aside class="profile-facts"><dl>${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${e(v)}</dd></div>`).join('')}</dl>${record.dissertationTitle || record.dissertationUrl ? `<div class="facts-block"><p class="eyebrow">Dissertation / thesis</p>${record.dissertationUrl ? `<a href="${e(safeUrl(record.dissertationUrl))}" target="_blank" rel="noopener noreferrer">${e(record.dissertationTitle || 'Read dissertation / thesis')} ${icons.external}</a>` : `<p>${e(record.dissertationTitle)}</p>`}</div>` : ''}</aside><div class="profile-main">`
+    + (record.researchInterests ? `<section class="profile-section"><h2>Research interests</h2>${interests.length >= 2 && interests.length <= 16 ? `<ul class="tag-list">${interests.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : ''}<p>${e(record.researchInterests)}</p></section>` : '')
+    + (record.body || record.summary ? `<section class="profile-section"><h2>Biography</h2><div class="prose">${record.body ? richBody(record.body, records) : `<p>${e(record.summary)}</p>`}</div></section>` : '')
+    + credentials.map(([k, label]) => `<section class="profile-section"><h2>${label}</h2>${timeline(record[k])}</section>`).join('')
+    + (pubs.length ? `<section class="profile-section member-pubs" data-pub-filter><div class="profile-section-head"><h2>Selected publications</h2><span class="count-badge">${pubs.length}</span></div>${years.length > 1 ? `<div class="filter-chips" role="toolbar" aria-label="Filter publications by year"><button type="button" class="chip is-active" data-pub-year="all">All</button>${years.map(y => `<button type="button" class="chip" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>` : ''}<ol class="publication-entries compact">${pubs.map(p => `<li class="publication member-pub" data-year="${e(p.year || '')}"><div class="publication-text"><h3>${p.link ? `<a href="${e(safeUrl(p.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(p.title)}</a>` : sanitizeHtml(p.title)}</h3>${p.authors ? `<p class="authors">${sanitizeHtml(p.authors)}</p>` : ''}<p class="venue">${e(p.year || '')}</p></div><div class="publication-actions">${copyButton(citation(p))}</div></li>`).join('')}</ol></section>` : '')
+    + (tools.length ? `<section class="profile-section"><h2>Software &amp; tools</h2><ul class="link-tiles">${tools.map(t => `<li><a href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer">${e(t.title)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
+    + ((record.workLinks || []).length ? `<section class="profile-section"><h2>Projects &amp; links</h2><ul class="link-tiles">${record.workLinks.map(w => `<li><a href="${e(safeUrl(w.link))}" target="_blank" rel="noopener noreferrer">${e(w.type)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
+    + `<p class="back-link"><a href="${alum ? '/people/alumni' : '/people'}">${icons.back} Back to ${alum ? 'alumni' : 'people'}</a></p></div></div>`;
+}
+
+/* ---------- News ---------- */
+const NEWS_SECTIONS = [
+  { id: 'General', label: 'General', desc: 'Awards, people and lab announcements' },
+  { id: 'Science', label: 'Science & Research', desc: 'Publications, tools and discovery milestones' },
+  { id: 'Media', label: 'Media & Features', desc: 'Press coverage, interviews and features' },
+];
+const newsSection = r => (NEWS_SECTIONS.some(c => c.id === r.category) ? r.category : 'General');
+
+function newsCard(input, records) {
+  const r = { ...input, date: displayDate(input) };
+  const href = r.route || linkFor(r, records);
+  const ext = /^https?:/i.test(href);
+  const sec = newsSection(r);
+  return `<li class="news-card${r.image ? ' has-thumb' : ''}" data-item data-category="${e(sec)}" data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + r.date))}"><a href="${e(href)}"${external(href)}>${r.image ? `<div class="news-thumb">${image(r, '', false)}</div>` : ''}<div class="news-card-text"><p class="meta"><time>${e(r.date)}</time>${r.category && r.category !== sec ? `<span class="tag">${e(r.category)}</span>` : ''}</p><h3>${e(r.title)}${ext ? ` ${icons.external}` : ''}</h3>${r.summary ? `<p class="news-summary">${e(r.summary)}</p>` : ''}</div></a></li>`;
+}
+
 function newsListing(list, records) {
-  const categories = [
-    { id: 'General', label: 'General News', desc: 'Department updates, awards, and community announcements' },
-    { id: 'Science', label: 'Science & Research', desc: 'Breakthrough publications, pipelines, and discovery milestones' },
-    { id: 'Media', label: 'Media & Features', desc: 'Press coverage, interviews, and public lab features' }
-  ];
-
-  return `
-    <div class="mobile-news-bar" role="tablist" aria-label="Filter news by category on phone">
-      <button type="button" role="tab" class="mobile-cat-pill is-active" data-cat-target="all" aria-selected="true">
-        All Sections <span class="pill-count">${list.length}</span>
-      </button>
-      ${categories.map(cat => {
-        const count = list.filter(r => r.category === cat.id || (!r.category && cat.id === 'General')).length;
-        return count ? `<button type="button" role="tab" class="mobile-cat-pill" data-cat-target="${cat.id}" aria-selected="false">
-          ${cat.id} <span class="pill-count">${count}</span>
-        </button>` : '';
-      }).join('')}
-    </div>
-
-    <div class="news-three-col">
-      ${categories.map(cat => {
-        const items = list.filter(r => r.category === cat.id || (!r.category && cat.id === 'General'));
-        if (!items.length) return '';
-        const totalDesktopPages = Math.ceil(items.length / 5);
-
-        return `<section class="news-category-col" data-col="${cat.id}" aria-labelledby="cat-heading-${cat.id}">
-          <header class="news-col-header">
-            <div class="news-col-title-wrap">
-              <span class="news-col-eyebrow">${cat.id.toUpperCase()}</span>
-              <h2 id="cat-heading-${cat.id}" class="news-col-title">${e(cat.label)}</h2>
-            </div>
-            <span class="news-col-badge">${items.length} stories</span>
-          </header>
-          <p class="news-col-desc">${e(cat.desc)}</p>
-
-          <div class="story-grid-col" data-items-container>
-            ${items.map((r, i) => `
-              <div class="news-item-page" data-item-idx="${i}" style="${i >= 5 ? 'display:none;' : ''}">
-                ${newsCard(r, records)}
-              </div>
-            `).join('')}
-          </div>
-
-          ${items.length > 3 ? `
-            <nav class="news-pagination-bar" aria-label="${e(cat.label)} pagination" data-total="${items.length}">
-              <div class="news-pagination-info">
-                <span class="page-range-label">Showing 1–${Math.min(5, items.length)} of ${items.length} stories</span>
-              </div>
-              <div class="news-pagination-controls">
-                <button type="button" class="page-nav-btn prev-btn" data-action="prev" aria-label="Previous page" disabled>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-                  <span>Prev</span>
-                </button>
-                <div class="page-numbers-list" role="navigation" aria-label="Page numbers">
-                  ${Array.from({ length: totalDesktopPages }, (_, idx) => `
-                    <button type="button" class="page-num-btn ${idx === 0 ? 'is-active' : ''}" data-page="${idx + 1}" ${idx === 0 ? 'aria-current="page"' : ''}>
-                      ${idx + 1}
-                    </button>
-                  `).join('')}
-                </div>
-                <button type="button" class="page-nav-btn next-btn" data-action="next" aria-label="Next page" ${totalDesktopPages <= 1 ? 'disabled' : ''}>
-                  <span>Next</span>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
-              </div>
-            </nav>
-          ` : ''}
-        </section>`;
-      }).join('')}
-    </div>
-  `;
+  const [lead, ...side] = list.slice(0, 3);
+  const leadHref = lead && (lead.route || linkFor(lead, records));
+  const featured = lead ? `<section class="news-featured" aria-label="Latest stories"><article class="news-lead${lead.image ? ' has-image' : ''}">${lead.image ? `<a class="news-lead-media" href="${e(leadHref)}" tabindex="-1" aria-hidden="true">${image(lead, '', false)}</a>` : ''}<div class="news-lead-text"><p class="meta"><span class="tag tag-accent">Latest</span><span class="tag">${e(NEWS_SECTIONS.find(s => s.id === newsSection(lead)).label)}</span><time>${e(displayDate(lead))}</time></p><h2><a href="${e(leadHref)}"${external(leadHref)}>${e(lead.title)}</a></h2>${lead.summary ? `<p>${e(lead.summary)}</p>` : ''}</div></article><ul class="news-side">${side.map(r => { const h = r.route || linkFor(r, records); return `<li><p class="meta"><span class="tag">${e(NEWS_SECTIONS.find(s => s.id === newsSection(r)).label)}</span><time>${e(displayDate(r))}</time></p><h3><a href="${e(h)}"${external(h)}>${e(r.title)}</a></h3></li>`; }).join('')}</ul></section>` : '';
+  const groups = NEWS_SECTIONS.map(c => ({ ...c, items: list.filter(r => newsSection(r) === c.id) })).filter(c => c.items.length);
+  const tabs = `<div class="news-tabs" role="tablist" aria-label="News sections"><button type="button" role="tab" class="news-tab is-active" aria-selected="true" data-view="all">All sections<span>${list.length}</span></button>${groups.map(c => `<button type="button" role="tab" class="news-tab" aria-selected="false" data-view="${e(c.id)}">${e(c.label)}<span>${c.items.length}</span></button>`).join('')}</div>`;
+  const cols = groups.map(c => `<section class="news-col" data-col="${e(c.id)}" data-filter-group aria-labelledby="nc-${e(c.id)}"><header class="news-col-head"><h2 id="nc-${e(c.id)}">${e(c.label)}</h2><p>${e(c.desc)}</p><span class="count-badge">${c.items.length}</span></header><ul class="news-list">${c.items.map(r => newsCard(r, records)).join('')}</ul><button type="button" class="news-more" hidden>Show more</button></section>`).join('');
+  return `${featured}<div class="news-controls">${filterBar(list, 'news', { categories: false })}${tabs}</div><div class="news-board" data-view="all">${cols}</div>`;
 }
 
-function listing(records,collection){
- const list=sortDate(records.filter(r=>r.collection===collection));
- const today=new Date().setUTCHours(0,0,0,0);
- const upcoming=list.filter(r=>dateValue({...r,publishDate:undefined})>=today).sort((a,b)=>dateValue(a)-dateValue(b));
- const past=list.filter(r=>!upcoming.includes(r));
- const events=rows=>rows.map(eventRow).join('');
- return pageHeader(pageTitles[collection],intros[collection],collection==='news'?'NEWS / FROM OUR COMMUNITY':'EVENTS / COMMUNITY ARCHIVE')+`<section class="wrap section-bottom" data-directory>${collection==='news'?newsListing(list,records):`${filterBar(list,collection,{categories:false,years:true})}<section class="event-period" data-filter-group><h2>Upcoming events</h2>${upcoming.length?`<div class="event-list">${events(upcoming)}</div>`:'<p class="event-empty">New events will appear here when announced.</p>'}</section><section class="event-period" data-filter-group><h2>Past events</h2><div class="event-list">${events(past)}</div></section>`}</section>`;
+/* ---------- Events ---------- */
+const eventYear = r => (displayDate(r).match(/\d{4}/) || [''])[0];
+function eventCard(input) {
+  const r = { ...input, date: displayDate(input) };
+  const date = r.date || '';
+  const day = date.match(/\b\d{1,2}(?:\s?[-–]\s?\d{1,2})?\b/)?.[0] || '';
+  const month = date.match(/[A-Za-z]{3,}/)?.[0]?.slice(0, 3) || '';
+  const place = r.location || r.original?.location || '';
+  return `<li class="event-card" data-item data-year="${e(eventYear(r))}" data-search="${e(r.title + ' ' + date + ' ' + place)}"><a href="${e(r.route)}"><div class="event-media">${image(r, '', false)}${day ? `<span class="date-badge"><strong>${e(day)}</strong><span>${e(month)}</span></span>` : ''}</div><div class="event-body"><p class="meta"><time>${e(date)}</time></p><h3>${e(r.title)}</h3>${place ? `<p class="meta-line">${icons.pin}<span>${e(place)}</span></p>` : ''}</div></a></li>`;
 }
-function richBody(body,records){
- let out=sanitizeHtml(body);
- // Old templates contain root-relative tool applications. Keep these on the original host.
- out=out.replace(/href="([^"]+)"/g,(whole,value)=>{
-  let url=value.replaceAll('&amp;','&');
-  if(!safeUrl(url,{relative:true}))return whole;
-  if(url.startsWith('#')||/^[a-z][\w+.-]*:/i.test(url))return whole;
-  if(!url.startsWith('/'))url='/'+url;
-  const path=url.split(/[?#]/)[0].replace(/\/$/,'')||'/';
-  if(path.startsWith('/admin/'))url=url.replace('/admin/','/guides/');
-  else if(!baseRoutes.includes(path)&&!records.some(r=>r.route===path))url='https://bioinfo.usu.edu'+url;
-  return `href="${e(url)}"`;
- });return out.replace(/src="([^"]+)"/g,(_,url)=>`src="${e(asset(url.replaceAll('&amp;','&')))}"`);
+function eventsListing(list) {
+  const start = new Date().setUTCHours(0, 0, 0, 0);
+  const upcoming = list.filter(r => dateValue({ ...r, publishDate: undefined }) >= start).sort((a, b) => dateValue(a) - dateValue(b));
+  const past = list.filter(r => !upcoming.includes(r));
+  const years = [...new Set(past.map(eventYear).filter(Boolean))];
+  const cards = rows => rows.map(eventCard).join('');
+  const upcomingBlock = upcoming.length
+    ? `<section class="event-upcoming" data-filter-group aria-labelledby="up-h"><h2 id="up-h" class="group-title">Upcoming</h2><ul class="event-grid event-grid-wide">${cards(upcoming)}</ul></section>`
+    : `<div class="notice-panel"><div><p class="eyebrow">Coming up</p><h2>No events are scheduled right now</h2><p>New events appear here as soon as they are announced.</p></div><a class="button button-ghost" href="/contact">Contact the lab ${arrow}</a></div>`;
+  const yearNav = years.length ? `<nav class="year-nav" aria-label="Jump to year">${years.map(y => `<a href="#year-${e(y)}">${e(y)}</a>`).join('')}</nav>` : '';
+  const undated = past.filter(r => !eventYear(r));
+  return `${upcomingBlock}${yearNav}${years.map(y => { const rows = past.filter(r => eventYear(r) === y); return `<section class="event-year" id="year-${e(y)}" data-filter-group aria-labelledby="y-${e(y)}"><div class="group-head"><h2 id="y-${e(y)}">${e(y)}</h2><span>${count(rows.length, 'event')}</span></div><ul class="event-grid">${cards(rows)}</ul></section>`; }).join('')}${undated.length ? `<section class="event-year" data-filter-group><ul class="event-grid">${cards(undated)}</ul></section>` : ''}`;
 }
-function personProfile(record,records){
- const isAlum=isAlumnus(record);
- const relatedPubs=records.filter(r=>r.status==='published'&&r.collection==='publications'&&(record.publicationIds||[]).includes(r.id)).sort((a,b)=>(parseInt(b.year)||0)-(parseInt(a.year)||0));
- const relatedTools=records.filter(r=>r.status==='published'&&r.collection==='tools'&&(record.toolIds||[]).includes(r.id));
- const hasScholarship=relatedPubs.length>0||relatedTools.length>0;
- const pubYears=[...new Set(relatedPubs.map(p=>p.year).filter(Boolean))].sort().reverse();
- const renderCards=rows=>(rows||[]).map(item=>`<article class="credential-card"><div class="credential-head"><h4 class="credential-title">${e(item.title)}</h4><span class="credential-period">${e(item.date)}</span></div>${item.description?`<p class="credential-desc">${e(item.description)}</p>`:''}${item.link?`<a href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer" class="text-link">Related resource ${arrow}</a>`:''}</article>`).join('');
- const hasCredentials=(record.education?.length||0)+(record.appointments?.length||0)+(record.awards?.length||0)>0;
- const interestTags=(record.researchInterests||'').split(/[\n,;]+/).map(s=>s.trim()).filter(s=>s.length>1&&s.length<80);
- const showInterestTags=interestTags.length>=2&&interestTags.length<=16;
- return `<div class="wrap breadcrumb"><a href="/">Home</a><span>/</span><a href="${isAlum?'/people/alumni':'/people'}">${isAlum?'Alumni':'People'}</a><span>/</span><span>${e(record.title)}</span></div><article class="wrap member-profile-page"><section class="member-hero-card"><div class="member-hero-portrait">${image(record,'portrait')}</div><div class="member-hero-info"><div class="member-badge-row"><span class="member-status-pill ${isAlum?'alumni':'current'}"><span class="status-dot"></span>${isAlum?'KAABiL Alumnus':'Current Lab Member'}</span>${record.category?`<span class="member-cat-pill">${e(record.category)}</span>`:''}</div><h1 class="member-hero-name">${e(record.title)}</h1>${record.role?`<p class="member-hero-position">${e(record.role)}</p>`:''}<p class="member-hero-lab">${e(record.department||'Department of Plants, Soils & Climate')} · Utah State University</p>${record.startYear||record.endYear?`<p class="member-hero-period"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> <span>${e(record.startYear||'')} ${record.endYear?'– '+e(record.endYear):'– Present'}</span></p>`:''}<div class="member-contact-bar">${record.email?`<div class="email-copy-group"><a href="mailto:${e(record.email)}" class="member-contact-pill email-pill"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>${e(record.email)}</span></a><button type="button" class="copy-email-btn" data-copy="${e(record.email)}" title="Copy email address" aria-label="Copy email address"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span class="copy-text">Copy</span></button></div>`:''}${record.phone?`<a href="tel:${e(record.phone).replace(/[^+0-9]/g,'')}" class="member-contact-pill" title="Phone"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>${e(record.phone)}</span></a>`:''}${record.dissertationTitle||record.dissertationUrl?`<a href="${e(safeUrl(record.dissertationUrl||'#'))}" class="member-contact-pill dissertation" target="_blank" rel="noopener noreferrer" title="Thesis / Dissertation"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg><span>${e(record.dissertationTitle||'View Dissertation / Thesis')} ↗</span></a>`:''}${(record.social||[]).map(s=>`<a href="${e(safeUrl(s.link))}" class="member-contact-pill social" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M2 12h20"/></svg><span>${e(s.type)} ↗</span></a>`).join('')}</div></div></section><div class="member-profile-grid ${hasScholarship?'':'single-column'}"><div class="member-main-col">${record.researchInterests?`<section class="member-section interests-card"><div class="section-title-wrap"><h2>Research Interests & Focus</h2></div>${showInterestTags?`<div class="interests-tags-list">${interestTags.map(tag=>`<span class="interest-tag">${e(tag)}</span>`).join('')}</div>`:''}<p class="interests-prose">${e(record.researchInterests)}</p></section>`:''}${record.body||record.summary?`<section class="member-section bio-card"><div class="section-title-wrap"><h2>Biography & Overview</h2></div><div class="prose">${record.body?richBody(record.body,records):`<p>${e(record.summary)}</p>`}</div></section>`:''}${hasCredentials?`<section class="member-section credentials-group-card"><div class="section-title-wrap"><h2>Academic Background & Qualifications</h2></div>${record.education?.length?`<div class="credential-subsection"><h3 class="credential-subheading">Education & Degrees</h3><div class="credential-cards-list">${renderCards(record.education)}</div></div>`:''}${record.appointments?.length?`<div class="credential-subsection"><h3 class="credential-subheading">Professional Appointments</h3><div class="credential-cards-list">${renderCards(record.appointments)}</div></div>`:''}${record.awards?.length?`<div class="credential-subsection"><h3 class="credential-subheading">Honors & Recognition</h3><div class="credential-cards-list">${renderCards(record.awards)}</div></div>`:''}${record.dissertationTitle?`<div class="credential-subsection"><h3 class="credential-subheading">Thesis & Dissertation</h3><div class="credential-cards-list"><article class="credential-card"><div class="credential-head"><h4 class="credential-title">${e(record.dissertationTitle)}</h4><span class="credential-period">Academic Milestone</span></div>${record.dissertationUrl?`<a href="${e(safeUrl(record.dissertationUrl))}" target="_blank" rel="noopener noreferrer" class="text-link">Access thesis document ${arrow}</a>`:''}</div></article></div>`:''}</section>`:''}${!hasScholarship&&(record.workLinks||[]).length?`<section class="member-section worklinks-card"><div class="section-title-wrap"><h2>Projects & External Resources</h2></div><div class="member-worklinks-grid">${record.workLinks.map(w=>`<a href="${e(safeUrl(w.link))}" target="_blank" rel="noopener noreferrer" class="member-worklink-item"><span>${e(w.type)}</span> <span class="ext-icon">↗</span></a>`).join('')}</div></section>`:''}</div>${hasScholarship?`<div class="member-side-col">${relatedPubs.length?`<section class="member-section scholarship-card"><div class="section-title-wrap pub-title-wrap"><div><h2>Selected Publications</h2><span class="pub-subtitle">Co-authored research & scholarship</span></div></div>${pubYears.length>1?`<div class="pub-filter-bar" role="toolbar" aria-label="Filter publications by year"><button type="button" class="pub-filter-btn is-active" data-pub-year="all">All</button>${pubYears.map(y=>`<button type="button" class="pub-filter-btn" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>`:''}<div class="member-pub-list member-scroll-list">${relatedPubs.map(p=>`<article class="member-pub-item" data-year="${e(p.year||'')}"><div class="pub-year-badge">${e(p.year||'—')}</div><div class="pub-body"><h4>${p.link?`<a href="${e(safeUrl(p.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(p.title)} ↗</a>`:sanitizeHtml(p.title)}</h4>${p.authors?`<p class="pub-authors-small">${sanitizeHtml(p.authors)}</p>`:''}</div><div class="pub-item-actions"><button type="button" class="copy-cite-btn" data-copy="${e(plainText((p.authors||'KAABiL')+'. ('+(p.year||'')+'). '+p.title+'. '+(p.link||'')))}" title="Copy citation"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span class="copy-text">Cite</span></button></div></article>`).join('')}</div><p class="pub-filter-empty" hidden>No publications found for the selected filter.</p></section>`:''}${relatedTools.length?`<section class="member-section tools-card"><div class="section-title-wrap"><div><h2>Software & Tools</h2><span class="tools-subtitle">Computational pipelines & web servers</span></div></div><div class="member-tool-grid member-scroll-list">${relatedTools.map(t=>`<a href="${e(safeUrl(t.link||t.route))}" target="_blank" rel="noopener noreferrer" class="member-tool-card"><div class="tool-card-head"><span class="tool-card-mark">${e(t.title.slice(0,2).toUpperCase())}</span><h4 title="${e(t.title)}">${e(t.title)} ↗</h4></div>${t.summary?`<p>${e(t.summary)}</p>`:''}</a>`).join('')}</div></section>`:''}${(record.workLinks||[]).length?`<section class="member-section worklinks-card"><div class="section-title-wrap"><h2>Projects & External Work</h2></div><div class="member-worklinks-list">${record.workLinks.map(w=>`<a href="${e(safeUrl(w.link))}" target="_blank" rel="noopener noreferrer" class="member-worklink-item"><span>${e(w.type)}</span> <span class="ext-icon">↗</span></a>`).join('')}</div></section>`:''}</div>`:''}</div><div class="detail-bottom"><a class="text-link" href="${isAlum?'/people/alumni':'/people'}">← Back to ${isAlum?'Alumni':'People Directory'}</a></div></article>`;
+
+function listing(records, collection) {
+  const list = sortDate(records.filter(r => r.collection === collection));
+  if (collection === 'news') {
+    return pageHeader('News', 'Research milestones, awards, media coverage and stories from the KAABiL community.', 'News & events', { trail: [['News']] })
+      + `<div class="wrap page-body" data-directory>${newsListing(list, records)}</div>`;
+  }
+  return pageHeader('Events', 'Conferences, symposia, presentations and the moments that bring our research community together.', 'News & events', { trail: [['Events']] })
+    + `<div class="wrap page-body" data-directory>${filterBar(list, 'events', { categories: false, years: true })}${eventsListing(list)}</div>`;
 }
-function memberDetails(record,records){
- if(record.collection!=='people')return '';
- const related=(key,collection)=>records.filter(r=>r.status==='published'&&r.collection===collection&&(record[key]||[]).includes(r.id));
- const works=(heading,items)=>items.length?`<section class="member-work"><h2>${heading}</h2><ul>${items.map(r=>`<li>${r.link?`<a href="${e(safeUrl(r.link))}" target="_blank" rel="noopener noreferrer">${e(r.title)}</a>`:e(r.title)}</li>`).join('')}</ul></section>`:'';
- return `<section class="member-facts" aria-label="Member information"><p class="eyebrow">${isAlumnus(record)?'ALUMNI':'CURRENT MEMBER'}${record.role?' · '+e(record.role):''}</p>${record.startYear||record.endYear?`<p>${e(record.startYear||'')} ${record.endYear?'– '+e(record.endYear):'– present'}</p>`:''}${record.researchInterests?`<h2>Research interests</h2><p>${e(record.researchInterests)}</p>`:''}${record.dissertationTitle||record.dissertationUrl?`<h2>Dissertation / thesis</h2><p>${record.dissertationUrl?`<a href="${e(safeUrl(record.dissertationUrl))}" target="_blank" rel="noopener noreferrer">${e(record.dissertationTitle||'Read dissertation / thesis')}</a>`:e(record.dissertationTitle)}</p>`:''}</section>${works('Selected publications',related('publicationIds','publications'))}${works('Tools and resources',related('toolIds','tools'))}${record.workLinks?.length?`<section class="member-work"><h2>More work</h2><ul>${record.workLinks.map(r=>`<li><a href="${e(safeUrl(r.link))}" target="_blank" rel="noopener noreferrer">${e(r.type)}</a></li>`).join('')}</ul></section>`:''}`;
+
+/* ---------- Detail pages (news, events, research areas, pages, opportunities) ---------- */
+function detail(input, records) {
+  const record = { ...input, date: displayDate(input) };
+  if (record.collection === 'people') return personProfile(record, records);
+  const collection = record.collection;
+  const section = { pages: ['About', '/about'], news: ['News', '/news'], events: ['Events', '/events'], research: ['Research', '/research'], opportunities: ['Opportunities', '/opportunities'], tools: ['Tools', '/tools'], publications: ['Publications', '/publications'] }[collection] || [collection, '/' + collection];
+  const isExternal = record.link && record.link.replace(/\/$/, '') !== record.route;
+  const place = record.location || record.original?.location || '';
+  const meta = [
+    record.date && `<span class="meta-line">${icons.calendar}<span>${e(record.date)}</span></span>`,
+    place && `<span class="meta-line">${icons.pin}<span>${e(place)}</span></span>`,
+  ].filter(Boolean).join('');
+  const research = collection === 'research' && !record.body
+    ? `<p>This research area is part of the lab’s wider program. Explore the related tools and publications below.</p><ul class="link-tiles"><li><a href="/research#program">Research program ${arrow}</a></li><li><a href="/tools">Tools &amp; databases ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li></ul>`
+    : '';
+  const opportunity = collection === 'opportunities'
+    ? `<div class="notice-panel"><div><p class="eyebrow">${e(record.openingStatus === 'closed' ? 'Closed' : 'Open')} · ${e(record.category || 'Research opportunity')}</p>${record.deadline ? `<p>Apply by <strong>${e(record.deadline)}</strong></p>` : ''}</div>${record.link ? `<a class="button" href="${e(safeUrl(record.link))}">Application details ${arrow}</a>` : record.email ? `<a class="button" href="mailto:${e(record.email)}">Email to apply ${arrow}</a>` : ''}</div>`
+    : '';
+  const siblings = ['research'].includes(collection) ? records.filter(r => r.collection === collection && r.id !== record.id) : [];
+  return `<article class="article"><header class="article-header"><div class="wrap">${breadcrumbs([section, [record.title]])}<div class="article-heading"><p class="eyebrow">${e(record.category && !['Research', 'Events'].includes(record.category) ? record.category : section[0])}</p><h1>${e(record.title)}</h1>${record.summary ? `<p class="lede">${e(record.summary)}</p>` : ''}${meta ? `<p class="article-meta">${meta}</p>` : ''}</div></div></header>`
+    + `<div class="wrap article-layout">${record.image ? `<figure class="article-figure">${image(record, 'article-image')}${record.imageCaption ? `<figcaption>${e(record.imageCaption)}</figcaption>` : ''}</figure>` : ''}`
+    + `<div class="article-body prose">${opportunity}${richBody(record.body, records)}${research}${record.email && collection !== 'opportunities' ? `<p><a href="mailto:${e(record.email)}">${e(record.email)}</a></p>` : ''}${record.social?.length ? `<ul class="chip-links">${record.social.map(s => `<li><a href="${e(safeUrl(s.link))}" target="_blank" rel="noopener noreferrer">${e(s.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}${isExternal ? sourceLink(linkFor(record, records), !record.body) : ''}</div>`
+    + (record.id === 'pages:home' ? '<p class="article-aside-link"><a class="link-more" href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s journey ' + icons.external + '</a></p>' : '')
+    + (record.gallery?.length ? `<section class="gallery-section"><h2>Gallery <span class="count-badge">${record.gallery.length}</span></h2><div class="gallery" aria-label="Photo gallery">${record.gallery.map((url, i) => `<div>${image({ title: record.title, image: url, imageAlt: record.title + ' — photo ' + (i + 1) })}</div>`).join('')}</div></section>` : '')
+    + related(record, records)
+    + (siblings.length ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${siblings.map(r => `<li><a href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : '')
+    + `<p class="back-link"><a href="${section[1]}">${icons.back} Back to ${e(section[0].toLowerCase())}</a></p></div></article>`;
 }
-function detail(input,records){const record={...input,date:displayDate(input)};
- if(record.collection==='people')return personProfile(record,records);
- const collection=record.collection;const category=collection==='pages'?'About KAABiL':collection.charAt(0).toUpperCase()+collection.slice(1);
- const external=record.link&&record.link.replace(/\/$/,'')!==record.route;
- return `<div class="wrap breadcrumb"><a href="/">Home</a><span>/</span><a href="${collection==='pages'?'/about':'/'+collection}">${e(category)}</a></div><article class="wrap detail-page"><header class="detail-header"><p class="eyebrow">${e(record.category||category)}${record.date?' / '+e(record.date):''}</p><h1>${e(record.title)}</h1>${record.summary?`<p class="intro">${e(record.summary)}</p>`:''}${record.location?`<p class="detail-location">${e(record.location)}</p>`:''}</header>${record.image?image(record,'detail-image'):''}<div class="detail-content prose">${record.collection==='opportunities'?`<div class="opportunity-facts"><p>${e(record.openingStatus==='closed'?'Closed opportunity':'Research opportunity')}${record.deadline?' · Deadline: '+e(record.deadline):''}</p>${record.link?`<a class="button" href="${e(record.link)}">Application details</a>`:''}</div>`:''}${richBody(record.body,records)}${!record.body&&collection==='research'?`<p>${e(record.summary)}</p><p>Explore the lab’s research program, related tools, and publications.</p><div class="related-links"><a href="/research">Research program ${arrow}</a><a href="/tools">Tools & databases ${arrow}</a><a href="/publications">Publications ${arrow}</a></div>`:''}${record.email?`<p><a href="mailto:${e(record.email)}">${e(record.email)}</a></p>`:''}${record.social?.length?`<div class="social-links">${record.social.map(s=>`<a href="${e(safeUrl(s.link))}" target="_blank" rel="noopener noreferrer">${e(s.type)} ${arrow}</a>`).join('')}</div>`:''}${external?`<p><a class="button" href="${e(linkFor(record,records))}">Read more at the source ${arrow}</a></p>`:''}</div>${record.id==='pages:rakesh'||record.id==='pages:home'?'<p class="profile-video"><a class="text-link" href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s remarkable journey ↗</a></p>':''}${record.gallery?.length?`<section class="gallery" aria-label="Event gallery">${record.gallery.map((url,i)=>`<div>${image({title:record.title,image:url,imageAlt:record.title+' — photo '+(i+1)})}</div>`).join('')}</section>`:''}${record.collection==='people'?'':related(record,records)}<div class="detail-bottom"><a class="text-link" href="${collection==='pages'?'/':'/'+collection}">← Back to ${e(collection==='pages'?'home':collection)}</a></div></article>`;
+
+function sourceLink(href, primary) {
+  let host = '';
+  try { host = new URL(href).hostname.replace(/^www\./, ''); } catch { host = ''; }
+  return primary
+    ? `<div class="notice-panel"><div><p class="eyebrow">Full story</p><p>This story was published${host ? ` at <strong>${e(host)}</strong>` : ' elsewhere'}.</p></div><a class="button" href="${e(href)}"${external(href)}>Read the full story ${icons.external}</a></div>`
+    : `<p class="source-link"><a class="button button-ghost" href="${e(href)}"${external(href)}>Read the original story ${icons.external}</a></p>`;
 }
-function originalContact(records){const r=records.find(r=>r.id==='pages:contact');return pageHeader('Let’s connect.','Questions, collaborations, or your next research chapter. We would love to hear from you.','CONTACT / JOIN THE LAB')+`<section class="wrap contact-layout section-bottom"><aside class="contact-panel"><p class="eyebrow">START A CONVERSATION</p><h2>KAABiL at<br>Utah State University</h2><a href="mailto:rkaundal@usu.edu" class="text-link">rkaundal@usu.edu ${arrow}</a><a href="tel:+14357974117">+1 (435) 797-4117</a><address>4700 Old Main Hill<br>Logan, UT 84322-4700<br>United States of America</address><a href="https://maps.google.com/maps?q=41.742693,-111.810340" class="text-link">Directions ${arrow}</a><a href="mailto:rkaundal@usu.edu?subject=Appointment%20request" class="text-link">Request an appointment ${arrow}</a><div id="enroll"><h3>Interested in joining?</h3><p>Email Dr. Kaundal with your interests, background, and questions.</p><a href="mailto:rkaundal@usu.edu?subject=KAABiL%20research%20opportunity" class="button">Write an email ${arrow}</a></div></aside><div class="prose contact-prose">${richBody(r?.body,records).replaceAll('id="enroll"','').replace(/<a[^>]+>Go to Contact Form<\/a>/,'').replace('form</a> below','email link</a>')}</div></section>`;}
-function contact(records){
- const c=setting(records,'settings:site');let html=originalContact(records).replace(/<h4[^>]*>\s*Set an Appointment!\s*<\/h4>/,'').replaceAll('rkaundal@usu.edu',e(c.email)).replaceAll('+1 (435) 797-4117',e(c.phone)).replaceAll('tel:+14357974117','tel:'+e(c.phone).replace(/[^+0-9]/g,''));
- html=html.replace('4700 Old Main Hill<br>Logan, UT 84322-4700<br>United States of America',e(c.address).replaceAll('\n','<br>'));
- const active=activeOpportunities(records);if(active.length)html+=`<section class="wrap section-bottom"><h2>Current opportunities</h2>${active.map(r=>`<p><a class="text-link" href="${e(r.route)}">${e(r.title)}</a></p>`).join('')}</section>`;return html;
+
+/* ---------- Contact ---------- */
+function contact(records) {
+  const c = setting(records, 'settings:site');
+  const page = records.find(r => r.id === 'pages:contact');
+  const phone = String(c.phone || '').replace(/[^+0-9]/g, '');
+  const body = richBody(page?.body, records)
+    .replaceAll('id="enroll"', '')
+    .replace(/<a[^>]+>Go to Contact Form<\/a>/, '')
+    .replace('form</a> below', 'email link</a>')
+    .replace(/<h4[^>]*>\s*Set an Appointment!\s*<\/h4>/, '')
+    .replaceAll('rkaundal@usu.edu', e(c.email));
+  const active = activeOpportunities(records);
+  return pageHeader('Contact', 'Questions, collaborations or your next research chapter — we would like to hear from you.', 'Get in touch', { trail: [['About', '/about'], ['Contact']] })
+    + `<div class="wrap page-body contact-layout"><aside class="contact-card"><h2>KAABiL at Utah State University</h2><ul class="contact-list stacked"><li><a href="mailto:${e(c.email)}">${icons.mail}<span>${e(c.email)}</span></a></li>${c.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(c.phone)}</span></a></li>` : ''}<li><span class="contact-address">${icons.pin}<span>${e(c.address).replaceAll('\n', '<br>')}</span></span></li></ul>`
+    + `<div class="contact-actions"><a class="button" href="mailto:${e(c.email)}?subject=KAABiL%20research%20opportunity">Email about joining ${arrow}</a><a class="button button-ghost" href="mailto:${e(c.email)}?subject=Appointment%20request">Request an appointment</a><a class="link-more" href="https://maps.google.com/maps?q=41.742693,-111.810340" target="_blank" rel="noopener noreferrer">Directions on Google Maps ${icons.external}</a></div>`
+    + (active.length ? `<div class="facts-block"><p class="eyebrow">Open opportunities</p><ul>${active.map(r => `<li><a href="${e(r.route)}">${e(r.title)}</a></li>`).join('')}</ul></div>` : '')
+    + `</aside><div class="prose contact-prose">${body}</div></div>`;
 }
-export function renderPage(path,params,records,{previewRecord=null}={}){
- const directorHidden=records.some(r=>r.id==='settings:director'&&r.status!=='published');
- path=path.replace(/\/$/,'')||'/';path=legacyRedirects[path]||path;records=records.filter(r=>r.status==='published'||r.id===previewRecord?.id);
- let body,title,status=200;
- if(previewRecord?.collection==='settings'){records=records.filter(r=>r.id!==previewRecord.id).concat(previewRecord);body=previewRecord.id==='settings:director'?director(records,image):home(records);title='Settings preview';}
- else if(previewRecord){body=`<div class="preview-banner">Draft preview · only visible to signed-in editors</div>`+detail(previewRecord,records);title=previewRecord.title;}
- else if(path==='/'||path==='/home'){body=home(records);title='From information to inference';}
- else if(['/research','/research/research-areas'].includes(path)){body=researchPage(records);title='Research';}
- else if(path==='/people/rakesh'&&directorHidden){status=404;title='Profile unavailable';body=pageHeader('Profile unavailable','Please visit our people directory.','PEOPLE')+'<div class="wrap section-bottom"><a href="/people" class="button">Meet the team</a></div>';}
- else if(path==='/people/rakesh'){body=director(records,image);title='Dr. Rakesh Kaundal';}
- else if(path==='/opportunities'){body=opportunities(records);title='Opportunities';}
- else if(path==='/search'){body=pageHeader('Search KAABiL','Find people, research, publications, tools, and stories.','EXPLORE')+`<section class="wrap section-bottom" data-directory>${filterBar(records.filter(r=>r.collection!=='settings'),'the website',{categories:false})}<div class="search-results">${records.filter(r=>r.collection!=='settings').map(r=>`<article data-item data-search="${e(r.title+' '+r.summary+' '+r.category)}"><span class="category-label">${e(r.collection)}</span><h2><a href="${e(r.route||r.link||'/publications')}">${e(r.title)}</a></h2><p>${e(r.summary)}</p></article>`).join('')}</div></section>`;title='Search';}
- else if(path==='/tools'){body=toolsPage(records);title='Tools & databases';}
- else if(['/people','/people/our-team','/people/alumni'].includes(path)){body=peoplePage(records,path);title='People';}
- else if(['/publications','/publications/conferences','/publications/editorials'].includes(path)){if(path.endsWith('conferences'))params.set('content','conf');if(path.endsWith('editorials'))params.set('content','edit');body=publicationPage(records,params);title='Publications';}
- else if(['/news','/events'].includes(path)){body=listing(records,path.slice(1));title=pageTitles[path.slice(1)];}
- else if(path==='/contact'){body=contact(records);title='Contact & opportunities';}
- else {const record=records.find(r=>r.route===path);if(record){body=detail(record,records);title=record.title;}
- else{status=404;title='Page not found';body=pageHeader('This page isn’t here.','Explore our research, browse the archive, or return to the homepage.','404 / PAGE NOT FOUND')+'<div class="wrap section-bottom"><a href="/" class="button">Back to home →</a></div>';}}
- return {status,html:shell(title,body,{path,records})};
+
+/* ---------- Search ---------- */
+function searchPage(records) {
+  const label = { news: 'News', events: 'Event', publications: 'Publication', people: 'Person', research: 'Research', tools: 'Tool', pages: 'Page', opportunities: 'Opportunity' };
+  const items = records.filter(r => r.collection !== 'settings');
+  return pageHeader('Search', 'Find people, research areas, publications, tools and stories across the site.', 'Explore KAABiL', { trail: [['Search']] })
+    + `<div class="wrap page-body" data-directory data-require-query>${filterBar(items, 'the website', { categories: false })}<div class="search-hint" data-search-hint><p>Type a name, topic, tool or year. For example <em>RSLpred</em>, <em>metagenomics</em> or <em>2024</em>.</p><ul class="link-tiles"><li><a href="/people">People ${arrow}</a></li><li><a href="/research">Research ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li><li><a href="/tools">Tools ${arrow}</a></li><li><a href="/news">News ${arrow}</a></li></ul></div><ul class="search-results">${items.map(r => { const href = r.route || safeUrl(r.link) || '/publications'; return `<li data-item data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + (r.category || '') + ' ' + (r.authors || '')))}"><span class="tag">${e(label[r.collection] || r.collection)}</span><h2><a href="${e(href)}"${external(href)}>${e(plainText(r.title))}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}</li>`; }).join('')}</ul></div>`;
+}
+
+function notFound(title, intro, actionHref = '/', actionLabel = 'Back to the homepage') {
+  return pageHeader(title, intro, 'Page not found', { trail: [['Not found']] })
+    + `<div class="wrap page-body"><div class="notice-panel"><div><h2>Try one of these instead</h2><ul class="link-tiles"><li><a href="/research">Research ${arrow}</a></li><li><a href="/people">People ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li><li><a href="/tools">Tools ${arrow}</a></li><li><a href="/search">Search ${arrow}</a></li></ul></div><a class="button" href="${actionHref}">${e(actionLabel)}</a></div></div>`;
+}
+
+/* ---------- Router ---------- */
+export function renderPage(path, params, records, { previewRecord = null } = {}) {
+  const directorHidden = records.some(r => r.id === 'settings:director' && r.status !== 'published');
+  path = path.replace(/\/$/, '') || '/';
+  path = legacyRedirects[path] || path;
+  records = records.filter(r => r.status === 'published' || r.id === previewRecord?.id);
+  let body, title, status = 200;
+  if (previewRecord?.collection === 'settings') {
+    records = records.filter(r => r.id !== previewRecord.id).concat(previewRecord);
+    body = previewRecord.id === 'settings:director' ? director(records) : homepage(records);
+    title = 'Settings preview';
+  } else if (previewRecord) {
+    body = `<div class="preview-banner">Draft preview · only visible to signed-in editors</div>` + detail(previewRecord, records);
+    title = previewRecord.title;
+  } else if (path === '/' || path === '/home') {
+    body = homepage(records); title = 'From information to inference';
+  } else if (['/research', '/research/research-areas'].includes(path)) {
+    body = researchPage(records); title = 'Research';
+  } else if (path === '/people/rakesh' && directorHidden) {
+    status = 404; title = 'Profile unavailable';
+    body = notFound('Profile unavailable', 'This profile is not published right now.', '/people', 'Meet the team');
+  } else if (path === '/people/rakesh') {
+    body = director(records); title = 'Dr. Rakesh Kaundal';
+  } else if (path === '/opportunities') {
+    body = opportunities(records); title = 'Opportunities';
+  } else if (path === '/search') {
+    body = searchPage(records); title = 'Search';
+  } else if (path === '/tools') {
+    body = toolsPage(records); title = 'Tools & databases';
+  } else if (['/people', '/people/our-team', '/people/alumni'].includes(path)) {
+    body = peoplePage(records, path); title = path.endsWith('alumni') ? 'Alumni' : 'People';
+  } else if (['/publications', '/publications/conferences', '/publications/editorials'].includes(path)) {
+    if (path.endsWith('conferences')) params.set('content', 'conf');
+    if (path.endsWith('editorials')) params.set('content', 'edit');
+    body = publicationPage(records, params); title = 'Publications';
+  } else if (['/news', '/events'].includes(path)) {
+    body = listing(records, path.slice(1)); title = path === '/news' ? 'News' : 'Events';
+  } else if (path === '/contact') {
+    body = contact(records); title = 'Contact';
+  } else {
+    const record = records.find(r => r.route === path);
+    if (record) { body = detail(record, records); title = record.title; }
+    else { status = 404; title = 'Page not found'; body = notFound('This page isn’t here', 'The page may have moved. Try the links below or search the site.'); }
+  }
+  return { status, html: shell(title, body, { path, records }) };
 }

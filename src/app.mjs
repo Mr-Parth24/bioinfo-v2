@@ -13,7 +13,7 @@ import { readLimited,saveImage,uploadedImage,removeImage } from './uploads.mjs';
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
 const assetManifest=JSON.parse(await readFile(join(publicDir,'asset-map.json'),'utf8'));
 const mediaNames=new Set(Object.values(assetManifest).map(x=>x.url?.replace('/assets/','')).filter(Boolean));
-const assets={'site.css':'text/css; charset=utf-8','site.js':'text/javascript; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'text/javascript; charset=utf-8','favicon.svg':'image/svg+xml'};
+const assets={'site.css':'text/css; charset=utf-8','site.js':'text/javascript; charset=utf-8','admin.css':'text/css; charset=utf-8','admin.js':'text/javascript; charset=utf-8','favicon.svg':'image/svg+xml','fonts/inter-latin-wght-normal.woff2':'font/woff2','fonts/source-serif-4-latin-wght-normal.woff2':'font/woff2','fonts/source-serif-4-latin-wght-italic.woff2':'font/woff2'};
 const securityHeaders={
  'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin',
  'permissions-policy':'camera=(), microphone=(), geolocation=()',
@@ -38,7 +38,7 @@ export function createApp({store,origin='http://localhost:3000',dataDir,producti
    if(path==='/healthz'&&method==='GET')return json({status:'ok'});
    if(path.startsWith('/assets/')&&['GET','HEAD'].includes(method)){
     const name=path.slice('/assets/'.length);if(!Object.hasOwn(assets,name)&&!mediaNames.has(name))return response('Not found',404);
-    const bytes=await readFile(join(publicDir,name));return response(method==='HEAD'?null:bytes,200,{'content-type':assets[name]||'image/webp','cache-control':'public, max-age=300'});
+    const bytes=await readFile(join(publicDir,name));return response(method==='HEAD'?null:bytes,200,{'content-type':assets[name]||'image/webp','cache-control':name.startsWith('fonts/')?'public, max-age=31536000, immutable':'public, max-age=300'});
    }
    if(path.startsWith('/uploads/')&&['GET','HEAD'].includes(method)){
     const file=await uploadedImage(path,dataDir);if(!file)return response('Not found',404);

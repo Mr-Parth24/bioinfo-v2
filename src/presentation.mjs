@@ -1,30 +1,289 @@
-/** KAABiL identity, shared navigation and editorial page compositions. */
-import {readFileSync} from 'node:fs';
-import {escapeHtml as e,safeUrl,sanitizeHtml,plainText} from './security.mjs';
-import {setting,selectUpdates,activeOpportunities,dateValue} from './editorial.mjs';
-const assets=JSON.parse(readFileSync(new URL('../public/asset-map.json',import.meta.url)));
-export const dimensions=url=>assets[url]?.width?assets[url]:null;
-export const asset=url=>assets[url]?.url||url||'';
-export const logo=asset('https://bioinfocore.usu.edu/raikou/image/bioinfo/kbllogo.png');
-const arrow='<svg viewBox="0 0 24 24" class="link-arrow" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>';
-const nav=[['Home','/'],['Research','/research',[['Overview','/research'],['Research areas','/research/research-areas']]],['People','/people',[['Dr. Rakesh Kaundal','/people/rakesh'],['Current team','/people/our-team'],['Alumni','/people/alumni']]],['Publications','/publications',[['Journal papers','/publications'],['Conferences','/publications/conferences'],['Editorials','/publications/editorials']]],['Tools','/tools'],['Events','/events'],['News','/news']];
-export function header(path,records=[]){const config=setting(records,'settings:site');return `<div class="university-bar"><div class="wrap"><a href="https://www.usu.edu/">UTAH STATE UNIVERSITY</a><span>Research · Discovery · Community</span><a href="/opportunities">Join the lab ${arrow}</a></div></div><header class="site-header"><div class="wrap identity-row"><a class="brand" href="/" aria-label="KAABiL home"><img src="${e(logo)}" width="283" height="85" alt="KAABiL — Kaundal Artificial Intelligence & Advanced Bioinformatics Lab"></a><div class="header-utilities">${(config.resourceLinks||[]).slice(0,2).map(r=>`<a href="${e(safeUrl(r.link))}">${e(r.type)}</a>`).join('')}<a href="https://biocluster.usu.edu/rstudio" target="_blank">USU RStudio</a><a href="/contact">Contact</a><a href="/search" class="search-link" aria-label="Search the website">Search ${arrow}</a></div><button class="menu-toggle top-menu-toggle" aria-controls="site-nav" aria-expanded="false">Menu <span aria-hidden="true">☰</span></button></div><div class="navigation-band"><nav id="site-nav" class="wrap" aria-label="Main navigation">${nav.map(([label,url,children])=>`<div class="nav-item"><a href="${url}"${path===url||(url!=='/'&&path.startsWith(url))?' aria-current="page"':''}>${label}</a>${children?`<details class="nav-dropdown"><summary aria-label="${label} submenu"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" aria-hidden="true" style="margin-left:4px;vertical-align:middle"><path d="m6 9 6 6 6-6"/></svg></summary><div>${children.map(([n,u])=>`<a href="${u}">${n}</a>`).join('')}</div></details>`:''}</div>`).join('')}<a href="/opportunities" class="nav-join">Join our community ${arrow}</a><a href="/search" class="mobile-search">Search the website</a></nav></div></header><nav class="mobile-tab-bar" aria-label="Mobile navigation"><a href="/" class="tab-item ${path==='/'?'active':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span></a><a href="/research" class="tab-item ${path.startsWith('/research')?'active':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg><span>Research</span></a><a href="/people" class="tab-item ${path.startsWith('/people')?'active':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>People</span></a><a href="/tools" class="tab-item ${path.startsWith('/tools')?'active':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span>Tools</span></a><button type="button" class="tab-item menu-toggle bottom-menu-toggle" aria-controls="site-nav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg><span>More</span></button></nav>`;}
-export function footer(records=[]){const c=setting(records,'settings:site');const links=rows=>(rows||[]).map(r=>`<a href="${e(safeUrl(r.link))}">${e(r.type)}</a>`).join('');return `<footer class="site-footer"><div class="wrap footer-grid"><div class="footer-about"><h2>About KAABiL</h2><a class="footer-brand" href="/" aria-label="KAABiL home"><img src="${e(logo)}" width="240" height="72" alt="KAABiL — Kaundal Artificial Intelligence & Advanced Bioinformatics Lab"></a><p class="footer-desc">${e(c.footerText)}</p><div class="footer-lead-meta"><span class="footer-lead-name">Director: <strong>Dr. Rakesh Kaundal</strong></span><span class="footer-lead-dept">Dept. of Plants, Soils & Climate · Center for Integrated BioSystems</span></div><div class="footer-social">${links(c.social)}</div><a href="/about" class="footer-about-link">Lab overview & mission ${arrow}</a></div><div><h2>Explore</h2>${nav.slice(1).map(([n,u])=>`<a href="${u}">${n}</a>`).join('')}</div><div><h2>Connect</h2><a href="/contact">Contact the lab</a><a href="/opportunities">Opportunities</a><a href="mailto:${e(c.email)}">${e(c.email)}</a><p>${e(c.phone)}</p><address>${e(c.address).replaceAll('\n','<br>')}</address><small>Fax +1 (435) 797-2766</small></div><div><h2>Affiliations & resources</h2>${links(c.affiliationLinks)}${links(c.resourceLinks)}</div></div><div class="wrap footer-bottom"><span>© ${new Date().getFullYear()} ${e(c.title)}</span><a href="/about">About KAABiL</a><a href="/about/overview">Research & lab overview</a></div></footer>`;}
-export function homepage(records,{image,newsCard,eventRow}){
-  const c=setting(records,'settings:home');
-  const newsList=records.filter(r=>r.collection==='news'&&r.status==='published').sort((a,b)=>dateValue(b)-dateValue(a)).slice(0,3); const openings=activeOpportunities(records),opening=c.opportunityMode==='selected'?(c.opportunityIds||[]).map(id=>openings.find(r=>r.id===id)).find(Boolean):openings[0];
-  const pubList=records.filter(r=>r.collection==='publications'&&r.status==='published').sort((a,b)=>dateValue(b)-dateValue(a));
-  const recentPubs=pubList.slice(0,3);
-  const event=records.filter(r=>r.collection==='events'&&r.status==='published').sort((a,b)=>dateValue(b)-dateValue(a)).find(r=>dateValue(r)>=new Date().setUTCHours(0,0,0,0));
-  const eventsVisible=setting(records,'settings:editorial')?.eventsVisible!==false;
-  const opportunitiesVisible=setting(records,'settings:editorial')?.opportunitiesVisible!==false;
-  return `<section class="wrap home-intro"><div class="welcome-copy"><p class="eyebrow">UTAH STATE UNIVERSITY</p><h1>${e(c.title)}</h1><p>${e(c.summary)}</p><div class="hero-actions"><a class="button" href="${e(safeUrl(c.primaryLink)||'/research')}">${e(c.primaryLabel||'Explore research')} ${arrow}</a><a class="text-link" href="${e(safeUrl(c.secondaryLink)||'/people')}">${e(c.secondaryLabel||'Meet the team')} ${arrow}</a></div></div><div class="welcome-photo slideshow-container">
-  <div class="slideshow">
-    ${[c, ...newsList.filter(n=>n.image)].slice(0,4).map((slide, i) => `<div class="slide${i===0?' active':''}">${image(slide, i===0?'home-photo':'slide-photo')}</div>`).join('')}
-  </div>
-  <div class="photo-label"><span>THE PEOPLE BEHIND THE SCIENCE</span><a href="/people">Get to know KAABiL ${arrow}</a></div>
-</div></section><section class="wrap task-paths" aria-label="Explore KAABiL"><a href="/research"><span class="path-icon">01</span><div><h2>Discover our research</h2><p>Explore questions, approaches, and research areas.</p></div>${arrow}</a><a href="/tools"><span class="path-icon">02</span><div><h2>Find a tool or database</h2><p>Go directly to the resources built by our lab.</p></div>${arrow}</a><a href="/publications"><span class="path-icon">03</span><div><h2>Read our publications</h2><p>Journal papers, conference work, and editorials.</p></div>${arrow}</a></section>${newsList.length||recentPubs.length||event||opening?`<section class="wrap section-bottom dashboard-grid"><div class="dash-col"><div class="dash-head"><p class="eyebrow">LATEST UPDATES</p><h2>News</h2></div><div class="dash-list">${newsList.map(r=>`<article class="dash-card"><div class="meta">${e(r.date)}</div><h3><a href="${e(r.route||(r.category==='Conferences'?'/publications/conferences':'/news'))}">${e(r.title)}</a></h3>${r.summary?`<p class="dash-summary">${e(r.summary)}</p>`:''}</article>`).join('')}</div><a href="/news" class="text-link">View all news ${arrow}</a></div><div class="dash-col"><div class="dash-head"><p class="eyebrow">COMMUNITY</p><h2>Events & Opportunities</h2></div><div class="dash-list">${eventsVisible&&event?eventRow(event):'<p class="empty-text">No upcoming events right now.</p>'}${opportunitiesVisible&&opening?`<article class="dash-card opportunity-dash"><div class="meta">${e(opening.category||'OPEN OPPORTUNITY')}</div><h3><a href="${e(opening.route)}">${e(opening.title)}</a></h3><p>${e(opening.summary)}</p></article>`:''}</div></div><div class="dash-col"><div class="dash-head"><p class="eyebrow">NEW RESEARCH</p><h2>Publications</h2></div><div class="dash-list">${recentPubs.map(r=>`<article class="dash-card pub-dash"><div class="meta">${e(r.year)}</div><h3>${r.link?`<a href="${e(r.link)}" target="_blank">${sanitizeHtml(r.body||r.title)}</a>` : sanitizeHtml(r.body||r.title)}</h3><p class="dash-authors">${sanitizeHtml(r.authors)}</p></article>`).join('')}</div><a href="/publications" class="text-link">View all publications ${arrow}</a></div></section>`:''}`;
+/**
+ * KAABiL identity: shared building blocks (icons, images, page headers), the site chrome
+ * (utility bar, header, navigation, footer) and the editorial compositions (home, director, opportunities).
+ * Factual content always comes from records; this file only decides how it is arranged.
+ * See docs/architecture.md and docs/redesign-plan.md.
+ */
+import { readFileSync } from 'node:fs';
+import { escapeHtml as e, safeUrl, sanitizeHtml } from './security.mjs';
+import { setting, selectUpdates, activeOpportunities, dateValue, displayDate } from './editorial.mjs';
+
+const assets = JSON.parse(readFileSync(new URL('../public/asset-map.json', import.meta.url)));
+export const dimensions = url => (assets[url]?.width ? assets[url] : null);
+export const asset = url => assets[url]?.url || url || '';
+export const logo = asset('https://bioinfocore.usu.edu/raikou/image/bioinfo/kbllogo.png');
+const media = 'https://bioinfocore.usu.edu/raikou';
+
+/* ---------- Icons (inline SVG, no inline styles: the CSP forbids them) ---------- */
+const svg = (body, cls = '') => `<svg class="icon${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+export const icons = {
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 'icon-arrow'),
+  external: svg('<path d="M7 17 17 7M8 7h9v9"/>', 'icon-external'),
+  back: svg('<path d="M19 12H5M11 18l-6-6 6-6"/>'),
+  chevron: svg('<path d="m6 9 6 6 6-6"/>', 'icon-chevron'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+  menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 'icon-menu'),
+  close: svg('<path d="M6 6l12 12M18 6 6 18"/>', 'icon-close'),
+  mail: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'),
+  phone: svg('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>'),
+  pin: svg('<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>'),
+  calendar: svg('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
+  copy: svg('<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/>'),
+  doc: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>'),
+  globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+};
+export const arrow = icons.arrow;
+
+/* ---------- Shared building blocks ---------- */
+const initials = title => String(title || 'K').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('');
+
+/** Responsive, CSP-safe image frame. Focal point is applied by site.js through the CSSOM. */
+export function image(record, cls = '', expand = true) {
+  const dims = dimensions(record.image);
+  const url = safeUrl(asset(record.image), { image: true });
+  const original = safeUrl(record.imageOriginal || record.image, { image: true });
+  const size = record.imageVariants?.length
+    ? ` srcset="${record.imageVariants.map(v => e(v.url) + ' ' + v.width + 'w').join(', ')}" sizes="(max-width:700px) 92vw, 50vw"`
+    : dims ? ` width="${dims.width}" height="${dims.height}"`
+    : record.imageWidth ? ` width="${record.imageWidth}" height="${record.imageHeight}"` : '';
+  const img = url
+    ? `<img${expand ? ' data-expand-image' : ''} data-original="${e(original)}" data-caption="${e(record.imageCaption || '')}" src="${e(url)}"${size} alt="${e(record.imageAlt || record.title)}" loading="lazy" decoding="async">`
+    : '';
+  const linked = img && expand
+    ? `<a class="image-expand" href="${e(original)}" target="_blank" rel="noopener noreferrer" aria-label="Expand image: ${e(record.imageAlt || record.title)}">${img}</a>`
+    : img;
+  return `<div class="media-frame${cls ? ' ' + cls : ''}" data-fit="${e(record.imageFit || 'cover')}" data-focal-x="${Number(record.focalX ?? 50)}" data-focal-y="${Number(record.focalY ?? 50)}"><div class="media-fallback" aria-hidden="true"><span>${e(initials(record.title))}</span></div>${linked}</div>`;
 }
-export function director(records,image){const r=setting(records,'settings:director');const rows=(key,title)=>(r[key]||[]).length?`<section id="${key}" class="profile-section"><h2>${title}</h2><div class="credential-cards-list">${(r[key]||[]).map(item=>`<article class="credential-card"><div class="credential-head"><h4 class="credential-title">${e(item.title)}</h4><span class="credential-period">${e(item.date)}</span></div>${item.description?`<p class="credential-desc">${e(item.description)}</p>`:''}${item.link?`<a href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer" class="text-link">Related institution ${arrow}</a>`:''}</article>`).join('')}</div></section>`:'';return `<div class="wrap breadcrumb"><a href="/">Home</a><span>/</span><a href="/people">People</a><span>/</span><span>Dr. Rakesh Kaundal</span></div><section class="wrap director-hero"><div class="director-portrait">${image(r,'portrait')}<a class="button" href="mailto:${e(r.email)}">Get in touch ${arrow}</a></div><div><p class="eyebrow">PRINCIPAL INVESTIGATOR</p><h1>${e(r.title)}</h1><p class="director-role">${e(r.summary)}</p><p class="director-affiliation">Utah State University · Logan, Utah</p><div class="social-links">${(r.social||[]).map(x=>`<a href="${e(safeUrl(x.link))}" target="_blank" rel="noopener noreferrer">${e(x.type)} ${arrow}</a>`).join('')}</div><div class="profile-contact"><div class="email-copy-group"><a href="mailto:${e(r.email)}" class="member-contact-pill email-pill"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span>${e(r.email)}</span></a><button type="button" class="copy-email-btn" data-copy="${e(r.email)}" title="Copy email address" aria-label="Copy email address"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span class="copy-text">Copy</span></button></div>${r.phone?`<span>${e(r.phone)}</span>`:''}</div></div></section><div class="wrap profile-layout"><aside class="profile-nav"><p class="eyebrow">ON THIS PAGE</p>${[['overview','Overview & interests'],['education','Education'],['appointments','Appointments'],['awards','Awards'],['scholarship','Scholarship']].map(([id,label])=>`<a href="#${id}">${label}</a>`).join('')}</aside><div class="profile-main"><section id="overview" class="profile-section"><h2>Overview & research interests</h2><div class="prose director-overview">${sanitizeHtml(r.body).replace(/<h2>Dr\. Rakesh Kaundal<\/h2>/,'')}</div></section>${rows('education','Education')}${rows('appointments','Professional appointments')}${rows('awards','Awards & prizes')}<section id="scholarship" class="profile-section"><h2>Scholarship & community</h2><p>Explore the lab’s publications and meet the people behind the work.</p><div class="related-links"><a href="/publications">Publications ${arrow}</a><a href="/people/our-team">Meet the team ${arrow}</a><a href="/research">Our research ${arrow}</a></div>${related({...r,toolIds:[]},records)}<a href="https://www.youtube.com/watch?v=r-Ay28WKFLY" class="text-link" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s journey ${arrow}</a></section></div></div>`;}
-export function related(record,records){const ids=new Set(['researchIds','peopleIds','publicationIds','toolIds'].flatMap(k=>record[k]||[]));const items=records.filter(r=>r.status==='published'&&ids.has(r.id)&&r.id!==record.id);return items.length?`<section class="related-section"><h2>Explore related work</h2><div class="related-grid">${items.map(r=>`<a href="${e(safeUrl(r.route||r.link)||'/publications')}"><span class="category-label">${e(r.collection)}</span><h3>${e(r.title)}</h3>${arrow}</a>`).join('')}</div></section>`:'';}
-export function opportunities(records){const all=records.filter(r=>r.collection==='opportunities'),active=activeOpportunities(records),closed=all.filter(r=>!active.includes(r));const cards=rows=>rows.map(r=>`<article class="opportunity-card"><div><p class="eyebrow">${e(r.category||'RESEARCH OPPORTUNITY')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2><p>${e(r.summary)}</p><p>${e(r.location)}${r.deadline?' · Deadline: '+e(r.deadline):''}</p></div><a class="button" href="${e(r.route)}">View details ${arrow}</a></article>`).join('');return `<section class="page-heading wrap"><p class="eyebrow">JOIN OUR COMMUNITY</p><h1>Opportunities at KAABiL</h1><p class="intro">Find your next research chapter with our community.</p></section><section class="wrap section-bottom">${active.length?cards(active):'<div class="empty-state"><h2>Stay in touch</h2><p>There are no published openings at the moment. Contact the lab to discuss your interests and future opportunities.</p><a href="/contact" class="button">Contact the lab</a></div>'}${closed.length?`<details class="archive-panel"><summary>Past opportunities (${closed.length})</summary>${cards(closed)}</details>`:''}</section>`;}
+
+export function breadcrumbs(trail) {
+  if (!trail?.length) return '';
+  const items = [['Home', '/'], ...trail];
+  return `<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>${items.map(([label, href], i) =>
+    i === items.length - 1 || !href
+      ? `<li><span aria-current="page">${e(label)}</span></li>`
+      : `<li><a href="${e(href)}">${e(label)}</a></li>`).join('')}</ol></nav>`;
+}
+
+/** Standard header for every section page: breadcrumb, eyebrow, serif title, intro and optional aside. */
+export function pageHeader(title, intro, eyebrow = '', { trail = [], aside = '' } = {}) {
+  return `<header class="page-header"><div class="wrap page-header-inner">${breadcrumbs(trail.length ? trail : [[title]])}<div class="page-header-grid"><div class="page-header-text">${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h1>${e(title)}</h1>${intro ? `<p class="lede">${e(intro)}</p>` : ''}</div>${aside ? `<div class="page-header-aside">${aside}</div>` : ''}</div></div></header>`;
+}
+
+export function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
+  return `<div class="section-head"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2>${e(title)}</h2>${intro ? `<p class="section-intro">${e(intro)}</p>` : ''}</div>${link ? `<a class="link-more" href="${e(link)}">${e(linkLabel)} ${arrow}</a>` : ''}</div>`;
+}
+
+/* ---------- Navigation ---------- */
+const published = records => records.filter(r => r.status === 'published');
+const toolGroups = records => {
+  const groups = new Map();
+  for (const t of published(records).filter(r => r.collection === 'tools')) {
+    const name = t.category || 'Other tools';
+    const anchor = t.anchor || 'category-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    if (!groups.has(name)) groups.set(name, { name, anchor, count: 0 });
+    groups.get(name).count++;
+  }
+  return [...groups.values()];
+};
+
+export function navigation(records) {
+  const research = published(records).filter(r => r.collection === 'research');
+  return [
+    { label: 'Research', href: '/research', match: ['/research'],
+      intro: 'Machine learning and multi-omics data applied to biological questions.',
+      links: [['Research program', '/research', 'Overview, objectives and approach'], ...research.map(r => [r.title, r.route, r.summary])] },
+    { label: 'People', href: '/people', match: ['/people'],
+      intro: 'Biologists, computer scientists and engineers working together.',
+      links: [['Dr. Rakesh Kaundal', '/people/rakesh', 'Principal investigator'], ['Current team', '/people', 'Students, staff and researchers'], ['Alumni', '/people/alumni', 'Where our graduates went next']] },
+    { label: 'Publications', href: '/publications', match: ['/publications'],
+      intro: 'Peer-reviewed papers, conference work and editorial service.',
+      links: [['Journal papers', '/publications', 'Peer-reviewed articles'], ['Conferences', '/publications/conferences', 'Talks and posters'], ['Editorials', '/publications/editorials', 'Proceedings and special issues']] },
+    { label: 'Tools', href: '/tools', match: ['/tools'],
+      intro: 'Free web servers and databases built by the lab.',
+      links: [['All tools & databases', '/tools', 'Browse every resource'], ...toolGroups(records).map(g => [g.name, '/tools#' + g.anchor, g.count + (g.count === 1 ? ' resource' : ' resources')])] },
+    { label: 'News & Events', href: '/news', match: ['/news', '/events'],
+      intro: 'Stories, milestones and moments from the lab.',
+      links: [['News', '/news', 'General, science and media stories'], ['Events', '/events', 'Conferences, symposia and lab life']] },
+    { label: 'About', href: '/about', match: ['/about', '/contact', '/opportunities'],
+      intro: 'Who we are, how to join us and how to reach us.',
+      links: [['About the lab', '/about', 'Mission and history'], ['Research & lab overview', '/about/overview', 'Facilities and approach'], ['Opportunities', '/opportunities', 'Open positions and how to apply'], ['Contact', '/contact', 'Address, email and directions']] },
+  ];
+}
+
+const isActive = (path, item) => item.match.some(m => path === m || path.startsWith(m + '/'));
+
+export function header(path, records = []) {
+  const site = setting(records, 'settings:site');
+  const home = setting(records, 'settings:home');
+  const resources = (site.resourceLinks || []).slice(0, 2);
+  const announcement = home?.announcement
+    ? `<div class="announcement" role="region" aria-label="Announcement"><div class="wrap announcement-inner"><p>${e(home.announcement)}</p>${safeUrl(home.announcementLink) ? `<a href="${e(safeUrl(home.announcementLink))}">Learn more ${arrow}</a>` : ''}</div></div>`
+    : '';
+  const items = navigation(records).map((item, i) => {
+    const active = isActive(path, item);
+    return `<li class="nav-item">`
+      + `<a class="nav-link" href="${item.href}"${active ? ' aria-current="page"' : ''}>${e(item.label)}</a>`
+      + `<button type="button" class="nav-expand" aria-expanded="false" aria-controls="nav-panel-${i}"><span class="sr-only">${e(item.label)} menu</span>${icons.chevron}</button>`
+      + `<div class="nav-panel" id="nav-panel-${i}"><div class="nav-panel-intro"><p class="nav-panel-title">${e(item.label)}</p><p>${e(item.intro)}</p></div>`
+      + `<ul class="nav-panel-links">${item.links.map(([label, href, note]) => `<li><a href="${e(href)}"><span class="nav-panel-label">${e(label)}</span>${note ? `<span class="nav-panel-note">${e(note)}</span>` : ''}</a></li>`).join('')}</ul></div>`
+      + `</li>`;
+  }).join('');
+  return `<div class="utility-bar"><div class="wrap utility-inner"><a class="utility-usu" href="https://www.usu.edu/">Utah State University</a><nav class="utility-links" aria-label="Lab resources">${resources.map(r => `<a href="${e(safeUrl(r.link))}">${e(r.type)}</a>`).join('')}<a href="https://biocluster.usu.edu/rstudio" target="_blank" rel="noopener noreferrer">USU RStudio</a><a href="/contact">Contact</a></nav></div></div>`
+    + announcement
+    + `<header class="site-header" data-site-header><div class="wrap header-inner">`
+    + `<a class="brand" href="/" aria-label="KAABiL home"><img src="${e(logo)}" width="283" height="85" alt="KAABiL — Kaundal Artificial Intelligence & Advanced Bioinformatics Lab"></a>`
+    + `<nav id="site-nav" class="primary-nav" aria-label="Main navigation"><ul class="nav-list">${items}</ul>`
+    + `<div class="nav-mobile-footer">${resources.map(r => `<a href="${e(safeUrl(r.link))}">${e(r.type)}</a>`).join('')}<a href="https://biocluster.usu.edu/rstudio" target="_blank" rel="noopener noreferrer">USU RStudio</a><a href="/contact">Contact</a></div></nav>`
+    + `<div class="header-actions"><a class="icon-button" href="/search" aria-label="Search the website">${icons.search}</a><a class="button button-small header-cta" href="/opportunities">Join the lab</a><button type="button" class="menu-button" aria-controls="site-nav" aria-expanded="false"><span class="menu-button-label">Menu</span>${icons.menu}${icons.close}</button></div>`
+    + `</div></header>`;
+}
+
+export function footer(records = []) {
+  const c = setting(records, 'settings:site');
+  const links = rows => (rows || []).map(r => `<li><a href="${e(safeUrl(r.link))}">${e(r.type)}</a></li>`).join('');
+  const research = published(records).filter(r => r.collection === 'research');
+  const phone = String(c.phone || '').replace(/[^+0-9]/g, '');
+  return `<footer class="site-footer"><div class="wrap footer-top">`
+    + `<div class="footer-identity"><a class="footer-wordmark" href="/"><span class="footer-mark">KAABiL</span><span class="footer-name">Kaundal Artificial Intelligence &amp; Advanced Bioinformatics Lab</span></a><p class="footer-text">${e(c.footerText)}</p>`
+    + `<address class="footer-contact"><span>${icons.pin}<span>${e(c.address).replaceAll('\n', '<br>')}</span></span><a href="mailto:${e(c.email)}">${icons.mail}<span>${e(c.email)}</span></a>${c.phone ? `<a href="tel:${e(phone)}">${icons.phone}<span>${e(c.phone)}</span></a>` : ''}</address></div>`
+    + `<nav class="footer-nav" aria-label="Footer"><div><h2>Research</h2><ul><li><a href="/research">Research program</a></li>${research.map(r => `<li><a href="${e(r.route)}">${e(r.title)}</a></li>`).join('')}</ul></div>`
+    + `<div><h2>Explore</h2><ul><li><a href="/people">People</a></li><li><a href="/publications">Publications</a></li><li><a href="/tools">Tools &amp; databases</a></li><li><a href="/news">News</a></li><li><a href="/events">Events</a></li></ul></div>`
+    + `<div><h2>About</h2><ul><li><a href="/about">About the lab</a></li><li><a href="/about/overview">Lab overview</a></li><li><a href="/opportunities">Opportunities</a></li><li><a href="/contact">Contact</a></li></ul></div>`
+    + `<div><h2>Affiliations</h2><ul>${links(c.affiliationLinks)}${links(c.resourceLinks)}</ul></div></nav></div>`
+    + `<div class="wrap footer-bottom"><p>© ${new Date().getFullYear()} ${e(c.title)}</p><ul class="footer-social">${links(c.social)}</ul><a class="footer-admin" href="/admin">Editor sign-in</a></div></footer>`;
+}
+
+/* ---------- Home ---------- */
+const today = () => new Date().setUTCHours(0, 0, 0, 0);
+const routeOf = r => r.route || (r.collection === 'publications' ? (safeUrl(r.link) || '/publications') : '/' + r.collection);
+
+function updateItem(r, lead = false) {
+  const type = { news: 'News', events: 'Event', publications: 'Publication' }[r.collection] || r.collection;
+  const href = routeOf(r);
+  const external = /^https?:/i.test(href);
+  const title = r.collection === 'publications' ? sanitizeHtml(r.body || r.title) : e(r.title);
+  if (lead) {
+    return `<article class="update-lead">${r.image ? `<a class="update-lead-media" href="${e(href)}" tabindex="-1" aria-hidden="true">${image(r, '', false)}</a>` : ''}<div class="update-lead-body"><p class="meta"><span class="tag">${e(type)}</span><time>${e(displayDate(r))}</time></p><h3><a href="${e(href)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${title}</a></h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}</div></article>`;
+  }
+  return `<li class="update-item"><p class="meta"><span class="tag">${e(type)}</span><time>${e(displayDate(r))}</time></p><h3><a href="${e(href)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${title}</a></h3></li>`;
+}
+
+function pickEvent(records, c) {
+  const all = published(records).filter(r => r.collection === 'events');
+  if (c.eventMode === 'hidden' || c.showEvents === 'no' || setting(records, 'settings:editorial')?.eventsVisible === false) return null;
+  if (c.eventMode === 'selected') {
+    const chosen = (c.eventIds || []).map(id => all.find(r => r.id === id)).find(Boolean);
+    return chosen ? { record: chosen, label: dateValue(chosen) >= today() ? 'Upcoming event' : 'Featured event' } : null;
+  }
+  const upcoming = all.filter(r => dateValue(r) >= today()).sort((a, b) => dateValue(a) - dateValue(b))[0];
+  if (upcoming) return { record: upcoming, label: 'Upcoming event' };
+  const recent = all.sort((a, b) => dateValue(b) - dateValue(a))[0];
+  return recent ? { record: recent, label: 'Most recent event' } : null;
+}
+
+function pickOpportunity(records, c) {
+  if (c.opportunityMode === 'hidden' || c.showOpportunities === 'no' || setting(records, 'settings:editorial')?.opportunitiesVisible === false) return null;
+  const open = activeOpportunities(records);
+  if (c.opportunityMode === 'selected') return (c.opportunityIds || []).map(id => open.find(r => r.id === id)).find(Boolean) || null;
+  return open[0] || null;
+}
+
+export function homepage(records) {
+  const c = setting(records, 'settings:home');
+  const live = published(records);
+  const research = live.filter(r => r.collection === 'research');
+  const papers = live.filter(r => r.collection === 'publications' && r.category === 'Papers').sort((a, b) => dateValue(b) - dateValue(a));
+  const director = setting(records, 'settings:director');
+  const showDirector = director && director.status === 'published';
+  const event = pickEvent(records, c);
+  const feedCount = Number(c.feedCount) || 3;
+  const updates = selectUpdates(records, { ...c, feedCount: feedCount + 1 }).filter(r => r.id !== event?.record.id).slice(0, feedCount);
+  const opening = pickOpportunity(records, c);
+
+  const facts = [
+    [live.filter(r => r.collection === 'tools').length, 'Open tools & databases', '/tools'],
+    [papers.length, 'Peer-reviewed papers', '/publications'],
+    [live.filter(r => r.collection === 'publications' && r.category === 'Conferences').length, 'Conference presentations', '/publications/conferences'],
+    [live.filter(r => r.collection === 'people').length, 'Lab members, past & present', '/people'],
+  ].filter(([n]) => n);
+
+  const hero = `<section class="home-hero"><div class="wrap home-hero-grid">`
+    + `<div class="home-hero-text"><p class="eyebrow">Kaundal Artificial Intelligence &amp; Advanced Bioinformatics Lab</p><h1>${e(c.title)}</h1><p class="lede">${e(c.summary)}</p>`
+    + `<div class="hero-actions"><a class="button" href="${e(safeUrl(c.primaryLink) || '/research')}">${e(c.primaryLabel || 'Explore our research')} ${arrow}</a><a class="button button-ghost" href="${e(safeUrl(c.secondaryLink) || '/people')}">${e(c.secondaryLabel || 'Meet the team')}</a></div></div>`
+    + `<figure class="home-hero-figure">${image(c, 'home-hero-image', false)}${c.imageCaption ? `<figcaption>${e(c.imageCaption)}</figcaption>` : ''}</figure>`
+    + `</div>`
+    + (facts.length ? `<div class="wrap"><dl class="facts" aria-label="The lab at a glance">${facts.map(([n, label, href]) => `<div class="fact"><dt><a href="${href}">${e(label)}</a></dt><dd data-countup="${n}">${n}</dd></div>`).join('')}</dl></div>` : '')
+    + `</section>`;
+
+  const areas = research.length ? `<section class="home-section"><div class="wrap">${sectionHead('Research', 'What we study', '/research', 'The research program', 'Research areas that combine machine learning, multi-omics data and open software.')}`
+    + `<ol class="area-grid">${research.map((r, i) => `<li class="area-card reveal"><a href="${e(r.route)}">${image(r, 'area-image', false)}<span class="area-index">${String(i + 1).padStart(2, '0')}</span><h3>${e(r.title)}</h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}</a></li>`).join('')}</ol></div></section>` : '';
+
+  const [lead, ...rest] = updates;
+  const latest = (updates.length || event || opening) ? `<section class="home-section home-latest"><div class="wrap">${sectionHead('From the lab', 'Latest news & activity', '/news', 'All news')}`
+    + `<div class="latest-grid">${updates.length ? `<div class="latest-main">${updateItem(lead, true)}${rest.length ? `<ul class="update-list">${rest.map(r => updateItem(r)).join('')}</ul>` : ''}</div>` : ''}`
+    + ((event || opening) ? `<aside class="latest-aside">${event ? eventPanel(event) : ''}${opening ? `<div class="aside-panel aside-opportunity"><p class="eyebrow">Open opportunity</p><h3><a href="${e(opening.route)}">${e(opening.title)}</a></h3>${opening.summary ? `<p>${e(opening.summary)}</p>` : ''}${opening.deadline ? `<p class="meta">Apply by ${e(opening.deadline)}</p>` : ''}<a class="link-more" href="${e(opening.route)}">Details ${arrow}</a></div>` : ''}</aside>` : '')
+    + `</div></div></section>` : '';
+
+  const groups = toolGroups(records);
+  const tools = groups.length ? `<section class="home-section home-tools"><div class="wrap">${sectionHead('Resources', 'Open tools for the research community', '/tools', 'Browse all tools', 'Web servers and databases developed by the lab, free to use for academic research.')}`
+    + `<ul class="tool-categories">${groups.map(g => `<li class="reveal"><a href="/tools#${e(g.anchor)}"><span class="tool-category-name">${e(g.name)}</span><span class="tool-category-count">${g.count} ${g.count === 1 ? 'resource' : 'resources'}</span>${arrow}</a></li>`).join('')}</ul></div></section>` : '';
+
+  const pubs = papers.length ? `<section class="home-section"><div class="wrap">${sectionHead('Scholarship', 'Recent publications', '/publications', 'All publications')}`
+    + `<ol class="pub-teaser">${papers.slice(0, 4).map(r => `<li class="reveal"><span class="pub-teaser-year">${e(r.year)}</span><div><h3>${r.link ? `<a href="${e(safeUrl(r.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3><p class="authors">${sanitizeHtml(r.authors)}</p></div></li>`).join('')}</ol></div></section>` : '';
+
+  const lab = showDirector ? `<section class="home-section home-director"><div class="wrap director-band">${image(director, 'director-band-image', false)}<div class="director-band-text"><p class="eyebrow">Principal investigator</p><h2>${e(director.title)}</h2><p class="director-band-role">${e(director.summary)}</p><p>Dr. Kaundal leads KAABiL and directs the Bioinformatics Facility at Utah State University.</p><div class="hero-actions"><a class="button" href="/people/rakesh">Read profile ${arrow}</a><a class="button button-ghost" href="/people">Meet the team</a></div></div></div></section>` : '';
+
+  const join = `<section class="home-join"><div class="wrap join-band"><div><p class="eyebrow">Join us</p><h2>Students, postdocs and visiting researchers are welcome.</h2><p>We look for curious people from biology, computer science, statistics and engineering. Tell us about your interests.</p></div><div class="join-actions"><a class="button button-light" href="/opportunities">See opportunities ${arrow}</a><a class="button button-outline-light" href="/contact">Contact the lab</a></div></div></section>`;
+
+  return hero + areas + latest + tools + pubs + lab + join;
+}
+
+function eventPanel({ record: r, label }) {
+  const place = r.location || r.original?.location || '';
+  return `<div class="aside-panel aside-event"><p class="eyebrow">${e(label)}</p>${r.image ? `<a class="aside-media" href="${e(r.route)}" tabindex="-1" aria-hidden="true">${image(r, '', false)}</a>` : ''}<h3><a href="${e(r.route)}">${e(r.title)}</a></h3><p class="meta-line">${icons.calendar}<span>${e(displayDate(r))}</span></p>${place ? `<p class="meta-line">${icons.pin}<span>${e(place)}</span></p>` : ''}<a class="link-more" href="/events">All events ${arrow}</a></div>`;
+}
+
+/* ---------- Director profile ---------- */
+export function director(records) {
+  const r = setting(records, 'settings:director');
+  const rows = (key, title) => (r[key] || []).length
+    ? `<section id="${key}" class="profile-section reveal"><h2>${title}</h2><ol class="timeline">${r[key].map(item => `<li><span class="timeline-date">${e(item.date)}</span><div><h3>${e(item.title)}</h3>${item.description ? `<p>${e(item.description)}</p>` : ''}${item.link ? `<a class="link-more" href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">Institution ${icons.external}</a>` : ''}</div></li>`).join('')}</ol></section>`
+    : '';
+  const sections = [['overview', 'Overview'], ['education', 'Education'], ['appointments', 'Appointments'], ['awards', 'Awards'], ['scholarship', 'Scholarship']]
+    .filter(([id]) => ['overview', 'scholarship'].includes(id) || (r[id] || []).length);
+  const phone = String(r.phone || '').replace(/[^+0-9]/g, '');
+  return `<header class="profile-header"><div class="wrap">${breadcrumbs([['People', '/people'], [r.title]])}<div class="profile-header-grid">`
+    + `<div class="profile-portrait">${image(r, 'portrait')}</div>`
+    + `<div class="profile-intro"><p class="eyebrow">Principal investigator</p><h1>${e(r.title)}</h1><p class="lede">${e(r.summary)}</p><p class="profile-affiliation">Department of Plants, Soils &amp; Climate · Utah State University, Logan, Utah</p>`
+    + `<ul class="contact-list">${r.email ? `<li><a href="mailto:${e(r.email)}">${icons.mail}<span>${e(r.email)}</span></a><button type="button" class="copy-button" data-copy="${e(r.email)}" aria-label="Copy email address">${icons.copy}<span class="copy-text">Copy</span></button></li>` : ''}${r.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(r.phone)}</span></a></li>` : ''}</ul>`
+    + `${(r.social || []).length ? `<ul class="chip-links">${r.social.map(x => `<li><a href="${e(safeUrl(x.link))}" target="_blank" rel="noopener noreferrer">${e(x.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}</div></div></div></header>`
+    + `<div class="wrap profile-layout"><nav class="profile-toc" aria-label="On this page"><p class="eyebrow">On this page</p>${sections.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav><div class="profile-main">`
+    + `<section id="overview" class="profile-section"><h2>Overview &amp; research interests</h2><div class="prose">${sanitizeHtml(r.body).replace(/<h2>Dr\. Rakesh Kaundal<\/h2>/, '')}</div></section>`
+    + rows('education', 'Education') + rows('appointments', 'Professional appointments') + rows('awards', 'Awards &amp; honours')
+    + `<section id="scholarship" class="profile-section reveal"><h2>Scholarship &amp; community</h2><p>Explore the lab’s publications and meet the people behind the work.</p><ul class="link-tiles"><li><a href="/publications">Publications ${arrow}</a></li><li><a href="/people">The team ${arrow}</a></li><li><a href="/research">Research ${arrow}</a></li><li><a href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Dr. Kaundal’s journey (video) ${icons.external}</a></li></ul>${related({ ...r, toolIds: [] }, records)}</section>`
+    + `</div></div>`;
+}
+
+export function related(record, records) {
+  const ids = new Set(['researchIds', 'peopleIds', 'publicationIds', 'toolIds'].flatMap(k => record[k] || []));
+  const items = records.filter(r => r.status === 'published' && ids.has(r.id) && r.id !== record.id);
+  const label = { research: 'Research', people: 'Person', publications: 'Publication', tools: 'Tool' };
+  return items.length
+    ? `<section class="related"><h2>Related work</h2><ul class="related-grid">${items.map(r => `<li><a href="${e(safeUrl(r.route || r.link) || '/publications')}"><span class="tag">${e(label[r.collection] || r.collection)}</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>`
+    : '';
+}
+
+/* ---------- Opportunities ---------- */
+export function opportunities(records) {
+  const all = records.filter(r => r.collection === 'opportunities');
+  const active = activeOpportunities(records);
+  const closed = all.filter(r => !active.includes(r));
+  const cards = rows => `<ul class="opportunity-list">${rows.map(r => `<li class="opportunity-card"><div><p class="eyebrow">${e(r.category || 'Research opportunity')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="meta">${[r.location, r.deadline ? 'Apply by ' + r.deadline : ''].filter(Boolean).map(e).join(' · ')}</p></div><a class="button button-ghost" href="${e(r.route)}">Details ${arrow}</a></li>`).join('')}</ul>`;
+  const empty = `<div class="notice-panel"><div><h2>No open positions are listed right now</h2><p>We still welcome enquiries from prospective graduate students, postdoctoral researchers and visiting scholars. Send Dr. Kaundal a short note about your interests and background.</p></div><div class="join-actions"><a class="button" href="/contact">How to apply ${arrow}</a></div></div>`;
+  return pageHeader('Opportunities', 'Find your next research chapter with KAABiL.', 'Join the lab', { trail: [['About', '/about'], ['Opportunities']] })
+    + `<div class="wrap page-body">${active.length ? cards(active) : empty}${closed.length ? `<details class="archive-panel"><summary>Past opportunities (${closed.length})</summary>${cards(closed)}</details>` : ''}`
+    + `<section class="info-grid"><div><h2>Graduate students</h2><p>PhD and MS degrees are available through the Department of Plants, Soils &amp; Climate or the Department of Computer Science.</p></div><div><h2>Postdoctoral fellows</h2><p>Researchers with strong records in bioinformatics or computational biology are encouraged to contact Dr. Kaundal directly.</p></div><div><h2>Undergraduates &amp; visitors</h2><p>Summer and short-term positions (3–4 months) are available for students and independently funded visitors.</p></div></section>`
+    + `<p class="page-body-more"><a class="link-more" href="/contact">Eligibility, criteria and contact details ${arrow}</a></p></div>`;
+}
+
+export { media };
