@@ -22,6 +22,9 @@ export class Store {
       CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   }
   close(){this.db.close();}
+  /** Fold the write-ahead log into the main file so content.sqlite alone is complete. */
+  checkpoint(){return this.db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get();}
+  integrity(){return this.db.prepare('PRAGMA quick_check').get().quick_check;}
   get(id){const row=this.db.prepare('SELECT data,version,updated_at FROM records WHERE id=?').get(id);return row?{...JSON.parse(row.data),version:row.version,updatedAt:row.updated_at}:null;}
   list({published=false,collection}={}){
     let sql='SELECT id FROM records WHERE 1=1';const args=[];

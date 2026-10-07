@@ -73,7 +73,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   let records;
   if (existsSync(database)) {
     const store = new Store(database);
-    try { ensureEditorial(store); applyContentUpdates(store); records = store.list(); } finally { store.close(); }
+    try {
+    const check = store.integrity();
+    if (check !== 'ok') throw new Error(`${database} is damaged (${check}). A stale content.sqlite-wal/-shm next to it is the usual cause: delete them only if content.sqlite was checkpointed (npm run manage checkpoint).`);
+    ensureEditorial(store); applyContentUpdates(store); records = store.list(); } finally { store.close(); }
   } else {
     records = withContentUpdates(JSON.parse(readFileSync(new URL('../content/seed.json', import.meta.url))).records);
   }

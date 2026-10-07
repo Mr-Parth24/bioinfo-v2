@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 .env
 node_modules/
+# SQLite sidecar files: never commit them. Run `npm run manage checkpoint`
+# before committing data/content.sqlite so every edit is inside that file.
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
