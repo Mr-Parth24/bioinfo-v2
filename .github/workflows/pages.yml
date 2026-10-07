@@ -40,5 +40,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - id: pages-status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api -H "Accept: application/vnd.github+json" "/repos/${{ github.repository }}/pages" > /tmp/pages.json 2> /tmp/pages.err; then
+            echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "::notice title=GitHub Pages not enabled::Skipping deploy because GitHub Pages is not enabled for this repository."
+            cat /tmp/pages.err
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+          fi
       - id: deployment
+        if: steps.pages-status.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
