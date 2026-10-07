@@ -1,9 +1,13 @@
+# KAABiL website. Content, accounts and uploads live in the bioinfo_data volume;
+# rebuilding or replacing the container never touches them. See docs/operations.md.
 services:
   website:
     build: .
+    image: kaabil-website:latest
     init: true
     restart: unless-stopped
     ports:
+      # Loopback only: put the university HTTPS reverse proxy in front of this port.
       - "127.0.0.1:${PORT:-3000}:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -11,6 +15,7 @@ services:
       DATA_DIR: /app/data
     volumes:
       - bioinfo_data:/app/data
+    # Hardening: read-only image, no Linux capabilities, no privilege escalation, bounded resources.
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
@@ -18,5 +23,14 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    pids_limit: 200
+    mem_limit: 768m
+    cpus: 2
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 volumes:
   bioinfo_data:

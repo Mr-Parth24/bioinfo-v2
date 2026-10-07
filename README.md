@@ -10,6 +10,8 @@ This is a **custom lightweight CMS**, not Payload. It runs on Node 24 with Sharp
 - [Operations, updates, backups and restoration](docs/operations.md)
 - [Migration report](docs/migration-report.json)
 - [Verification record](docs/verification.md)
+- [Security: protections, testing and operator checklist](docs/security.md)
+- [Redesign plan](docs/redesign-plan.md)
 
 ## Start locally
 

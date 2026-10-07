@@ -9,3 +9,13 @@ docs
 node_modules
 *.zip
 *.png
+.github
+.claude
+coverage
+scripts/*.py
+scripts/cms-e2e.cjs
+scripts/security-probe.mjs
+homepage_test.html
+news.html
+update-*.cjs
+*.md
