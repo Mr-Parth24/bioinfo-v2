@@ -4,7 +4,7 @@ name: Deploy preview to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/website-update-help-r254ix]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
