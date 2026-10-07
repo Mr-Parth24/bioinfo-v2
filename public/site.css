@@ -901,8 +901,8 @@ body{background:#fafbfc}
 /* Slideshow */
 .slideshow-container {position: relative; overflow: hidden; border-radius: 12px}
 .slideshow {position: relative; width: 100%; height: 100%}
-.slide {transition: opacity 1s ease-in-out; position: absolute; inset: 0}
-.slide.active {position: relative; z-index: 1}
+.slide {transition: opacity 1s ease-in-out; position: absolute; inset: 0; opacity: 0}
+.slide.active {position: relative; z-index: 1; opacity: 1}
 .slideshow .media-frame {border-radius: 12px}
 
 /* Leaner Page Headings */
