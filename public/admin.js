@@ -669,7 +669,7 @@
 
     if (value === undefined || value === null) {
       if (['range'].includes(field.type)) value = 50;
-      else if (field.type === 'number') value = key === 'feedCount' ? 3 : 0;
+      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 4 : 0;
       else if (key === 'memberStatus') value = current.category?.split(/\s*\/\s*/).includes('Alumni') ? 'alumni' : 'current';
       else if (key === 'imageFit') value = 'cover';
       else value = '';
@@ -699,6 +699,7 @@
             if (key === 'memberStatus') optLabel = o === 'current' ? 'Current Lab Member' : 'Alumnus / Former Member';
               if (key === 'peopleGroup') optLabel = o === '' ? 'Automatic (from role)' : o;
             if (key === 'startMonth' || key === 'endMonth') optLabel = o === '' ? 'Month (optional)' : MONTHS[o - 1];
+            if (key === 'heroMode') optLabel = { single: 'Single photo (the image above)', selected: 'Slideshow: slides I choose below', latest: 'Slideshow: latest news, events & research', random: 'Slideshow: random mix, new on every visit' }[o];
             if (key === 'status') optLabel = o === 'published' ? 'Published (Live on website)' : 'Draft (Editor only)';
             if (key === 'openingStatus') optLabel = o === 'open' ? 'Open (Accepting applications)' : 'Closed';
             if (key === 'homeVisibility') optLabel = o === 'include' ? 'Eligible for homepage feed' : 'Exclude from homepage feed';
@@ -805,13 +806,13 @@
     const fullWidthKeys = [
       'education', 'appointments', 'awards', 'image', 'featuredIds', 'eventIds', 'opportunityIds',
       'body', 'summary', 'gallery', 'social', 'authors', 'publicationIds', 'toolIds', 'workLinks',
-      'researchInterests', 'resourceLinks', 'affiliationLinks', 'researchIds', 'peopleIds', 'address', 'footerText'
+      'researchInterests', 'resourceLinks', 'affiliationLinks', 'researchIds', 'peopleIds', 'heroSlideIds', 'address', 'footerText'
     ];
 
     return `
       <div class="editor-field ${fullWidthKeys.includes(key) ? 'full-width' : ''}">
         <label id="label-${key}" for="${name}" class="field-label">
-          <span>${escape(field.label)}</span>
+          <span>${escape(key === 'gallery' && current.id === 'settings:home' ? 'Extra lab photos for the slideshow (shown after the main photo)' : field.label)}</span>
           ${field.required ? '<span class="required-mark">*</span>' : ''}
         </label>
         ${control}
@@ -833,6 +834,7 @@
       return [
         { title: 'Homepage Hero & Announcement', keys: ['title', 'summary', 'announcement', 'announcementLink', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink'] },
         { title: 'Hero Artwork & Media', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
+        { title: 'Hero Slideshow', keys: ['heroMode', 'heroSlideCount', 'heroSlideIds', 'gallery'] },
         { title: 'Homepage Feed Selection', keys: ['feedMode', 'feedCount', 'featuredIds', 'eventMode', 'eventIds', 'opportunityMode', 'opportunityIds'] },
         { title: 'Publishing', keys: ['status'] }
       ];

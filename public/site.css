@@ -895,3 +895,26 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 .tools-layout{grid-template-columns:1fr}
 @media(min-width:1200px){.tools-layout .tool-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* ---------- Homepage hero slideshow ---------- */
+.hero-slideshow .slides{display:grid;border-radius:var(--radius-lg);overflow:hidden;background:var(--navy)}
+.hero-slide{grid-area:1/1;position:relative;opacity:0;visibility:hidden;transition:opacity .8s var(--ease),visibility 0s linear .8s}
+.hero-slide.is-active{opacity:1;visibility:visible;transition:opacity .8s var(--ease)}
+.hero-slideshow .home-hero-image{border-radius:0}
+.slide-caption{position:absolute;inset:auto 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:48px 20px 16px;background:linear-gradient(transparent,rgb(10 22 36/.82));color:#fff;font-size:15px;line-height:1.35}
+.slide-caption a{color:#fff;font-weight:600;text-decoration:underline;text-decoration-color:rgb(255 255 255/.45);text-underline-offset:3px}
+.slide-caption a:hover{text-decoration-color:#fff;color:#fff}
+.slide-tag{padding:2px 9px;border-radius:999px;background:var(--crimson);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.slide-controls{display:none;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+.hero-slideshow.is-ready .slide-controls{display:flex}
+.slide-arrow,.slide-pause{display:inline-grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--rule-strong);border-radius:50%;background:#fff;color:var(--navy);cursor:pointer;transition:border-color .15s,background .15s}
+.slide-arrow:hover,.slide-pause:hover{border-color:var(--navy)}
+.slide-arrow svg,.slide-pause svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.slide-pause .i-play{display:none;fill:currentColor;stroke:none}
+.hero-slideshow.is-paused .slide-pause .i-pause{display:none}
+.hero-slideshow.is-paused .slide-pause .i-play{display:inline}
+.slide-dots{display:flex;gap:6px}
+.slide-dots button{width:9px;height:9px;padding:0;border:0;border-radius:999px;background:var(--rule-strong);cursor:pointer;transition:width .25s var(--ease),background .2s}
+.slide-dots button[aria-current]{width:24px;background:var(--crimson)}
+:is(.slide-arrow,.slide-pause,.slide-dots button):focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.hero-slide,.hero-slide.is-active{transition:none}}

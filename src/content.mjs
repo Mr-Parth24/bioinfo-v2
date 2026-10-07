@@ -22,6 +22,9 @@ export const FIELDS={
   eventIds:{label:'Selected event',type:'relations',collection:'events',ordered:true},
   opportunityMode:{label:'Homepage opportunity panel',type:'select',options:['automatic','selected','hidden']},
   opportunityIds:{label:'Selected opportunity',type:'relations',collection:'opportunities',ordered:true},
+  heroMode:{label:'Hero picture',type:'select',options:['single','selected','latest','random']},
+  heroSlideIds:{label:'Slideshow slides (move into display order)',type:'relations',collection:['news','events','research'],ordered:true},
+  heroSlideCount:{label:'Slides taken from news, events & research',type:'number',min:1,maxValue:8},
   showEvents:{label:'Show upcoming event',type:'select',options:['yes','no']},
   showOpportunities:{label:'Show current opportunity',type:'select',options:['yes','no']},
   announcement:{label:'Announcement',type:'text',max:600},
@@ -98,7 +101,7 @@ export const COLLECTION_FIELDS={
 COLLECTION_FIELDS.opportunities=['title','summary','body','category','location','deadline','openingStatus','email','link','route','status'];
 COLLECTION_FIELDS.settings=['title'];
 export const SETTINGS_FIELDS={
- 'settings:home':['title','summary','image','imageAlt','imageCaption','imageFit','focalX','focalY','primaryLabel','primaryLink','secondaryLabel','secondaryLink','announcement','announcementLink','feedMode','feedCount','featuredIds','eventMode','eventIds','opportunityMode','opportunityIds','status'],
+ 'settings:home':['title','summary','image','imageAlt','imageCaption','imageFit','focalX','focalY','heroMode','heroSlideIds','heroSlideCount','gallery','primaryLabel','primaryLink','secondaryLabel','secondaryLink','announcement','announcementLink','feedMode','feedCount','featuredIds','eventMode','eventIds','opportunityMode','opportunityIds','status'],
  'settings:site':['title','footerText','address','email','phone','social','resourceLinks','affiliationLinks','status'],
  'settings:director':['title','summary','body','image','imageAlt','imageFit','focalX','focalY','email','phone','social','education','appointments','awards','publicationIds','status']
 };
@@ -130,7 +133,7 @@ export function validateRecord(record) {
   if(record.collection==='settings'&&!Object.hasOwn(SETTINGS_FIELDS,record.id))throw new InputError('Unknown settings record.');
   for(const key of ['education','appointments','awards'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(r=>!r||typeof r.title!=='string'||!r.title.trim()||r.title.length>1000||typeof r.date!=='string'||r.date.length>100||typeof r.description!=='string'||r.description.length>12000||(r.link&&!safeUrl(r.link)))))throw new InputError('Timeline rows need a title, date, description and valid link URL.');
   for(const key of ['resourceLinks','affiliationLinks'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>40||record[key].some(x=>!x||typeof x.type!=='string'||!safeUrl(x.link))))throw new InputError('Links require a label and valid URL.');
-  for(const key of ['featuredIds','eventIds','opportunityIds','researchIds','peopleIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');
+  for(const key of ['featuredIds','eventIds','opportunityIds','researchIds','peopleIds','heroSlideIds'])if(record[key]!==undefined&&(!Array.isArray(record[key])||record[key].length>100||record[key].some(id=>typeof id!=='string')||new Set(record[key]).size!==record[key].length))throw new InputError('Invalid related-record references.');
   if(record.startDate&&record.endDate&&record.startDate>record.endDate)throw new InputError('Event end date must follow its start date.');
   if(record.social!==undefined&&(!Array.isArray(record.social)||record.social.length>30||record.social.some(x=>!x||typeof x.type!=='string'||!safeUrl(x.link))))throw new InputError('Social links require a label and valid URL.');
   if(record.imageVariants!==undefined&&(!Array.isArray(record.imageVariants)||record.imageVariants.length>5||record.imageVariants.some(v=>!v||!safeUrl(v.url,{image:true})||!Number.isInteger(v.width)||v.width<1||v.width>20000)))throw new InputError('Invalid image variants.');

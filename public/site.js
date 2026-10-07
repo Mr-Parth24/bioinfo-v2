@@ -202,6 +202,47 @@
     keyButtons[0]?.focus();
   });
 
+  /* ---------- Homepage hero slideshow: fades every 6 s, pauses on hover, focus or request ---------- */
+  document.querySelectorAll('[data-slideshow]').forEach(show => {
+    const slides = [...show.querySelectorAll('.hero-slide')];
+    const dots = [...show.querySelectorAll('[data-slide-to]')];
+    const pause = show.querySelector('[data-slide-pause]');
+    let index = 0, timer = null, held = false, stopped = reduceMotion;
+    const go = next => {
+      index = (next + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('is-active', i === index);
+        slide.toggleAttribute('aria-hidden', i !== index);
+        slide.querySelectorAll('a').forEach(a => { a.tabIndex = i === index ? 0 : -1; });
+      });
+      dots.forEach((dot, i) => dot.toggleAttribute('aria-current', i === index));
+    };
+    const schedule = () => {
+      clearInterval(timer);
+      if (!stopped && !held) timer = setInterval(() => go(index + 1), 6000);
+      show.classList.toggle('is-paused', stopped);
+      pause.setAttribute('aria-label', stopped ? 'Play slideshow' : 'Pause slideshow');
+    };
+    show.querySelector('[data-slide-prev]').addEventListener('click', () => { go(index - 1); schedule(); });
+    show.querySelector('[data-slide-next]').addEventListener('click', () => { go(index + 1); schedule(); });
+    dots.forEach((dot, i) => dot.addEventListener('click', () => { go(i); schedule(); }));
+    pause.addEventListener('click', () => { stopped = !stopped; schedule(); });
+    show.addEventListener('pointerenter', () => { held = true; schedule(); });
+    show.addEventListener('pointerleave', () => { held = false; schedule(); });
+    show.addEventListener('focusin', () => { held = true; schedule(); });
+    show.addEventListener('focusout', () => { held = false; schedule(); });
+    let startX = null;
+    show.addEventListener('touchstart', event => { startX = event.touches[0].clientX; }, { passive: true });
+    show.addEventListener('touchend', event => {
+      const dx = event.changedTouches[0].clientX - (startX ?? event.changedTouches[0].clientX);
+      if (Math.abs(dx) > 40) { go(index + (dx < 0 ? 1 : -1)); schedule(); }
+      startX = null;
+    });
+    show.classList.add('is-ready');
+    go(0);
+    schedule();
+  });
+
   /* ---------- Profile pages: publication year filter and table of contents ---------- */
   document.querySelectorAll('[data-pub-filter]').forEach(section => {
     section.addEventListener('click', event => {
