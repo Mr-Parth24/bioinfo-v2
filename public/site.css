@@ -718,29 +718,90 @@ button,input,select,textarea{font:inherit;color:inherit}
 .prose div:has(> a):not(:has(> :not(a)))>a:first-child{background:var(--crimson);border-color:var(--crimson);color:#fff}
 .prose div:has(> a):not(:has(> :not(a)))>a:hover{border-color:var(--navy)}
 
-/* ---------- Publications: controls, year ranges and authorship key ---------- */
-.pub-controls{display:grid;gap:14px;margin-bottom:36px;padding:20px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+/* ---------- Publications: controls, year ranges and author roles ---------- */
+.pub-controls{display:grid;gap:16px;margin-bottom:36px;padding:20px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
 .pub-controls .filter-bar{margin-bottom:0}
 .pub-controls .search-field{background:#fff}
-.range-chips .chip span{gap:8px}
-.range-chips .chip small{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
-.range-chips .chip input:checked+span small{color:rgb(255 255 255/.75)}
-.author-key{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--rule)}
-.author-key-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
-.author-key-hint{font-size:13.5px;color:var(--muted)}
-.author-key ul{display:flex;flex-wrap:wrap;gap:8px}
-.key-chip{display:inline-flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font:500 14px/1.3 var(--sans);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s}
-.key-chip:hover{border-color:var(--crimson)}
-.key-chip[aria-pressed=true]{border-color:var(--crimson);background:var(--crimson-tint);box-shadow:0 0 0 3px rgb(163 18 62/.12)}
-.key-sym{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--crimson-tint);color:var(--crimson);font:700 15px/1 var(--sans)}
-.key-chip[aria-pressed=true] .key-sym{background:var(--crimson);color:#fff}
-.key-underline{text-decoration:underline;text-underline-offset:2px}
-.key-italic{font-family:var(--serif);font-style:italic}
-.authors .au-mark{color:var(--crimson);font-weight:700;padding-inline:1px}
-.authors u{text-decoration-color:var(--rule-strong);text-underline-offset:3px}
-.publication-list[data-highlight=dollar] .au-mark[data-mark=dollar],
-.publication-list[data-highlight=asterisk] .au-mark[data-mark=asterisk],
-.publication-list[data-highlight=caret] .au-mark[data-mark=caret],
-.publication-list[data-highlight=underline] .authors u,
-.publication-list[data-highlight=italic] .authors :is(em,i){background:#ffe7a3;color:var(--ink);border-radius:3px;box-shadow:0 0 0 2px #ffe7a3;text-decoration-color:var(--crimson)}
-@media(max-width:640px){.pub-controls{padding:14px}.author-key-hint{display:none}}
+.control-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:start;padding-top:14px;border-top:1px solid var(--rule)}
+.control-label{font:600 12.5px/2.6 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chip span small,.role-chip small{font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip span{gap:8px}
+.chip input:checked+span small{color:rgb(255 255 255/.75)}
+.role-filter{display:grid;gap:10px}
+.role-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font:500 14px/1.3 var(--sans);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s}
+.role-chip:hover{border-color:var(--navy)}
+.role-chip[aria-pressed=true]{border-color:var(--navy);background:var(--navy);color:#fff}
+.role-chip[aria-pressed=true] small{color:rgb(255 255 255/.7)}
+.only-toggle{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;color:var(--navy);cursor:pointer;width:fit-content}
+.only-toggle input{width:18px;height:18px;accent-color:var(--crimson)}
+
+/* Role badges inside author lists, and the matching swatches in the controls */
+.role-badge{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:2px;border-radius:50%;vertical-align:-3px;color:#fff}
+.role-badge svg{width:12px;height:12px}
+.role-corresponding{background:#1d5d95}
+.role-equal{background:#7a4fb5}
+.role-mentored{background:#2f7a4f}
+.role-swatch{display:inline-grid;place-items:center;width:24px;height:20px;font:600 13px/1 var(--serif);color:var(--navy)}
+.swatch-grad{text-decoration:underline 2px #c2410c;text-underline-offset:3px}
+.swatch-undergrad{font-style:italic;text-decoration:underline dotted 2px #0e7490;text-underline-offset:3px}
+.role-chip .role-badge{width:22px;height:22px;margin:0}
+.role-chip[aria-pressed=true] .role-swatch{color:#fff}
+.authors u{text-decoration:underline 1.5px #c2410c;text-underline-offset:3px}
+.authors :is(em,i){font-style:italic;text-decoration:underline dotted 1.5px #0e7490;text-underline-offset:3px}
+.authors u :is(em,i){text-decoration:none}
+/* Highlighting: matching marks get a soft marker; publications without the role step back */
+.publication-list[data-highlight]:not([data-highlight=""]) .publication{transition:opacity .2s}
+.publication-list[data-highlight=corresponding] .publication:not([data-roles~=corresponding]),
+.publication-list[data-highlight=equal] .publication:not([data-roles~=equal]),
+.publication-list[data-highlight=mentored] .publication:not([data-roles~=mentored]),
+.publication-list[data-highlight=grad] .publication:not([data-roles~=grad]),
+.publication-list[data-highlight=undergrad] .publication:not([data-roles~=undergrad]){opacity:.38}
+.publication-list[data-highlight=corresponding] .role-corresponding,
+.publication-list[data-highlight=equal] .role-equal,
+.publication-list[data-highlight=mentored] .role-mentored{box-shadow:0 0 0 3px #fde68a;transform:scale(1.15)}
+.publication-list[data-highlight=grad] .authors u,
+.publication-list[data-highlight=undergrad] .authors :is(em,i){background:#fef3c7;border-radius:3px;box-shadow:0 0 0 2px #fef3c7;color:var(--ink)}
+@media(max-width:640px){.pub-controls{padding:14px}.control-row{grid-template-columns:1fr;gap:6px}.control-label{line-height:1.4}}
+
+/* ---------- People: groups, cards and profiles ---------- */
+.people-group{margin-top:clamp(28px,4vw,44px)}
+.people-group .group-head h2{font-size:clamp(24px,2.4vw,30px)}
+.people-group .group-head span{display:inline-grid;place-items:center;min-width:28px;height:24px;padding:0 8px;border-radius:999px;background:var(--surface-2);font-weight:600;color:var(--navy-2)}
+.person-photo-wrap{position:relative;border-radius:var(--radius);overflow:hidden;background:var(--surface-2)}
+.person-photo{aspect-ratio:4/5;border-radius:var(--radius)}
+.person-card a{gap:12px}
+.person-card:hover .person-photo-wrap{box-shadow:var(--shadow-lift)}
+.person-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.person-chips span{padding:2px 9px;border-radius:999px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--navy-2)}
+.lead-facts{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14.5px;color:var(--muted)}
+.lead-facts strong{font:600 20px/1 var(--serif);color:var(--navy);margin-right:4px}
+.profile-badges{display:flex;flex-wrap:wrap;gap:8px}
+.status-pill,.group-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;font:600 13px/1.4 var(--sans)}
+.status-pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.status-pill.is-current{background:#e7f4ec;color:#17643a}
+.status-pill.is-alumni{background:var(--surface-2);color:var(--navy-2)}
+.group-pill{background:#fff;border:1px solid var(--rule-strong);color:var(--navy)}
+.profile-years{white-space:nowrap}
+.profile-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.profile-links a{display:inline-flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font-size:14.5px;font-weight:500;color:var(--navy);transition:border-color .15s,box-shadow .2s}
+.profile-links a:hover{border-color:var(--navy);box-shadow:var(--shadow)}
+.profile-links .icon{width:14px;height:14px;color:var(--muted)}
+.link-mono{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font:700 11.5px/1 var(--sans);letter-spacing:.02em}
+.profile-stats{display:flex;flex-wrap:wrap;gap:12px 32px;margin-top:10px;padding-top:16px;border-top:1px solid var(--rule)}
+.profile-stats div{display:flex;flex-direction:column-reverse}
+.profile-stats dd{font:600 34px/1 var(--serif);color:var(--navy)}
+.profile-stats dt{font-size:13px;color:var(--muted);margin-top:4px}
+.background-block+.background-block{margin-top:28px}
+.block-title{font:600 13px/1.3 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--crimson);margin-bottom:14px}
+.thesis-card{display:flex;gap:14px;align-items:flex-start;padding:18px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
+.thesis-card>.icon{width:26px;height:26px;color:var(--crimson);flex:none}
+.thesis-card p{font:600 18px/1.35 var(--serif);color:var(--navy);margin-bottom:6px}
+.interests{margin-bottom:16px}
+.profile-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.profile-tools a{display:grid;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;color:inherit;transition:box-shadow .25s,transform .25s var(--ease)}
+.profile-tools a:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
+.profile-tools a>div:last-child{padding:12px 14px}
+.profile-tools h3{display:flex;align-items:center;gap:6px;font-size:18px}
+.profile-tools h3 .icon{width:14px;height:14px;color:var(--crimson)}
+.profile-tools p{font-size:13.5px;color:var(--muted)}
+.person-header .profile-portrait .media-frame{box-shadow:var(--shadow-lift)}

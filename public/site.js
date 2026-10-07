@@ -88,6 +88,7 @@
       const query = (search?.value || '').toLocaleLowerCase().trim();
       const cat = directory.querySelector('input[type="radio"][data-category-filter]:checked')?.value ?? category?.value ?? '';
       const [from, to] = (directory.querySelector('input[data-year-range]:checked')?.value || '').split('-').map(Number);
+      const onlyRole = directory.querySelector('[data-role-only]')?.checked ? directory.querySelector('.publication-list')?.dataset.highlight : '';
       const waiting = directory.hasAttribute('data-require-query') && !query;
       const hint = directory.querySelector('[data-search-hint]');
       if (hint) hint.hidden = !waiting;
@@ -96,7 +97,8 @@
         const match = !waiting && (!query || (item.dataset.search || item.textContent).toLocaleLowerCase().includes(query))
           && (!cat || item.dataset.category === cat)
           && (!year?.value || item.dataset.year === year.value)
-          && (!from || (Number(item.dataset.year) >= from && Number(item.dataset.year) <= to));
+          && (!from || (Number(item.dataset.year) >= from && Number(item.dataset.year) <= to))
+          && (!onlyRole || (item.dataset.roles || '').split(' ').includes(onlyRole));
         item.hidden = !match;
         if (match) shown++;
       }
@@ -105,7 +107,7 @@
       });
       if (counter) counter.textContent = shown;
       if (empty) empty.hidden = shown !== 0 || waiting;
-      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from));
+      directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from || onlyRole));
       directory.dispatchEvent(new CustomEvent('directory:update'));
     };
     search?.addEventListener('input', update);
@@ -113,6 +115,8 @@
     year?.addEventListener('change', update);
     radios.forEach(r => r.addEventListener('change', update));
     ranges.forEach(r => r.addEventListener('change', update));
+    directory.querySelector('[data-role-only]')?.addEventListener('change', update);
+    directory.addEventListener('roles:change', update);
     directory.querySelector('form')?.addEventListener('submit', event => { event.preventDefault(); update(); });
     update();
   });
@@ -169,10 +173,16 @@
   /* ---------- Publications: authorship key highlights matching marks ---------- */
   const keyButtons = [...document.querySelectorAll('[data-author-key]')];
   const pubList = document.querySelector('.publication-list');
+  const onlyToggle = document.querySelector('.only-toggle');
   keyButtons.forEach(button => button.addEventListener('click', () => {
     const on = button.getAttribute('aria-pressed') !== 'true';
     keyButtons.forEach(b => b.setAttribute('aria-pressed', String(b === button && on)));
     if (pubList) pubList.dataset.highlight = on ? button.dataset.authorKey : '';
+    if (onlyToggle) {
+      onlyToggle.hidden = !on;
+      if (!on) onlyToggle.querySelector('input').checked = false;
+    }
+    button.closest('[data-directory]')?.dispatchEvent(new CustomEvent('roles:change'));
   }));
 
   /* ---------- Profile pages: publication year filter and table of contents ---------- */
