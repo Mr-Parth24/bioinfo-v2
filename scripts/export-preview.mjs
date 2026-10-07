@@ -35,7 +35,8 @@ export function exportPreview({ records, out, uploadsDir }) {
     for (const route of routes) {
       const file = target(route), folder = dirname(file);
       mkdirSync(folder, { recursive: true });
-      const html = rendered.get(route).html.replace(/\b(href|src)="(\/[^\"]*)"/g, (whole, attribute, value) => {
+      // The static copy has no editor, so drop the footer sign-in link instead of shipping a dead /admin link.
+      const html = rendered.get(route).html.replace(/<a class="footer-admin" href="\/admin">[^<]*<\/a>/, '').replace(/\b(href|src)="(\/[^\"]*)"/g, (whole, attribute, value) => {
         const url = new URL(value.replaceAll('&amp;', '&'), 'https://preview.invalid');
         let path = url.pathname.replace(/\/$/, '') || '/';
         if (path === '/publications' && url.searchParams.has('content')) {

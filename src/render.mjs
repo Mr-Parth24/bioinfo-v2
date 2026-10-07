@@ -370,14 +370,20 @@ function eventsListing(list) {
   return `${upcomingBlock}${yearNav}${years.map(y => { const rows = past.filter(r => eventYear(r) === y); return `<section class="event-year" id="year-${e(y)}" data-filter-group aria-labelledby="y-${e(y)}"><div class="group-head"><h2 id="y-${e(y)}">${e(y)}</h2><span>${count(rows.length, 'event')}</span></div><ul class="event-grid">${cards(rows)}</ul></section>`; }).join('')}${undated.length ? `<section class="event-year" data-filter-group><ul class="event-grid">${cards(undated)}</ul></section>` : ''}`;
 }
 
+/* News and events share one menu entry; this switch keeps both lists one click away. */
+function sectionSwitch(records, current) {
+  const tabs = [['news', 'News', '/news'], ['events', 'Events', '/events']];
+  return `<nav class="section-switch" aria-label="News and events">${tabs.map(([c, label, href]) => `<a href="${href}"${c === current ? ' aria-current="page"' : ''}>${label}<span>${records.filter(r => r.collection === c).length}</span></a>`).join('')}</nav>`;
+}
+
 function listing(records, collection) {
   const list = sortDate(records.filter(r => r.collection === collection));
   if (collection === 'news') {
     return pageHeader('News', 'Research milestones, awards, media coverage and stories from the KAABiL community.', 'News & events', { trail: [['News']] })
-      + `<div class="wrap page-body" data-directory>${newsListing(list, records)}</div>`;
+      + `<div class="wrap page-body" data-directory>${sectionSwitch(records, 'news')}${newsListing(list, records)}</div>`;
   }
   return pageHeader('Events', 'Conferences, symposia, presentations and the moments that bring our research community together.', 'News & events', { trail: [['Events']] })
-    + `<div class="wrap page-body" data-directory>${filterBar(list, 'events', { categories: false, years: true })}${eventsListing(list)}</div>`;
+    + `<div class="wrap page-body" data-directory>${sectionSwitch(records, 'events')}${filterBar(list, 'events', { categories: false, years: true })}${eventsListing(list)}</div>`;
 }
 
 /* ---------- Detail pages (news, events, research areas, pages, opportunities) ---------- */
@@ -399,12 +405,14 @@ function detail(input, records) {
   const opportunity = collection === 'opportunities'
     ? `<div class="notice-panel"><div><p class="eyebrow">${e(record.openingStatus === 'closed' ? 'Closed' : 'Open')} · ${e(record.category || 'Research opportunity')}</p>${record.deadline ? `<p>Apply by <strong>${e(record.deadline)}</strong></p>` : ''}</div>${record.link ? `<a class="button" href="${e(safeUrl(record.link))}">Application details ${arrow}</a>` : record.email ? `<a class="button" href="mailto:${e(record.email)}">Email to apply ${arrow}</a>` : ''}</div>`
     : '';
+  // Galleries hold photos; video files are not served, so they are left out rather than shown as broken tiles.
+  const photos = (record.gallery || []).filter(url => !/\.(mov|mp4|m4v|webm|avi)$/i.test(url));
   const siblings = ['research'].includes(collection) ? records.filter(r => r.collection === collection && r.id !== record.id) : [];
   return `<article class="article"><header class="article-header"><div class="wrap">${breadcrumbs([section, [record.title]])}<div class="article-heading"><p class="eyebrow">${e(record.category && !['Research', 'Events'].includes(record.category) ? record.category : section[0])}</p><h1>${e(record.title)}</h1>${record.summary ? `<p class="lede">${e(record.summary)}</p>` : ''}${meta ? `<p class="article-meta">${meta}</p>` : ''}</div></div></header>`
     + `<div class="wrap article-layout">${record.image ? `<figure class="article-figure">${image(record, 'article-image')}${record.imageCaption ? `<figcaption>${e(record.imageCaption)}</figcaption>` : ''}</figure>` : ''}`
     + `<div class="article-body prose">${opportunity}${richBody(record.body, records)}${research}${record.email && collection !== 'opportunities' ? `<p><a href="mailto:${e(record.email)}">${e(record.email)}</a></p>` : ''}${record.social?.length ? `<ul class="chip-links">${record.social.map(s => `<li><a href="${e(safeUrl(s.link))}" target="_blank" rel="noopener noreferrer">${e(s.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}${isExternal ? sourceLink(linkFor(record, records), !record.body) : ''}</div>`
     + (record.id === 'pages:home' ? '<p class="article-aside-link"><a class="link-more" href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s journey ' + icons.external + '</a></p>' : '')
-    + (record.gallery?.length ? `<section class="gallery-section"><h2>Gallery <span class="count-badge">${record.gallery.length}</span></h2><div class="gallery" aria-label="Photo gallery">${record.gallery.map((url, i) => `<div>${image({ title: record.title, image: url, imageAlt: record.title + ' — photo ' + (i + 1) })}</div>`).join('')}</div></section>` : '')
+    + (photos.length ? `<section class="gallery-section"><h2>Gallery <span class="count-badge">${photos.length}</span></h2><div class="gallery" aria-label="Photo gallery">${photos.map((url, i) => `<div>${image({ title: record.title, image: url, imageAlt: record.title + ' — photo ' + (i + 1) })}</div>`).join('')}</div></section>` : '')
     + related(record, records)
     + (siblings.length ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${siblings.map(r => `<li><a class="glow" href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : '')
     + `<p class="back-link"><a href="${section[1]}">${icons.back} Back to ${e(section[0].toLowerCase())}</a></p></div></article>`;

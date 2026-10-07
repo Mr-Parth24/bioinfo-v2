@@ -15,8 +15,9 @@ export function ensureEditorial(store){
  }
 }
 export function displayDate(record){
- if(record.date)return record.date;
  const format=value=>new Intl.DateTimeFormat('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
+ // Dates typed as 2026-10-07 read like the migrated ones ("October 7, 2026").
+ if(record.date)return /^\d{4}-\d{2}-\d{2}$/.test(record.date)&&!isNaN(new Date(record.date+'T12:00:00Z'))?format(record.date):record.date;
  if(record.startDate)return format(record.startDate)+(record.endDate&&record.endDate!==record.startDate?' – '+format(record.endDate):'');
  if(record.publishDate)return format(record.publishDate);
  return record.year||'';
