@@ -30,6 +30,14 @@ npm run preview:export
 
 Open `preview/index.html`. Navigation is rewritten for local files. This export has no editor backend. Remote images can load from their original server; unavailable images have a visual fallback. Static exports must be regenerated after content changes.
 
+## GitHub Pages live deployment
+
+The live GitHub Pages site deploys from `main` only via `.github/workflows/pages.yml`.
+
+- Keep GitHub Pages source set to **GitHub Actions** in repository settings.
+- Keep all branch work (including Claude-generated updates) merged into `main` so pushes to `main` trigger deployment.
+- Keep CI green: the Pages workflow runs `npm test` and `npm run preview:export` before publishing.
+
 ## Create an editor account
 
 There is no default password or public registration. On Bash:
