@@ -105,5 +105,6 @@ export class Store {
     this.db.prepare('INSERT INTO attempts VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1').run(key,now);
     return this.db.prepare('SELECT count FROM attempts WHERE key=?').get(key).count<=10;
   }
+  clearAttempts(key){this.db.prepare('DELETE FROM attempts WHERE key=?').run(key);}
   backup(path){this.db.prepare('VACUUM INTO ?').run(path);}
 }

@@ -40,6 +40,8 @@ export function safeUrl(input,{image=false,relative=false}={}) {
 
 const allowed = new Set('p br strong b em i u s sup sub a ul ol li h2 h3 h4 h5 h6 blockquote hr img figure figcaption table thead tbody tr th td div section article span details summary dl dt dd'.split(' '));
 const voids = new Set(['br','hr','img']);
+// IDs the site chrome and the studio rely on. Content may not reuse them (prevents DOM clobbering).
+const reservedId = /^(main|site-nav|nav-panel-.*|program|record-.*|field-.*|editor-.*|entries|collections|collection-.*|logout|login-.*|studio-.*|revisions|preview-record|new-record|back-list|save-.*|delete-.*|duplicate-record|cancel-delete|confirm-delete|open-media-library|export-content|category-filter-select|sort-select|record-search)$/i;
 function decodeEntities(value) {
   return value.replace(/&#(x[\da-f]+|\d+);?/gi,(_,s)=>{
     const n=s[0].toLowerCase()==='x'?parseInt(s.slice(1),16):parseInt(s,10);
@@ -50,12 +52,17 @@ function decodeEntities(value) {
 export function sanitizeHtml(input) {
   let source=String(input??'').replace(/<!--[^]*?-->/g,'').replace(/<(script|style|svg|math|iframe|object|template)\b[^>]*>[^]*?<\/\1\s*>/gi,'');
   let out='',pos=0;
+  const open=[]; // non-void tags still open, so the output is always well nested
   const pattern=/<\/?[a-zA-Z][^>]*>/g;
   for(const match of source.matchAll(pattern)) {
     out+=escapeHtml(decodeEntities(source.slice(pos,match.index)));pos=match.index+match[0].length;
     const tagmatch=match[0].match(/^<(\/?)([\w-]+)/);const tag=tagmatch[2].toLowerCase();
     if(!allowed.has(tag))continue;
-    if(tagmatch[1]) {if(!voids.has(tag))out+=`</${tag}>`;continue;}
+    if(tagmatch[1]) {
+      if(voids.has(tag)||!open.includes(tag))continue;
+      while(open.length){const top=open.pop();out+=`</${top}>`;if(top===tag)break;}
+      continue;
+    }
     const attrs={};
     for(const a of match[0].slice(tagmatch[0].length).matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g))attrs[a[1].toLowerCase()]=decodeEntities(a[2]??a[3]??a[4]??'');
     let rendered='';
@@ -68,11 +75,13 @@ export function sanitizeHtml(input) {
       const src=safeUrl(attrs.src,{image:true});if(!src)continue;
       rendered+=` src="${escapeHtml(src)}" alt="${escapeHtml(attrs.alt||'')}" loading="lazy" decoding="async"`;
     }
-    if(attrs.id&&/^[\w-]+$/.test(attrs.id))rendered+=` id="${escapeHtml(attrs.id)}"`;
+    if(attrs.id&&/^[A-Za-z][\w-]{0,60}$/.test(attrs.id)&&!reservedId.test(attrs.id))rendered+=` id="${escapeHtml(attrs.id)}"`;
     if(['th','td'].includes(tag))for(const key of ['colspan','rowspan'])if(/^\d{1,2}$/.test(attrs[key]||''))rendered+=` ${key}="${attrs[key]}"`;
     out+=`<${tag}${rendered}>`;
+    if(!voids.has(tag))open.push(tag);
   }
   out+=escapeHtml(decodeEntities(source.slice(pos)));
+  while(open.length)out+=`</${open.pop()}>`;
   return out;
 }
 export const plainText=value=>decodeEntities(String(value??'').replace(/<[^>]*>/g,'')).replace(/\s+/g,' ').trim();

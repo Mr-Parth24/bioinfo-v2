@@ -1,0 +1,75 @@
+# Builds the production Docker image with Compose, starts it with the same hardening as the server,
+# then checks health, persistence and the security probe against the running container.
+name: Docker build and security check
+
+on:
+  push:
+    branches: [main, claude/website-update-help-r254ix]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PORT: 3000
+      APP_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build and start the container
+        run: docker compose up --build -d
+
+      - name: Wait until healthy
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$(docker compose ps -q website)")
+            echo "health: $status"
+            [ "$status" = healthy ] && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+
+      - name: Runs as a non-root user with a read-only filesystem
+        run: |
+          docker compose exec -T website node -e "if(process.getuid()===0)process.exit(1)"
+          if docker compose exec -T website sh -c 'touch /app/src/probe' 2>/dev/null; then
+            echo "Application code is writable inside the container"; exit 1
+          fi
+
+      - name: Pages render
+        run: |
+          for path in / /research /people /publications /tools /news /events /contact /admin /robots.txt; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$path")
+            echo "$path $code"; [ "$code" = 200 ]
+          done
+
+      - name: Security probe
+        run: |
+          PASSWORD="ci-$(openssl rand -hex 16)"
+          printf '%s' "$PASSWORD" | docker compose exec -T website node scripts/manage.mjs create-user ci@example.org
+          EDITOR_EMAIL=ci@example.org EDITOR_PASSWORD="$PASSWORD" node scripts/security-probe.mjs http://localhost:3000
+
+      - name: Content survives a rebuild
+        run: |
+          docker compose exec -T website node scripts/manage.mjs inventory > before.txt
+          docker compose up --build -d --force-recreate
+          sleep 8
+          docker compose exec -T website node scripts/manage.mjs inventory > after.txt
+          diff before.txt after.txt
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop
+        if: always()
+        run: docker compose down -v

@@ -30,10 +30,11 @@ export async function saveImage(request,dataDir){
  try{metadata=await sharp(bytes,{limitInputPixels:40000000}).metadata();if(!metadata.width||!metadata.height||metadata.width*metadata.height>40000000)throw new Error('dimensions');normalized=await sharp(bytes,{limitInputPixels:40000000}).rotate().toBuffer();metadata=await sharp(normalized).metadata();}
  catch{throw new InputError('This image could not be decoded or exceeds 40 million pixels.');}
  const filename=randomUUID()+'.'+format.ext,folder=join(dataDir,'uploads');
- await mkdir(folder,{recursive:true});await writeFile(join(folder,filename),bytes,{flag:'wx',mode:0o640});
+ await mkdir(folder,{recursive:true});// Store a re-encoded copy for still images: drops EXIF/XMP metadata such as GPS location. GIFs keep their animation.
+ await writeFile(join(folder,filename),format.ext==='gif'?bytes:normalized,{flag:'wx',mode:0o640});
  const variants=[];
  for(const width of [320,640,1200])if(width<=metadata.width){const name=filename.replace(/\.[a-z]+$/,'-'+width+'.webp');await sharp(normalized).resize({width,withoutEnlargement:true}).webp({quality:84}).toFile(join(folder,name));variants.push({url:'/uploads/'+name,width});}
- return {url:'/uploads/'+filename,bytes:bytes.length,type:format.mime,width:metadata.width,height:metadata.height,variants};
+ return {url:'/uploads/'+filename,bytes:(format.ext==='gif'?bytes:normalized).length,type:format.mime,width:metadata.width,height:metadata.height,variants};
 }
 export async function removeImage(url,dataDir,store){
  if(!/^\/uploads\/[a-f0-9-]{36}\.(png|jpg|gif|webp)$/.test(url))throw new InputError('Only uploaded original images can be deleted.');

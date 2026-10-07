@@ -36,6 +36,32 @@ Compose `.env` settings are separate from arbitrary environment variables in a s
 
 The container runs as UID 1000, drops Linux capabilities, and keeps the root filesystem read-only. The `bioinfo_data` volume is writable. If a host bind mount replaces the named volume, its ownership must allow UID 1000 to write; do not solve this by running the app as root.
 
+## Moving from the original site (`bxz update`)
+
+| Task | Original site | Version 2 |
+|---|---|---|
+| Change news, people, events, publications, tools, homepage | Edit `.njk` files in VS Code, push, then on the HPC `sudo su dock_user` and `bxz update bioinformatics` | Sign in at `/admin`, edit, choose Published, save. Live immediately; no Git, rebuild or HPC login |
+| Add images | Copy into `/opt/webassets/...` and hard-code the Raikou URL | Upload in the editor (stored in the data volume), or keep using Raikou URLs |
+| Change design or code | Push, then `bxz update` | `git pull --ff-only && docker compose up --build -d` (content is kept) |
+
+The original `dockerbuilderprod.sh` runs the container as `bioinfo` on the `docker-br0` network at
+`172.20.0.2` and publishes ports 3005/3010. If the university reverse proxy points at that address, attach
+version 2 the same way with a `compose.override.yaml` next to `compose.yaml` (stop the old container first):
+
+```yaml
+services:
+  website:
+    networks:
+      docker-br0:
+        ipv4_address: 172.20.0.2
+networks:
+  docker-br0:
+    external: true
+```
+
+Set `NODE_ENV=production` and `APP_ORIGIN=https://<the public domain>` in `.env`. Keep the old image
+until the new site has been checked, so you can switch back by starting it again.
+
 ## Code deployment
 
 ```sh
