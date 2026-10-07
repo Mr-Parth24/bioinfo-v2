@@ -5,7 +5,7 @@
  */
 import {
   header, footer, homepage, director, opportunities, related,
-  image, pageHeader, breadcrumbs, icons, arrow, asset, media,
+  image, pageHeader, breadcrumbs, icons, arrow, asset, media, profileLinks, linkButtons,
 } from './presentation.mjs';
 import { setting, dateValue, activeOpportunities, displayDate } from './editorial.mjs';
 import { escapeHtml as e, sanitizeHtml, safeUrl, plainText } from './security.mjs';
@@ -103,18 +103,40 @@ function toolsPage(records) {
 }
 
 /* ---------- Publications ---------- */
-/** Authorship marks used by the original publication list (see AUTHOR_KEY). */
-const AUTHOR_KEY = [
-  ['dollar', '$', 'Equal contribution'],
-  ['asterisk', '*', 'Corresponding author'],
-  ['caret', '^', 'Collaborator’s student mentored by Dr. Kaundal'],
-  ['underline', 'U', 'Graduate student (underlined)'],
-  ['italic', 'I', 'Undergraduate student (italic)'],
+/* ---------- Author roles (the original list's $ * ^ marks, underline and italic) ---------- */
+const ROLE_ICON = {
+  equal: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6h8M4 10h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  corresponding: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="11" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m3 5 5 3.5L13 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  mentored: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14V8m0 0c0-3 2-4.5 5-4.5 0 3-2 4.5-5 4.5Zm0 0c0-2.4-1.7-3.8-4.5-3.8 0 2.4 1.7 3.8 4.5 3.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+};
+/** id, original mark, label, short description. The order is the order of the legend. */
+const AUTHOR_ROLES = [
+  ['corresponding', '*', 'Corresponding author', 'Marked * in the original list'],
+  ['equal', '$', 'Equal contribution', 'Authors who contributed equally ($)'],
+  ['grad', 'underline', 'Graduate student', 'Underlined names'],
+  ['undergrad', 'italic', 'Undergraduate student', 'Names in italics'],
+  ['mentored', '^', 'Mentored student', 'A collaborator’s student mentored by Dr. Kaundal (^)'],
 ];
-const MARK = { $: 'dollar', '*': 'asterisk', '^': 'caret' };
-/** Sanitised author list with the $ * ^ superscripts tagged so the key can highlight them. */
+const MARK = { $: 'equal', '*': 'corresponding', '^': 'mentored' };
+const roleLabel = id => AUTHOR_ROLES.find(r => r[0] === id)[2];
+/** Sanitised author list; the $ * ^ superscripts become labelled role badges. */
 function authorsHtml(authors) {
-  return sanitizeHtml(authors).replace(/<sup>\s*([$*^])\s*<\/sup>/g, (_, m) => `<sup class="au-mark" data-mark="${MARK[m]}">${m}</sup>`);
+  return sanitizeHtml(authors).replace(/<sup>\s*([$*^])\s*<\/sup>/g, (_, m) => `<span class="role-badge role-${MARK[m]}" title="${roleLabel(MARK[m])}">${ROLE_ICON[MARK[m]]}<span class="sr-only"> (${roleLabel(MARK[m]).toLowerCase()})</span></span>`);
+}
+function authorRoles(authors) {
+  const html = sanitizeHtml(authors);
+  const roles = [];
+  if (/<sup>\s*\*\s*<\/sup>/.test(html)) roles.push('corresponding');
+  if (/<sup>\s*\$\s*<\/sup>/.test(html)) roles.push('equal');
+  if (/<u>/.test(html)) roles.push('grad');
+  if (/<(em|i)>/.test(html)) roles.push('undergrad');
+  if (/<sup>\s*\^\s*<\/sup>/.test(html)) roles.push('mentored');
+  return roles;
+}
+function roleSwatch(id) {
+  if (id === 'grad') return '<span class="role-swatch swatch-grad" aria-hidden="true">Aa</span>';
+  if (id === 'undergrad') return '<span class="role-swatch swatch-undergrad" aria-hidden="true">Aa</span>';
+  return `<span class="role-badge role-${id}" aria-hidden="true">${ROLE_ICON[id]}</span>`;
 }
 function yearRanges(years) {
   const nums = years.map(Number).filter(Boolean);
@@ -127,6 +149,11 @@ function yearRanges(years) {
   }
   return ranges;
 }
+function publicationRow(r, { venue = '', compact = false } = {}) {
+  const link = safeUrl(r.link);
+  const year = r.year || r.startDate?.slice(0, 4) || r.publishDate?.slice(0, 4) || '';
+  return `<li class="publication${compact ? ' member-pub' : ''}" data-item data-year="${e(year)}" data-roles="${authorRoles(r.authors).join(' ')}" data-search="${e(plainText(r.title + ' ' + r.authors + ' ' + r.year + ' ' + (r.location || '')))}"><div class="publication-text"><h3>${link ? `<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3>${r.authors ? `<p class="authors">${authorsHtml(r.authors)}</p>` : ''}${venue ? `<p class="venue">${venue}</p>` : compact && year ? `<p class="venue">${e(year)}</p>` : ''}</div><div class="publication-actions">${link ? `<a class="small-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(plainText(r.title))}">${/doi\.org/.test(link) ? 'DOI' : 'Open'} ${icons.external}</a>` : ''}${copyButton(citation(r))}</div></li>`;
+}
 function publicationPage(records, params) {
   const pubs = records.filter(r => r.collection === 'publications');
   const modes = [['Papers', 'pub', 'Journal papers', '/publications'], ['Conferences', 'conf', 'Conferences', '/publications/conferences'], ['Editorials', 'edit', 'Editorials', '/publications/editorials']];
@@ -134,34 +161,55 @@ function publicationPage(records, params) {
   const selected = sortDate(pubs.filter(r => r.category === mode));
   const yearOf = r => r.year || r.startDate?.slice(0, 4) || r.publishDate?.slice(0, 4) || '';
   const years = [...new Set(selected.map(yearOf))];
-  const row = r => {
-    const venue = mode === 'Conferences'
-      ? [r.location ?? r.original?.location ?? '', r.date, r.presentationType ?? r.original?.type ?? ''].filter(Boolean).map(e).join(' · ')
-      : '';
-    const link = safeUrl(r.link);
-    return `<li class="publication" data-item data-year="${e(yearOf(r))}" data-search="${e(plainText(r.title + ' ' + r.authors + ' ' + r.year + ' ' + (r.location || '')))}"><div class="publication-text"><h3>${link ? `<a href="${e(r.link)}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(r.body || r.title)}</a>` : sanitizeHtml(r.body || r.title)}</h3>${r.authors ? `<p class="authors">${authorsHtml(r.authors)}</p>` : ''}${venue || mode === 'Conferences' ? `<p class="venue">${venue}</p>` : ''}</div><div class="publication-actions">${link ? `<a class="small-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open publication: ${e(plainText(r.title))}">${/doi\.org/.test(link) ? 'DOI' : 'Open'} ${icons.external}</a>` : ''}${copyButton(citation(r))}</div></li>`;
-  };
+  const venueOf = r => mode === 'Conferences' ? [r.location ?? r.original?.location ?? '', r.date, r.presentationType ?? r.original?.type ?? ''].filter(Boolean).map(e).join(' · ') : '';
   const tabs = `<nav class="tabs" aria-label="Publication types">${modes.map(([key, , label, href]) => `<a href="${href}"${mode === key ? ' aria-current="page"' : ''}>${label}<span>${pubs.filter(r => r.category === key).length}</span></a>`).join('')}<a class="tabs-external" href="https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&amp;hl=en&amp;oi=ao" target="_blank" rel="noopener noreferrer">Google Scholar ${icons.external}</a></nav>`;
   const ranges = yearRanges(selected.map(yearOf));
   const rangeChips = ranges.length > 1
-    ? `<div class="filter-chips range-chips" role="group" aria-label="Filter by years"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All years<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div>`
+    ? `<div class="control-row"><p class="control-label" id="years-label">Years</p><div class="filter-chips range-chips" role="group" aria-labelledby="years-label"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div></div>`
     : '';
-  const used = AUTHOR_KEY.filter(([key]) => selected.some(r => key === 'underline' ? /<u>/.test(r.authors || '') : key === 'italic' ? /<(em|i)>/.test(r.authors || '') : authorsHtml(r.authors).includes(`data-mark="${key}"`)));
-  const authorKey = used.length
-    ? `<section class="author-key" aria-labelledby="author-key-title"><div class="author-key-head"><h2 id="author-key-title" class="eyebrow">Authorship key</h2><p class="author-key-hint">Select a mark to highlight it in the list.</p></div><ul>${used.map(([key, sym, label]) => `<li><button type="button" class="key-chip" data-author-key="${key}" aria-pressed="false"><span class="key-sym key-${key}" aria-hidden="true">${sym}</span><span>${e(label)}</span></button></li>`).join('')}</ul></section>`
+  const roleCounts = AUTHOR_ROLES.map(([id, , label, help]) => ({ id, label, help, n: selected.filter(r => authorRoles(r.authors).includes(id)).length })).filter(x => x.n);
+  const roleControl = roleCounts.length
+    ? `<div class="control-row"><p class="control-label" id="roles-label">Author roles</p><div class="role-filter"><div class="filter-chips" role="group" aria-labelledby="roles-label">${roleCounts.map(x => `<button type="button" class="role-chip" data-author-key="${x.id}" aria-pressed="false" title="${e(x.help)}">${roleSwatch(x.id)}<span>${e(x.label)}</span><small>${x.n}</small></button>`).join('')}</div><label class="only-toggle" hidden><input type="checkbox" data-role-only><span>Only show these publications</span></label></div></div>`
     : '';
   return pageHeader('Publications', 'Journal articles, conference presentations and editorial work from the lab, newest first.', 'Scholarship', { trail: mode === 'Papers' ? [['Publications']] : [['Publications', '/publications'], [modes.find(m => m[0] === mode)[2]]] })
-    + `<div class="wrap page-body">${tabs}<div data-directory><div class="pub-controls">${filterBar(selected, 'publications', { categories: false })}${rangeChips}${authorKey}</div>`
-    + `<div class="publication-list" data-highlight="">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(row).join('')}</ol></section>`).join('')}</div></div>`
-    + `<p class="footnote">Author symbols and formatting follow the lab’s original publication list.</p></div>`;
+    + `<div class="wrap page-body">${tabs}<div data-directory><div class="pub-controls">${filterBar(selected, 'publications', { categories: false })}${rangeChips}${roleControl}</div>`
+    + `<div class="publication-list" data-highlight="">${years.map(y => `<section class="pub-year" data-filter-group aria-labelledby="py-${e(y || 'undated')}"><h2 class="pub-year-label" id="py-${e(y || 'undated')}">${e(y || 'Undated')}</h2><ol class="publication-entries">${selected.filter(r => yearOf(r) === y).map(r => publicationRow(r, { venue: venueOf(r) })).join('')}</ol></section>`).join('')}</div></div>`
+    + `<p class="footnote">Author roles follow the lab’s original publication list: * corresponding author, $ equal contribution, ^ a collaborator’s student mentored by Dr. Kaundal, underlined graduate students and italic undergraduate students.</p></div>`;
 }
 
 /* ---------- People ---------- */
+const PEOPLE_GROUPS = ['Staff', 'Postdoctoral researchers', 'PhD students', "Master's students", 'Undergraduates', 'Visiting scholars', 'Student researchers'];
+const DEPARTMENTS = { PSC: 'Plants, Soils & Climate', CS: 'Computer Science', MIS: 'Management Information Systems', CEE: 'Civil & Environmental Engineering', ADVS: 'Animal, Dairy & Veterinary Sciences', BIO: 'Biology' };
 function isAlumnus(record) {
   return record.memberStatus ? record.memberStatus === 'alumni' : record.category?.split(/\s*\/\s*/).includes('Alumni');
 }
-function personCard(r) {
-  return `<li class="person-card" data-item data-category="${e(r.category)}" data-search="${e(plainText(r.title + ' ' + (r.role || '') + ' ' + (r.department || '') + ' ' + (r.category || '') + ' ' + (r.summary || '')))}"><a href="${e(r.route)}">${image(r, 'person-photo', false)}<div class="person-card-body"><p class="person-category">${e(r.category)}</p><h3>${e(r.title)}</h3>${r.role || r.summary ? `<p class="person-role">${e(r.role || r.summary)}</p>` : ''}<p class="person-dept">${e(r.department || DEFAULT_DEPARTMENT)}</p></div></a></li>`;
+/** Group on the people page: the editor's choice, otherwise inferred from the role text. */
+function peopleGroup(r) {
+  if (r.peopleGroup) return r.peopleGroup;
+  const t = `${r.role || ''} ${r.summary || ''} ${r.category || ''}`;
+  if (/post-?doc/i.test(t)) return 'Postdoctoral researchers';
+  if (/\bstaff\b|administrator|scientist|technician|manager|developer/i.test(t)) return 'Staff';
+  if (/\bph\.?\s?d\b|doctoral/i.test(t)) return 'PhD students';
+  if (/\bm\.?s\.?\b|master/i.test(t)) return "Master's students";
+  if (/\bb\.?sc?\b|undergrad|ungraduate/i.test(t)) return 'Undergraduates';
+  if (/visiting/i.test(t)) return 'Visiting scholars';
+  return 'Student researchers';
+}
+/** "PhD Student | PSC" → position "PhD Student", department "Plants, Soils & Climate". */
+function personFacts(r) {
+  const [position = '', detail = ''] = String(r.summary || '').split('|').map(s => s.trim());
+  const known = DEPARTMENTS[detail.toUpperCase()];
+  const department = r.department || (known ? 'Department of ' + known : 'Department of ' + DEPARTMENTS.PSC);
+  return { position: r.role || [position, known ? '' : detail].filter(Boolean).join(' · '), department };
+}
+function personCard(r, records) {
+  const { position, department } = personFacts(r);
+  const group = peopleGroup(r);
+  const pubs = (r.publicationIds || []).filter(id => records.some(x => x.id === id && x.status === 'published')).length;
+  const tools = (r.toolIds || []).filter(id => records.some(x => x.id === id && x.status === 'published')).length;
+  const years = r.startYear || r.endYear ? `${r.startYear || ''}–${r.endYear || (isAlumnus(r) ? '' : 'now')}` : '';
+  const chips = [pubs && `${pubs} ${pubs === 1 ? 'paper' : 'papers'}`, tools && `${tools} ${tools === 1 ? 'tool' : 'tools'}`, years].filter(Boolean);
+  return `<li class="person-card" data-item data-category="${e(group)}" data-search="${e(plainText(r.title + ' ' + position + ' ' + department + ' ' + group + ' ' + (r.researchInterests || '')))}"><a href="${e(r.route)}"><div class="person-photo-wrap">${image(r, 'person-photo', false)}</div><div class="person-card-body"><h3>${e(r.title)}</h3>${position ? `<p class="person-role">${e(position)}</p>` : ''}<p class="person-dept">${e(department.replace(/^Department of /, ''))}</p>${chips.length ? `<p class="person-chips">${chips.map(c => `<span>${e(c)}</span>`).join('')}</p>` : ''}</div></a></li>`;
 }
 function peoplePage(records, path) {
   const people = records.filter(r => r.collection === 'people');
@@ -171,40 +219,56 @@ function peoplePage(records, path) {
   const list = showingAlumni ? alumni : current;
   const d = setting(records, 'settings:director');
   const directorVisible = d && d.status === 'published';
-  const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
+  const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length + (directorVisible ? 1 : 0)}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
   const lead = !showingAlumni && directorVisible
-    ? `<a class="lead-card reveal" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><p class="person-dept">${DEFAULT_DEPARTMENT} · Utah State University</p><span class="link-more">Read profile ${arrow}</span></div></a>`
+    ? `<a class="lead-card reveal" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
+    : '';
+  const groups = PEOPLE_GROUPS.map(name => ({ name, rows: list.filter(r => peopleGroup(r) === name) })).filter(g => g.rows.length);
+  const chips = groups.length > 1
+    ? `<div class="filter-chips" role="group" aria-label="Filter by group"><label class="chip"><input type="radio" name="group" value="" data-category-filter checked><span>Everyone<small>${list.length}</small></span></label>${groups.map(g => `<label class="chip"><input type="radio" name="group" value="${e(g.name)}" data-category-filter><span>${e(g.name)}<small>${g.rows.length}</small></span></label>`).join('')}</div>`
     : '';
   return pageHeader(showingAlumni ? 'Alumni' : 'People', showingAlumni ? 'Former students, researchers and staff who trained or worked at KAABiL.' : 'Different disciplines, shared curiosity. Meet the researchers, students and staff behind KAABiL.', 'The KAABiL community', { trail: showingAlumni ? [['People', '/people'], ['Alumni']] : [['People']] })
-    + `<div class="wrap page-body">${tabs}${lead}<div data-directory>${filterBar(list, showingAlumni ? 'alumni' : 'people', { categories: !showingAlumni })}<ul class="people-grid${showingAlumni ? ' people-grid-compact' : ''}">${list.map(personCard).join('')}</ul></div></div>`;
+    + `<div class="wrap page-body">${tabs}${lead}<div data-directory><form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search ${showingAlumni ? 'alumni' : 'people'}</span>${icons.search}<input name="q" type="search" placeholder="Search by name, role or department…" data-search-input autocomplete="off"></label><p class="result-count" aria-live="polite"><span data-count>${list.length}</span> ${list.length === 1 ? 'person' : 'people'}</p>${chips}</form><p class="empty-state" data-empty hidden>Nobody matches that search.</p>`
+    + groups.map(g => `<section class="people-group" data-filter-group aria-labelledby="pg-${e(g.name.replace(/\W+/g, '-'))}"><div class="group-head"><h2 id="pg-${e(g.name.replace(/\W+/g, '-'))}">${e(g.name)}</h2><span>${g.rows.length}</span></div><ul class="people-grid${showingAlumni ? ' people-grid-compact' : ''}">${g.rows.map(r => personCard(r, records)).join('')}</ul></section>`).join('')
+    + `</div></div>`;
 }
 
+function timeline(rows, linkLabel = 'Related link') {
+  return `<ol class="timeline">${rows.map(item => `<li><span class="timeline-date">${e(item.date)}</span><div><h3>${e(item.title)}</h3>${item.description ? `<p>${e(item.description)}</p>` : ''}${item.link ? `<a class="link-more" href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">${linkLabel} ${icons.external}</a>` : ''}</div></li>`).join('')}</ol>`;
+}
+function toolTiles(tools) {
+  return `<ul class="profile-tools">${tools.map(t => `<li><a href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer"><div class="tool-shot">${t.image ? image({ ...t, imageFit: t.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(t.title.slice(0, 2))}</span>`}</div><div><h3>${e(t.title)} ${icons.external}</h3>${t.category ? `<p>${e(t.category)}</p>` : ''}</div></a></li>`).join('')}</ul>`;
+}
 function personProfile(record, records) {
   const alum = isAlumnus(record);
+  const { position, department } = personFacts(record);
+  const group = peopleGroup(record);
   const pubs = records.filter(r => r.status === 'published' && r.collection === 'publications' && (record.publicationIds || []).includes(r.id)).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
   const tools = records.filter(r => r.status === 'published' && r.collection === 'tools' && (record.toolIds || []).includes(r.id));
   const years = [...new Set(pubs.map(p => p.year).filter(Boolean))].sort().reverse();
-  const credentials = [['education', 'Education'], ['appointments', 'Appointments'], ['awards', 'Honours &amp; awards']].filter(([k]) => record[k]?.length);
   const interests = (record.researchInterests || '').split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 80);
+  const links = profileLinks([...(record.social || []), ...(record.workLinks || [])]);
   const phone = String(record.phone || '').replace(/[^+0-9]/g, '');
-  const facts = [
-    ['Status', alum ? 'Alumni' : 'Current member'],
-    record.role && ['Role', record.role],
-    record.category && record.category !== 'Alumni' && ['Group', record.category],
-    ['Department', record.department || DEFAULT_DEPARTMENT],
-    (record.startYear || record.endYear) && ['At KAABiL', `${record.startYear || ''} – ${record.endYear || 'present'}`],
-  ].filter(Boolean);
-  const timeline = rows => `<ol class="timeline">${rows.map(item => `<li><span class="timeline-date">${e(item.date)}</span><div><h3>${e(item.title)}</h3>${item.description ? `<p>${e(item.description)}</p>` : ''}${item.link ? `<a class="link-more" href="${e(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">Related link ${icons.external}</a>` : ''}</div></li>`).join('')}</ol>`;
-  return `<header class="profile-header"><div class="wrap">${breadcrumbs([[alum ? 'Alumni' : 'People', alum ? '/people/alumni' : '/people'], [record.title]])}<div class="profile-header-grid"><div class="profile-portrait">${image(record, 'portrait')}</div><div class="profile-intro"><p class="eyebrow">${alum ? 'KAABiL alumni' : 'Lab member'}</p><h1>${e(record.title)}</h1>${record.role || record.summary ? `<p class="lede">${e(record.role || record.summary)}</p>` : ''}`
-    + `<ul class="contact-list">${record.email ? `<li><a href="mailto:${e(record.email)}">${icons.mail}<span>${e(record.email)}</span></a>${copyButton(record.email, 'Copy')}</li>` : ''}${record.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(record.phone)}</span></a></li>` : ''}</ul>`
-    + `${(record.social || []).length ? `<ul class="chip-links">${record.social.map(s => `<li><a href="${e(safeUrl(s.link))}" target="_blank" rel="noopener noreferrer">${e(s.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}</div></div></div></header>`
-    + `<div class="wrap profile-layout"><aside class="profile-facts"><dl>${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${e(v)}</dd></div>`).join('')}</dl>${record.dissertationTitle || record.dissertationUrl ? `<div class="facts-block"><p class="eyebrow">Dissertation / thesis</p>${record.dissertationUrl ? `<a href="${e(safeUrl(record.dissertationUrl))}" target="_blank" rel="noopener noreferrer">${e(record.dissertationTitle || 'Read dissertation / thesis')} ${icons.external}</a>` : `<p>${e(record.dissertationTitle)}</p>`}</div>` : ''}</aside><div class="profile-main">`
-    + (record.researchInterests ? `<section class="profile-section"><h2>Research interests</h2>${interests.length >= 2 && interests.length <= 16 ? `<ul class="tag-list">${interests.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : ''}<p>${e(record.researchInterests)}</p></section>` : '')
-    + (record.body || record.summary ? `<section class="profile-section"><h2>Biography</h2><div class="prose">${record.body ? richBody(record.body, records) : `<p>${e(record.summary)}</p>`}</div></section>` : '')
-    + credentials.map(([k, label]) => `<section class="profile-section"><h2>${label}</h2>${timeline(record[k])}</section>`).join('')
-    + (pubs.length ? `<section class="profile-section member-pubs" data-pub-filter><div class="profile-section-head"><h2>Selected publications</h2><span class="count-badge">${pubs.length}</span></div>${years.length > 1 ? `<div class="filter-chips" role="toolbar" aria-label="Filter publications by year"><button type="button" class="chip is-active" data-pub-year="all">All</button>${years.map(y => `<button type="button" class="chip" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>` : ''}<ol class="publication-entries compact">${pubs.map(p => `<li class="publication member-pub" data-year="${e(p.year || '')}"><div class="publication-text"><h3>${p.link ? `<a href="${e(safeUrl(p.link))}" target="_blank" rel="noopener noreferrer">${sanitizeHtml(p.title)}</a>` : sanitizeHtml(p.title)}</h3>${p.authors ? `<p class="authors">${authorsHtml(p.authors)}</p>` : ''}<p class="venue">${e(p.year || '')}</p></div><div class="publication-actions">${copyButton(citation(p))}</div></li>`).join('')}</ol></section>` : '')
-    + (tools.length ? `<section class="profile-section"><h2>Software &amp; tools</h2><ul class="link-tiles">${tools.map(t => `<li><a href="${e(safeUrl(t.link || t.route))}" target="_blank" rel="noopener noreferrer">${e(t.title)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
-    + ((record.workLinks || []).length ? `<section class="profile-section"><h2>Projects &amp; links</h2><ul class="link-tiles">${record.workLinks.map(w => `<li><a href="${e(safeUrl(w.link))}" target="_blank" rel="noopener noreferrer">${e(w.type)} ${icons.external}</a></li>`).join('')}</ul></section>` : '')
+  const span = record.startYear || record.endYear ? `${record.startYear || '…'} – ${record.endYear || (alum ? '…' : 'present')}` : '';
+  const background = [['education', 'Education'], ['appointments', 'Experience'], ['awards', 'Honours & awards']].filter(([k]) => record[k]?.length);
+  const sections = [
+    ['about', 'About', record.body || record.researchInterests],
+    ['background', 'Education & experience', background.length || record.dissertationTitle],
+    ['publications', 'Publications', pubs.length],
+    ['tools', 'Software & tools', tools.length],
+  ].filter(x => x[2]);
+  const stats = [[pubs.length, pubs.length === 1 ? 'Publication' : 'Publications'], [tools.length, tools.length === 1 ? 'Tool' : 'Tools'], [record.startYear && !alum ? new Date().getFullYear() - Number(record.startYear) : 0, 'Years at KAABiL']].filter(([n]) => n > 0);
+  return `<header class="profile-header person-header"><div class="wrap">${breadcrumbs([[alum ? 'Alumni' : 'People', alum ? '/people/alumni' : '/people'], [record.title]])}<div class="profile-header-grid"><div class="profile-portrait">${image(record, 'portrait')}</div><div class="profile-intro">`
+    + `<p class="profile-badges"><span class="status-pill ${alum ? 'is-alumni' : 'is-current'}">${alum ? 'Alumni' : 'Current member'}</span><span class="group-pill">${e(group)}</span></p>`
+    + `<h1>${e(record.title)}</h1>${position ? `<p class="lede">${e(position)}</p>` : ''}<p class="profile-affiliation">${e(department)} · Utah State University${span ? ` · <span class="profile-years">${e(span)}</span>` : ''}</p>`
+    + `<ul class="contact-list">${record.email ? `<li><a href="mailto:${e(record.email)}">${icons.mail}<span>${e(record.email)}</span></a>${copyButton(record.email, 'Copy')}</li>` : ''}${record.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(record.phone)}</span></a></li>` : ''}</ul>${linkButtons(links)}`
+    + (stats.length ? `<dl class="profile-stats">${stats.map(([n, l]) => `<div><dd>${n}</dd><dt>${l}</dt></div>`).join('')}</dl>` : '')
+    + `</div></div></div></header>`
+    + `<div class="wrap profile-layout">${sections.length > 1 ? `<nav class="profile-toc" aria-label="On this page"><p class="eyebrow">On this page</p>${sections.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav>` : '<div></div>'}<div class="profile-main">`
+    + (record.body || record.researchInterests ? `<section class="profile-section" id="about"><h2>About</h2>${interests.length >= 2 && interests.length <= 16 ? `<ul class="tag-list">${interests.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : record.researchInterests ? `<p class="interests"><strong>Research interests:</strong> ${e(record.researchInterests)}</p>` : ''}${record.body ? `<div class="prose">${richBody(record.body, records)}</div>` : ''}</section>` : '')
+    + (background.length || record.dissertationTitle ? `<section class="profile-section" id="background"><h2>Education &amp; experience</h2>${background.map(([k, label]) => `<div class="background-block"><h3 class="block-title">${label}</h3>${timeline(record[k])}</div>`).join('')}${record.dissertationTitle || record.dissertationUrl ? `<div class="background-block"><h3 class="block-title">Thesis / dissertation</h3><div class="thesis-card">${icons.doc}<div><p>${e(record.dissertationTitle || 'Dissertation')}</p>${record.dissertationUrl ? `<a class="link-more" href="${e(safeUrl(record.dissertationUrl))}" target="_blank" rel="noopener noreferrer">Read the thesis ${icons.external}</a>` : ''}</div></div></div>` : ''}</section>` : '')
+    + (pubs.length ? `<section class="profile-section member-pubs" id="publications" data-pub-filter><div class="profile-section-head"><h2>Publications</h2><span class="count-badge">${pubs.length}</span></div>${years.length > 1 ? `<div class="filter-chips" role="toolbar" aria-label="Filter publications by year"><button type="button" class="chip is-active" data-pub-year="all">All</button>${years.map(y => `<button type="button" class="chip" data-pub-year="${e(y)}">${e(y)}</button>`).join('')}</div>` : ''}<ol class="publication-entries compact">${pubs.map(p => publicationRow(p, { compact: true })).join('')}</ol></section>` : '')
+    + (tools.length ? `<section class="profile-section" id="tools"><h2>Software &amp; tools</h2>${toolTiles(tools)}</section>` : '')
     + `<p class="back-link"><a href="${alum ? '/people/alumni' : '/people'}">${icons.back} Back to ${alum ? 'alumni' : 'people'}</a></p></div></div>`;
 }
 

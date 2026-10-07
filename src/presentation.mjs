@@ -73,6 +73,21 @@ export function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
   return `<div class="section-head"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2>${e(title)}</h2>${intro ? `<p class="section-intro">${e(intro)}</p>` : ''}</div>${link ? `<a class="link-more" href="${e(link)}">${e(linkLabel)} ${arrow}</a>` : ''}</div>`;
 }
 
+/* ---------- Profile links (Google Scholar, ORCID, LinkedIn, …) ---------- */
+const LINK_KINDS = [
+  [/scholar\.google/i, 'Google Scholar', 'GS'], [/orcid\.org/i, 'ORCID', 'iD'], [/linkedin\.com/i, 'LinkedIn', 'in'],
+  [/github\.com/i, 'GitHub', 'GH'], [/researchgate\.net/i, 'ResearchGate', 'RG'], [/(twitter|x)\.com/i, 'X', 'X'],
+  [/pubmed|ncbi\.nlm/i, 'PubMed', 'PM'], [/youtube\.com/i, 'YouTube', 'YT'],
+];
+export function profileLinks(rows = []) {
+  return rows.filter(x => safeUrl(x.link)).map(x => {
+    const kind = LINK_KINDS.find(([re]) => re.test(x.link));
+    const label = x.type || kind?.[1] || 'Website';
+    return { href: safeUrl(x.link), label, mono: kind?.[2] || label.replace(/[^A-Za-z]/g, '').slice(0, 2) || '↗' };
+  });
+}
+export const linkButtons = links => links.length ? `<ul class="profile-links">${links.map(l => `<li><a href="${e(l.href)}" target="_blank" rel="noopener noreferrer"><span class="link-mono" aria-hidden="true">${e(l.mono)}</span><span>${e(l.label)}</span>${icons.external}</a></li>`).join('')}</ul>` : '';
+
 /* ---------- Navigation ---------- */
 const published = records => records.filter(r => r.status === 'published');
 const toolGroups = records => {
@@ -254,9 +269,10 @@ export function director(records) {
   const phone = String(r.phone || '').replace(/[^+0-9]/g, '');
   return `<header class="profile-header"><div class="wrap">${breadcrumbs([['People', '/people'], [r.title]])}<div class="profile-header-grid">`
     + `<div class="profile-portrait">${image(r, 'portrait')}</div>`
-    + `<div class="profile-intro"><p class="eyebrow">Principal investigator</p><h1>${e(r.title)}</h1><p class="lede">${e(r.summary)}</p><p class="profile-affiliation">Department of Plants, Soils &amp; Climate · Utah State University, Logan, Utah</p>`
+    + `<div class="profile-intro"><p class="profile-badges"><span class="status-pill is-current">Principal investigator</span><span class="group-pill">Director, Bioinformatics Facility</span></p><h1>${e(r.title)}</h1><p class="lede">${e(r.summary)}</p><p class="profile-affiliation">Department of Plants, Soils &amp; Climate · Utah State University, Logan, Utah</p>`
     + `<ul class="contact-list">${r.email ? `<li><a href="mailto:${e(r.email)}">${icons.mail}<span>${e(r.email)}</span></a><button type="button" class="copy-button" data-copy="${e(r.email)}" aria-label="Copy email address">${icons.copy}<span class="copy-text">Copy</span></button></li>` : ''}${r.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(r.phone)}</span></a></li>` : ''}</ul>`
-    + `${(r.social || []).length ? `<ul class="chip-links">${r.social.map(x => `<li><a href="${e(safeUrl(x.link))}" target="_blank" rel="noopener noreferrer">${e(x.type)} ${icons.external}</a></li>`).join('')}</ul>` : ''}</div></div></div></header>`
+    + linkButtons(profileLinks(r.social || []))
+    + `<dl class="profile-stats">${[[(r.education || []).length, 'Degrees & fellowships'], [(r.appointments || []).length, 'Appointments'], [(r.awards || []).length, 'Awards'], [records.filter(x => x.status === 'published' && x.collection === 'tools').length, 'Lab tools']].filter(([n]) => n).map(([n, l]) => `<div><dd>${n}</dd><dt>${l}</dt></div>`).join('')}</dl></div></div></div></header>`
     + `<div class="wrap profile-layout"><nav class="profile-toc" aria-label="On this page"><p class="eyebrow">On this page</p>${sections.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}</nav><div class="profile-main">`
     + `<section id="overview" class="profile-section"><h2>Overview &amp; research interests</h2><div class="prose">${sanitizeHtml(r.body).replace(/<h2>Dr\. Rakesh Kaundal<\/h2>/, '')}</div></section>`
     + rows('education', 'Education') + rows('appointments', 'Professional appointments') + rows('awards', 'Awards &amp; honours')

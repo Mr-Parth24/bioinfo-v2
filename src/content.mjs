@@ -70,7 +70,8 @@ export const FIELDS={
   workLinks:{label:'Other work and portfolio links',type:'links'},
   publicationIds:{label:'Related publications',type:'relations',collection:'publications'},
   toolIds:{label:'Related tools',type:'relations',collection:'tools'},
-  social:{label:'Social links',type:'links'},
+social:{label:'Profile links (Google Scholar, ORCID, LinkedIn, GitHub, website…)',type:'links'},
+  peopleGroup:{label:'People page group',type:'select',options:['','Staff','Postdoctoral researchers','PhD students',"Master's students",'Undergraduates','Visiting scholars','Student researchers']},
   gallery:{label:'Gallery image URLs',type:'images'},
   status:{label:'Publication status',type:'select',options:['draft','published']}
 };
@@ -78,7 +79,7 @@ export const COLLECTION_FIELDS={
  news:['title','summary','body','date','category','image','imageAlt','link','route','status'],
  events:['title','summary','body','date','location','image','imageAlt','gallery','link','route','status'],
  publications:['title','authors','body','year','date','category','location','presentationType','link','status'],
- people:['title','summary','memberStatus','category','role','department','startYear','endYear','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
+ people:['title','summary','memberStatus','peopleGroup','category','role','department','startYear','endYear','researchInterests','dissertationTitle','dissertationUrl','workLinks','publicationIds','toolIds','body','email','phone','image','imageAlt','social','education','appointments','awards','route','status'],
  research:['title','summary','body','image','imageAlt','route','status'],
  tools:['title','summary','category','image','imageAlt','link','status'],
  pages:['title','summary','body','image','imageAlt','route','status']

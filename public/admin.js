@@ -626,6 +626,7 @@
           ${field.options.map(o => {
             let optLabel = titleCase(o);
             if (key === 'memberStatus') optLabel = o === 'current' ? 'Current Lab Member' : 'Alumnus / Former Member';
+              if (key === 'peopleGroup') optLabel = o === '' ? 'Automatic (from role)' : o;
             if (key === 'status') optLabel = o === 'published' ? 'Published (Live on website)' : 'Draft (Editor only)';
             if (key === 'openingStatus') optLabel = o === 'open' ? 'Open (Accepting applications)' : 'Closed';
             if (key === 'homeVisibility') optLabel = o === 'include' ? 'Eligible for homepage feed' : 'Exclude from homepage feed';
@@ -814,7 +815,7 @@
 
     if (col === 'people') {
       return [
-        { title: 'Essential Identity & Position', keys: ['title', 'category', 'role', 'department', 'memberStatus', 'email', 'phone', 'startYear', 'endYear'] },
+        { title: 'Essential Identity & Position', keys: ['title', 'category', 'role', 'department', 'memberStatus', 'peopleGroup', 'email', 'phone', 'startYear', 'endYear'] },
         { title: 'Profile Photo & Focal Studio', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
         { title: 'Biography & Research Focus', keys: ['researchInterests', 'summary', 'body'] },
         { title: 'Connected Lab Publications & Tools', keys: ['publicationIds', 'toolIds'] },
