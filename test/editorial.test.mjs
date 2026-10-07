@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { selectUpdates, activeOpportunities, ensureEditorial } from '../src/editorial.mjs';
+import { selectUpdates, activeOpportunities, ensureEditorial, displayDate } from '../src/editorial.mjs';
 import {Store} from '../src/store.mjs';
 import {validateRecord} from '../src/content.mjs';
 const news=(id,date,status='published')=>({id:'news:'+id,collection:'news',title:id,status,publishDate:date});
@@ -63,4 +63,9 @@ test('homepage hero becomes a slideshow of chosen, latest or random items',async
  assert.equal(slides({heroMode:'random',heroSlideCount:1}).length,2);
  assert.equal(slides({heroMode:'latest',heroSlideCount:1,gallery:['https://example.org/lab.jpg']}).length,3,'extra lab photos join');
  assert.throws(()=>validateRecord({...home,heroSlideIds:['news:a','news:a']}),/related/i);
+});
+test('ISO event dates read as words; free-text dates stay as typed',()=>{
+ assert.equal(displayDate({date:'2026-10-07'}),'October 7, 2026');
+ assert.equal(displayDate({date:'Nov 7-10, 2021'}),'Nov 7-10, 2021');
+ assert.equal(displayDate({date:'2019'}),'2019');
 });
