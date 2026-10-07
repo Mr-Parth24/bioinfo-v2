@@ -1,148 +1,334 @@
-# KAABiL / USU Bioinfo — version 2 preview
+# KAABiL website — version 2
 
-A separate redesign of the uploaded `usubioinfo/bioinfo` website. Includes server-rendered public pages, a structured content editor, SQLite storage, revisions, draft previews, image uploads, and Docker deployment. The supplied source remains unchanged in `../bioinfo-source/bioinfo-master` in the development workspace.
+The new website for the **Kaundal Artificial Intelligence & Advanced Bioinformatics Lab (KAABiL)** at Utah
+State University, with a built-in content editor ("Content Studio").
 
-This is a **custom lightweight CMS**, not Payload. It runs on Node 24 with Sharp for validated image decoding and responsive variants. It is a review build, not a production security certification. The original site, tool applications, and production server have not been modified.
+It replaces the original site ([`usubioinfo/bioinfo`](https://github.com/usubioinfo/bioinfo): Express +
+Nunjucks, edited in VS Code and published with `bxz update` on the HPC). All 288 records from that site were
+migrated: news, events, people, publications, tools, research areas and pages.
 
-## Maintainer documentation
+| | |
+|---|---|
+| **Stack** | Node.js 24 (no framework), SQLite (`node:sqlite`), Sharp for images, plain HTML/CSS/JS |
+| **Editing** | Sign in at `/admin`, edit, publish — changes are live immediately, no rebuild |
+| **Runs on** | Docker / Docker Compose (intended for the lab server), or plain `npm start` |
+| **Preview** | Static snapshot on GitHub Pages: <https://mr-parth24.github.io/bioinfo-v2/> (deploys from `main`) |
+| **Status** | Redesign, CMS, security hardening and Docker setup complete; not yet deployed on the lab server |
 
-- [Architecture and data flow](docs/architecture.md)
-- [Operations, updates, backups and restoration](docs/operations.md)
-- [Migration report](docs/migration-report.json)
-- [Verification record](docs/verification.md)
-- [Security: protections, testing and operator checklist](docs/security.md)
-- [Redesign plan](docs/redesign-plan.md)
+---
 
-## Start locally
+## Contents
 
-Install Node.js 24 or later, then run from this directory:
+1. [Quick start](#quick-start)
+2. [Editing the website (Content Studio)](#editing-the-website-content-studio)
+3. [Images: old and new](#images-old-and-new)
+4. [GitHub workflow and the Pages preview](#github-workflow-and-the-pages-preview)
+5. [Deploying on the lab server (Docker)](#deploying-on-the-lab-server-docker)
+6. [What the site contains](#what-the-site-contains)
+7. [Project structure](#project-structure)
+8. [Design system](#design-system)
+9. [Security](#security)
+10. [Testing and checks](#testing-and-checks)
+11. [Backups and command-line tools](#backups-and-command-line-tools)
+12. [Known issues and next steps](#known-issues-and-next-steps)
+13. [History of this version](#history-of-this-version)
 
-```sh
-npm ci
-npm start
-```
+---
 
-Open `http://localhost:3000`. The server binds to loopback by default. Seed content imports only when a new database is created; restarts do not overwrite editorial changes.
+## Quick start
 
-To view the static export without running a server:
-
-```sh
-npm run preview:export
-```
-
-Open `preview/index.html`. Navigation is rewritten for local files. This export has no editor backend. Remote images can load from their original server; unavailable images have a visual fallback. Static exports must be regenerated after content changes.
-
-## GitHub Pages live deployment
-
-The live GitHub Pages site deploys from `main` only via `.github/workflows/pages.yml`.
-
-- Keep GitHub Pages source set to **GitHub Actions** in repository settings.
-- Keep all branch work (including Claude-generated updates) merged into `main` so pushes to `main` trigger deployment.
-- Keep CI green: the Pages workflow runs `npm test` and `npm run preview:export` before publishing.
-
-## Create an editor account
-
-There is no default password or public registration. On Bash:
+Needs **Node.js 24+**. (On Node 22.13+ the site runs, but use `node --test test/*.test.mjs` instead of `npm test`.)
 
 ```sh
-read -r -s -p 'New editor password (14+ characters): ' BIOINFO_EDITOR_PASSWORD
-printf '\n'
-printf '%s' "$BIOINFO_EDITOR_PASSWORD" | node scripts/manage.mjs create-user editor@your-university.edu
-unset BIOINFO_EDITOR_PASSWORD
+npm ci            # install
+npm start         # http://localhost:3000  (editor: http://localhost:3000/admin)
+npm test          # 48 tests, about 5 seconds
 ```
 
-Visit `http://localhost:3000/admin`. Accounts are individual; each currently has full editorial permissions. Repeating `create-user` resets that account's password and revokes its sessions. Passwords are salted and hashed with scrypt; no password is stored in source code.
+The first start creates `data/content.sqlite`, imports `content/seed.json` once, and fills in the
+editorial content from `content/content-updates.json` (see [Content updates](#content-updates)).
+Restarts never overwrite edits.
 
-Choose a collection, add or edit an entry, upload images, and save. Drafts stay out of public pages; Preview shows the draft to the signed-in editor. Choose Published and save to update the website immediately, with no Docker rebuild. Revisions allow loading an earlier version and saving it as a new revision. Simultaneous edits produce a conflict rather than silently overwriting another editor's work.
-
-Images uploaded to this site are public assets once their URL is known, even when used by a draft. Do not upload private documents. PNG/JPEG/GIF/WebP up to 10 MB are accepted; SVG and arbitrary document uploads are excluded.
-
-## Docker preview
+Create an editor account (there is no default password and no public sign-up):
 
 ```sh
-docker compose up --build -d
+read -r -s -p 'New editor password (14+ characters): ' PW; printf '\n'
+printf '%s' "$PW" | node scripts/manage.mjs create-user you@usu.edu; unset PW
 ```
 
-Open `http://localhost:3000`. The Compose port is bound to the host's loopback interface. Persistent database, revisions, accounts, and uploads live in the `bioinfo_data` named volume.
+Running the same command again resets that account's password and signs it out everywhere.
 
-Create an editor using the same silent password input:
-
-```sh
-read -r -s -p 'New editor password (14+ characters): ' BIOINFO_EDITOR_PASSWORD
-printf '\n'
-printf '%s' "$BIOINFO_EDITOR_PASSWORD" | docker compose exec -T website node scripts/manage.mjs create-user editor@your-university.edu
-unset BIOINFO_EDITOR_PASSWORD
-```
-
-Changing application code:
+**With Docker instead:**
 
 ```sh
 docker compose up --build -d
+printf '%s' "$PW" | docker compose exec -T website node scripts/manage.mjs create-user you@usu.edu
 ```
 
-This retains the named volume. **Do not use `docker compose down -v`** unless intentionally deleting the entire site's persisted data.
+---
 
-For a public university preview domain, put the service behind your existing HTTPS reverse proxy. Set `NODE_ENV=production` and `APP_ORIGIN=https://your-exact-preview-domain` in `.env`. Production startup requires HTTPS in APP_ORIGIN; sessions then use Secure cookies. Set PORT and APP_ORIGIN consistently for local previews. TLS termination, university SSO, email delivery, and production routing are deployment integrations, not configured in this archive.
+## Editing the website (Content Studio)
 
-The login limiter uses the socket IP, not arbitrary forwarded headers. Behind a reverse proxy, users may share that limiter. Configure per-client rate limiting at the trusted proxy before wider use. Avoid running multiple replicas against one SQLite volume; move to a managed relational database if concurrent load requires scaling out.
+Go to `/admin` and sign in. The left sidebar lists the content types:
 
-## Command-line content and backups
+| Studio section | What it controls |
+|---|---|
+| News, Events, Publications | Articles, event pages with galleries, papers / conferences / editorials |
+| Research Areas | The six research pages: text, image, linked tools and publications |
+| Tools & Databases | The tools directory: name, description, category, screenshot, link |
+| Opportunities | Open positions (shown on Opportunities, Contact and the homepage) |
+| People Directory | Members: role, **People page group**, department, years, photo, **profile links** (Scholar, ORCID, LinkedIn, GitHub, website), education/experience rows, related publications and tools |
+| Site Pages | About, lab overview, contact page text, research program text |
+| Homepage & Director | Homepage headline, photo, buttons, announcement bar, latest-updates mode (automatic / selected / hidden), event and opportunity panels; footer contact details and links; Dr. Kaundal's profile (biography, education, appointments, awards, links) |
+
+How editing works:
+
+- **Draft vs Published.** Drafts are private; *Live Preview* shows a draft to signed-in editors only.
+  Choose *Published* and save to put it on the site immediately.
+- **Revisions.** Every save is kept; any earlier version can be restored.
+- **Conflicts.** If two people edit the same entry, the second save is refused instead of silently
+  overwriting.
+- **Rich text** has formatting buttons; pasted HTML is cleaned (scripts, styles and unsafe links removed).
+
+What is **not** editable in the studio (change it in code): menu labels, section page titles/intros
+("Tools & databases", "News"…), homepage section headings, the authorship-key meanings, layout and colours.
+The full list is in [`docs/architecture.md`](docs/architecture.md#what-editors-can-change-in-the-content-studio).
+
+### Old way vs new way
+
+| Task | Original site | Version 2 |
+|---|---|---|
+| Change news, people, events… | Edit `.njk` in VS Code → push → HPC `sudo su dock_user` → `bxz update bioinformatics` | Sign in at `/admin` → edit → Published → save |
+| Add a photo | Copy to `/opt/webassets/…`, type the Raikou URL into the code | Drag the photo onto the entry |
+| Change design or code | Push → `bxz update` | `git pull && docker compose up --build -d` (content kept) |
+
+---
+
+## Images: old and new
+
+- **Existing photos** are links to the Raikou image server (`https://bioinfocore.usu.edu/raikou/…`), loaded
+  straight from there as before. 120 of them also have compressed local copies in `public/media/`
+  (mapped by `public/asset-map.json`), which show even if Raikou is down. **Keep Raikou running.**
+- **New photos uploaded in the studio** are validated (PNG/JPEG/GIF/WebP, ≤ 10 MB), stripped of
+  EXIF/GPS metadata, resized into 320/640/1200 px WebP versions, stored in `data/uploads/` (the
+  `bioinfo_data` Docker volume) and served by the site at `/uploads/…`. Nothing goes to Raikou.
+- You can still paste any image URL (e.g. a Raikou link) into an entry's *Image URL* field.
+- *Media Assets* in the studio lists uploads and where each is used; an image in use cannot be deleted.
+
+There is no separate image database to set up: the SQLite file stores the image addresses, the volume
+stores the files.
+
+---
+
+## GitHub workflow and the Pages preview
+
+```
+work branch  ──push──▶  pull request  ──merge──▶  main  ──▶  GitHub Pages redeploys (~1 min)
+```
+
+- **`main`** is what the live preview shows. Pages deploys **only from `main`**
+  (`.github/workflows/pages.yml`; Settings → Pages → Source must be **GitHub Actions**).
+- Work happens on a branch (Claude sessions use `claude/website-update-help-r254ix`), then a pull request
+  is merged into `main`.
+- Every push runs `npm test`; the Pages build also runs the static export.
+- **`.github/workflows/docker.yml`** builds the real Docker image on every push, checks it runs as a
+  non-root user with a read-only filesystem, renders the main pages, runs the security probe against it
+  and checks that content survives a rebuild.
+
+**The Pages site is a static snapshot** built from `content/seed.json` + `content/content-updates.json`.
+It has no editor: CMS edits and uploads made on a running server do **not** appear there. Build the same
+snapshot locally with `npm run preview:export` and open `preview/index.html`.
+
+---
+
+## Deploying on the lab server (Docker)
+
+Full steps, backups and rollback: [`docs/operations.md`](docs/operations.md).
+
+1. Put the project on the server and create `.env`:
+   ```sh
+   NODE_ENV=production
+   APP_ORIGIN=https://<the public domain>   # must be https in production
+   PORT=3000
+   ```
+2. `docker compose up --build -d`, then create editor accounts (see Quick start).
+3. Put the university **HTTPS reverse proxy** in front of `127.0.0.1:3000`. To reuse the old container's
+   network address (`docker-br0`, `172.20.0.2`, from `dockerbuilderprod.sh`), use the
+   `compose.override.yaml` shown in `docs/operations.md`.
+4. Updating code later: `git pull --ff-only && docker compose up --build -d`.
+   **Never run `docker compose down -v`** — `-v` deletes the database and uploads.
+
+The container runs as the unprivileged `node` user, with a read-only filesystem, no Linux capabilities,
+`no-new-privileges`, and memory/CPU/process limits (`compose.yaml`). Only the `bioinfo_data` volume is
+writable. Health check: `GET /healthz`.
+
+---
+
+## What the site contains
+
+| Route | Page |
+|---|---|
+| `/` | Hero, lab-at-a-glance counts, research areas, latest news + event + opportunity, tool categories, recent papers, director, join band |
+| `/research`, `/research/<area>` | Program overview; each area has written content, numbers, a tools table and its publications |
+| `/people`, `/people/alumni`, `/people/<name>`, `/people/rakesh` | Directory grouped by Staff / PhD / Master's / Undergraduates…; rich profiles; director profile |
+| `/publications` (+ `/conferences`, `/editorials`) | Grouped by year; search, year-range chips, author-role badges with highlight/filter, DOI and copy-citation |
+| `/tools` | 36 tools, colour-coded by category, with screenshots, descriptions, filter chips and hover glow |
+| `/news`, `/events` | News in General / Science / Media sections with tabs; events grouped by year |
+| `/about`, `/about/overview`, `/contact`, `/opportunities`, `/search` | About, contact, openings, site search |
+| `/admin` | Content Studio (not indexed by search engines) |
+
+Content counts: 55 news, 18 events, 22 people, 6 research areas, 36 tools, 54 papers, 85 conference
+presentations, 4 editorials, 8 site pages — 126 public routes.
+
+---
+
+## Project structure
+
+```
+src/
+  server.mjs         Node HTTP server: seeding, content updates, graceful shutdown
+  app.mjs            Request router, security headers, auth, CSRF, editor API, asset allowlist
+  render.mjs         Page templates + router (research, people, publications, tools, news, events, …)
+  presentation.mjs   Shared building blocks: icons, images, page header, navigation, header, footer,
+                     homepage, director profile, opportunities, category colours (toneFor)
+  admin-render.mjs   Studio shell (app bar, sidebar, editor form)
+  content.mjs        Content schema: FIELDS, COLLECTION_FIELDS, SETTINGS_FIELDS, validateRecord()
+  editorial.mjs      Settings defaults, date handling, homepage selection, content updates
+  security.mjs       Password hashing, URL checks, HTML escaping, rich-text sanitizer
+  store.mjs          SQLite: records, revisions, users, sessions, rate limits, media, metadata
+  uploads.mjs        Upload validation, re-encoding, responsive variants
+public/
+  site.css           The whole public design (tokens at the top)
+  site.js            Menus, filters, news tabs, author-role highlight, glow, image viewer, motion
+  admin.css / admin.js   Content Studio
+  fonts/             Inter + Source Serif 4 (self-hosted; the CSP forbids external fonts)
+  media/, asset-map.json  Local copies of original images
+content/
+  seed.json              The 288 migrated records (archival; imported once into a new database)
+  editorial.json         Homepage, site and director settings (added once)
+  content-updates.json   Research area text, related tools/papers, tool descriptions (fills empty fields once)
+scripts/
+  manage.mjs             create-user, inventory, export, import, backup
+  export-preview.mjs     Static snapshot for GitHub Pages
+  cms-e2e.cjs            Browser test of the whole editor workflow
+  security-probe.mjs     Attacks a running copy (SQLi, XSS, CSRF, traversal, uploads…)
+  migrate.py, *.py       Original migration and older browser checks
+test/                    Node tests (*.test.mjs) and the Python migration test
+docs/                    Architecture, operations, security, redesign plan, migration report
+.github/workflows/       pages.yml (preview deploy), docker.yml (image build + security check)
+```
+
+### Content updates
+
+`content/content-updates.json` holds editorial text written after the migration. At startup
+`applyContentUpdates()` copies each value **only into empty fields**, once per database (a marker is
+stored), so editors' changes — including deliberately emptied fields — are never overwritten. To ship new
+default content, add a new update set rather than editing `seed.json`.
+
+---
+
+## Design system
+
+Research-institute style rather than a startup landing page (rules in
+[`docs/redesign-plan.md`](docs/redesign-plan.md)):
+
+- **Type:** Source Serif 4 headings, Inter body. **Colour:** USU navy + KAABiL crimson accent, warm
+  neutrals; per-category tones for tools (`toneFor()` in `presentation.mjs`, `[data-tone]` in CSS).
+- **Components:** page header with breadcrumbs, cards, chips, tabs, timelines, data tables, `.glow`
+  (gradient border that follows the pointer).
+- **Motion:** reveal on scroll, count-up numbers, view transitions — all disabled for
+  `prefers-reduced-motion`.
+- **Accessibility:** one `<h1>` per page, alt text, keyboard-operable menus, WCAG 2 AA contrast
+  (checked with axe).
+- **CSP rule:** no inline `style="…"` attributes and no `data:` images — put styling in `site.css`; set
+  dynamic values from JavaScript through the CSSOM (`el.style.setProperty`).
+
+---
+
+## Security
+
+Summary (details and the operator checklist: [`docs/security.md`](docs/security.md)):
+
+- SQL injection: every query uses bound parameters.
+- XSS: all output escaped; rich text rebuilt from an allowlist; strict Content-Security-Policy.
+- CSRF: session cookie + per-session token + origin check; cookies `HttpOnly`, `SameSite=Strict`,
+  `Secure` over HTTPS.
+- Sign-in: scrypt passwords (14+ chars), 10 attempts / 15 min per IP and per account.
+- Uploads: signature check + decode + re-encode (drops EXIF/GPS), sandboxed serving.
+- Headers: CSP, HSTS (HTTPS), X-Frame-Options, nosniff, COOP/CORP, Permissions-Policy, `robots.txt`.
+- Container: non-root, read-only, no capabilities, resource limits.
+
+Known limits: every editor can publish and delete (no roles, MFA or SSO yet).
+
+---
+
+## Testing and checks
 
 ```sh
-node scripts/manage.mjs inventory
-node scripts/manage.mjs export /safe/location/content-2026-10-02.json
-node scripts/manage.mjs backup /safe/location/content-2026-10-02.sqlite
-node scripts/manage.mjs import /safe/location/revised-content.json
+npm test                                   # 48 Node tests: routes, auth, CSRF, drafts, uploads,
+                                           # revisions, sanitizer, headers, content updates, research pages
+npm run preview:export                     # builds all 126 routes into preview/
+python -m unittest discover -s test -p 'test_*.py'   # migration test (Python 3.12+)
 ```
 
-Export/import uses structured JSON; it is optional for administrators. Regular editors use forms. Imports update matching IDs, retain omitted records, validate data, and commit atomically. Existing outputs are never overwritten by backup/export. Back up before bulk import.
-
-A SQLite backup includes content, accounts, sessions, and revision history. Keep it private. Copy `data/uploads/` as well; content JSON alone is not a full backup. With Compose, run the backup command inside the container and copy both database and uploads out of the volume. Restore with the server stopped: retain the old data as a rollback copy, replace `content.sqlite` with the backup, remove stale WAL/SHM sidecars associated with the replaced database, restore uploads, then start the service. File ownership must allow the container's `node` user (UID 1000) to write to the data directory.
-
-## Source migration
-
-- 36 tools with exact original destinations (only leading/trailing URL whitespace trimmed).
-- 55 news records, including two source articles absent from the original listing arrays.
-- 18 events, 22 people, and 6 research areas.
-- 54 papers, 85 conference presentations, and 4 editorials.
-- 8 site/overview/documentation records.
-- 288 total real records; three empty conference placeholders retained only in the migration report.
-- 126 static routes, including listings and compatibility publication paths.
-
-See `docs/migration-report.json` for source checksums, collection counts, image references, repaired source syntax, and conflicting source fields. Original record fields and detailed event metadata remain attached to their imported records. The original ZIP is the archival authority; the new app does not serve old source files or JavaScript.
-
-Regenerate a migration in a separate review workspace with Python 3.12+:
-
-```sh
-python scripts/migrate.py ../bioinfo-source/bioinfo-master
-python -m unittest discover -s test -p 'test_*.py'
-```
-
-The script does not execute Nunjucks or source JavaScript. Regeneration overwrites `content/seed.json` and the report, not the live SQLite database.
-
-## Known source issues and integration work
-
-- The source lists Spring SRS 2026 on April 6–7, while its detail template says April 8. PSC Showcase lists April 8 while its detail says April 7. Current display uses listing metadata; both original values remain in the report and records. Confirm dates before launch.
-- All six research `content.njk` files are empty in the archive. Their titles, existing descriptions, and overview are preserved; no new scientific claims were invented.
-- Historical homepage figures and biographies are kept in About/profile content and need editorial review for currency.
-- The original contact form exposed a mail-service credential in public JavaScript. That script is not copied into the new app. Rotate/revoke the old credential at its service. The new contact page uses direct email and appointment-request links; it does not claim that an email was sent or book calendar events.
-- Tool applications remain on their original hosts. Their addresses are preserved, but remote uptime is not verified while network access is unavailable.
-- The Box media bundles were not downloaded. Remote image references are retained. Existing biographies and event galleries may show fallbacks until media access is restored. New uploads work through the editor.
-- No live production deployment, domain change, or GitHub merge has occurred. The ZIP has no upstream git history; integrate this project on a dedicated branch after review.
-
-## Verification
-
-```sh
-npm test
-python -m unittest discover -s test -p 'test_*.py'
-npm run preview:export
-```
-
-Node tests exercise real SQLite and Request/Response handlers without opening network sockets. They check routes, tool destinations, authentication, CSRF/origin checks, drafts, publishing, conflicts, uploads, revisions and backup restoration. The single-process test flag supports restricted workspaces. Browser and Docker checks have also passed; see `docs/verification.md` for scope and remaining limitations. To exercise the whole editor workflow in a real browser against a running site (draft privacy, preview, publish, image upload, homepage settings, revisions, delete), use a disposable editor account:
+Against a running site, with a **disposable** editor account (not production):
 
 ```sh
 npm i --no-save playwright && npx playwright install chromium
-EDITOR_EMAIL=... EDITOR_PASSWORD=... node scripts/cms-e2e.cjs
+EDITOR_EMAIL=… EDITOR_PASSWORD=… node scripts/cms-e2e.cjs          # 15 editor-workflow checks
+EDITOR_EMAIL=… EDITOR_PASSWORD=… node scripts/security-probe.mjs   # 63 attack checks
 ```
 
-Run `python scripts/browser-check.py --all` for the full responsive route crawl and `python scripts/browser-cms-check.py` for the disposable-account editorial workflow.
+If the probe says sign-in is rate-limited, wait 15 minutes — that is the brute-force protection.
+
+---
+
+## Backups and command-line tools
+
+```sh
+node scripts/manage.mjs inventory                       # record counts
+node scripts/manage.mjs backup  /safe/content.sqlite    # database (content, accounts, revisions)
+node scripts/manage.mjs export  /safe/content.json      # content as JSON
+node scripts/manage.mjs import  /safe/revised.json      # validated, atomic import
+```
+
+A full backup is the SQLite backup **plus** `data/uploads/` (in Docker: the `bioinfo_data` volume).
+Backups contain password hashes — keep them private. Restore steps: [`docs/operations.md`](docs/operations.md).
+
+---
+
+## Known issues and next steps
+
+- **Not yet on the lab server.** Docker setup is verified in CI; deployment needs the server, HTTPS proxy
+  and DNS (see Deploying).
+- **Content to review:** research-area text was written from the lab's tools, paper titles and news —
+  have the lab check the wording. Newer papers (2023–2025) have no authorship marks. One person's
+  category reads "Ungraduate". Event dates conflict in the source for Spring SRS 2026 and PSC Showcase.
+- **People relations are empty:** no member has publications, tools, education or links attached yet;
+  profiles show those sections once editors add them.
+- **Images:** many galleries still load from Raikou; a one-time import of Raikou images into local storage
+  could be added (must run on the server).
+- **Security follow-ups:** revoke the mail-service credential the old site exposed; add rate limiting at
+  the proxy; consider editor roles / SSO.
+- **Leftover scratch files** in the repo root (`homepage_test.html`, `news.html`, `update-*.cjs`) are from
+  before the redesign and are obsolete — the `update-*.cjs` scripts patch old templates and must not be run.
+
+---
+
+## History of this version
+
+October 2026, in order:
+
+1. Bug fixes in the first v2 (invisible homepage section, CSP-blocked slideshow, layout issues).
+2. GitHub Pages preview workflow.
+3. Full redesign: new templates and stylesheet, navigation, homepage wired to every homepage setting,
+   all section and detail pages, Content Studio chrome; fixed saving after an image upload.
+4. Accessibility pass (axe) and the browser editor-workflow test.
+5. Security hardening, attack probe, Docker CI check.
+6. Publications: year-range chips, author-role badges with highlight and filter.
+7. People: grouped directory, rich profiles with links, education/experience, publications and tools.
+8. Research areas: written content, tools tables, related publications; tool descriptions.
+9. Tools: colour-coded categories, framed screenshots, hover glow.
+
+More detail: `git log`, [`docs/redesign-plan.md`](docs/redesign-plan.md),
+[`docs/architecture.md`](docs/architecture.md), [`docs/progress.md`](docs/progress.md).
