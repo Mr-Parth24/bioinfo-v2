@@ -275,6 +275,7 @@
     const img = $('.image-placement-preview img');
     if (!img) return;
     const url = $('#field-image')?.value || '';
+    img.closest('.image-studio-panel')?.classList.toggle('is-empty', !url);
     img.hidden = !url;
     img.src = url || '/assets/favicon.svg';
     const fX = Number($('#field-focalX')?.value ?? 50);
@@ -495,12 +496,139 @@
 
   function galleryRow(url) {
     return `
-      <div class="gallery-edit-row">
-        <img src="${escape(url)}" alt="Gallery image">
+      <div class="gallery-edit-row" draggable="true">
+        <span class="gallery-handle" aria-hidden="true" title="Drag to reorder">⠿</span>
+        <img src="${escape(url)}" alt="" draggable="false">
         <input type="hidden" data-gallery-url value="${escape(url)}">
-        <button type="button" class="small-button" data-remove-gallery>Remove</button>
+        <div class="gallery-row-actions">
+          <button type="button" class="icon-btn" data-gallery-move="up" aria-label="Move photo earlier" title="Move earlier">←</button>
+          <button type="button" class="icon-btn" data-gallery-move="down" aria-label="Move photo later" title="Move later">→</button>
+          <button type="button" class="icon-btn" data-crop-gallery aria-label="Crop photo" title="Crop">Crop</button>
+          <button type="button" class="icon-btn danger" data-remove-gallery aria-label="Remove photo" title="Remove">✕</button>
+        </div>
       </div>
     `;
+  }
+
+  /* ---------- Image crop: draw the chosen area onto a canvas and upload it as a new image.
+     The original stays in the media library. Works for images served by this site (uploads and
+     local copies); remote images cannot be read by the browser, so editors upload those first. ---------- */
+  const sameOrigin = url => { try { return new URL(url, location.href).origin === location.origin; } catch { return false; } };
+  function cropImage(url) {
+    return new Promise(resolve => {
+      if (!url) { notice('Choose or upload an image first.', true); return resolve(null); }
+      if (!sameOrigin(url)) { notice('Only images stored on this website can be cropped. Upload the image first, then crop it.', true); return resolve(null); }
+      const ratios = [['Free', 0], ['16:9', 16 / 9], ['3:2', 3 / 2], ['4:3', 4 / 3], ['1:1', 1], ['4:5', 4 / 5]];
+      const dialog = document.createElement('dialog');
+      dialog.className = 'crop-dialog';
+      dialog.innerHTML = `
+        <div class="dialog-top"><div><h2>Crop image</h2><p class="dialog-desc">Drag the frame to move it, drag a corner to resize. A new copy is saved; the original is kept.</p></div><button type="button" class="small-button" data-crop-cancel>Close ✕</button></div>
+        <div class="crop-ratios" role="group" aria-label="Aspect ratio">${ratios.map(([label, value], i) => `<button type="button" class="small-button${i ? '' : ' is-active'}" data-crop-ratio="${value}">${label}</button>`).join('')}</div>
+        <div class="crop-stage"><img alt="Image to crop" draggable="false"><div class="crop-box" tabindex="0" aria-label="Crop area. Use arrow keys to move, Shift and arrow keys to resize."><i data-handle="nw"></i><i data-handle="ne"></i><i data-handle="sw"></i><i data-handle="se"></i></div></div>
+        <p class="crop-size" aria-live="polite"></p>
+        <div class="dialog-actions"><button type="button" class="small-button" data-crop-cancel>Cancel</button><button type="button" class="button primary-btn" data-crop-apply>Crop &amp; save copy</button></div>`;
+      document.body.append(dialog);
+      const img = dialog.querySelector('img'), box = dialog.querySelector('.crop-box'), size = dialog.querySelector('.crop-size');
+      let crop = { x: 0.05, y: 0.05, w: 0.9, h: 0.9 }, ratio = 0, done = false;
+      const finish = value => { if (done) return; done = true; dialog.close(); dialog.remove(); resolve(value); };
+      const draw = () => {
+        box.style.setProperty('left', crop.x * 100 + '%');
+        box.style.setProperty('top', crop.y * 100 + '%');
+        box.style.setProperty('width', crop.w * 100 + '%');
+        box.style.setProperty('height', crop.h * 100 + '%');
+        size.textContent = img.naturalWidth ? `${Math.round(crop.w * img.naturalWidth)} × ${Math.round(crop.h * img.naturalHeight)} px` : '';
+      };
+      const clamp = () => {
+        crop.w = Math.min(Math.max(crop.w, 0.05), 1); crop.h = Math.min(Math.max(crop.h, 0.05), 1);
+        crop.x = Math.min(Math.max(crop.x, 0), 1 - crop.w); crop.y = Math.min(Math.max(crop.y, 0), 1 - crop.h);
+      };
+      // ratio is width/height in pixels; convert to the stage's fractional units.
+      const fitRatio = () => {
+        if (!ratio || !img.naturalWidth) return;
+        const k = ratio * img.naturalHeight / img.naturalWidth;
+        const cx = crop.x + crop.w / 2, cy = crop.y + crop.h / 2;
+        let w = Math.min(crop.w, 1), h = w / k;
+        if (h > 1) { h = 1; w = h * k; }
+        if (w > 1) { w = 1; h = w / k; }
+        crop = { x: cx - w / 2, y: cy - h / 2, w, h };
+        clamp();
+      };
+      img.onload = () => { fitRatio(); draw(); };
+      img.onerror = () => { notice('This image could not be loaded for cropping.', true); finish(null); };
+      img.src = url;
+      dialog.querySelector('.crop-ratios').onclick = event => {
+        const b = event.target.closest('[data-crop-ratio]');
+        if (!b) return;
+        dialog.querySelectorAll('[data-crop-ratio]').forEach(x => x.classList.toggle('is-active', x === b));
+        ratio = Number(b.dataset.cropRatio);
+        if (ratio) crop.w = Math.max(crop.w, 0.6);
+        fitRatio(); draw();
+      };
+      let drag = null;
+      box.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        box.setPointerCapture(event.pointerId);
+        drag = { handle: event.target.dataset.handle || 'move', x: event.clientX, y: event.clientY, start: { ...crop }, rect: img.getBoundingClientRect() };
+      });
+      box.addEventListener('pointermove', event => {
+        if (!drag) return;
+        const dx = (event.clientX - drag.x) / drag.rect.width, dy = (event.clientY - drag.y) / drag.rect.height, s = drag.start;
+        if (drag.handle === 'move') crop = { ...s, x: s.x + dx, y: s.y + dy };
+        else {
+          const left = drag.handle.includes('w'), top = drag.handle.includes('n');
+          let w = s.w + (left ? -dx : dx), h = s.h + (top ? -dy : dy);
+          if (ratio) { const k = ratio * img.naturalHeight / img.naturalWidth; h = w / k; }
+          w = Math.min(Math.max(w, 0.05), left ? s.x + s.w : 1 - s.x);
+          h = Math.min(Math.max(h, 0.05), top ? s.y + s.h : 1 - s.y);
+          if (ratio) { const k = ratio * img.naturalHeight / img.naturalWidth; if (w / h > k) w = h * k; else h = w / k; }
+          crop = { w, h, x: left ? s.x + s.w - w : s.x, y: top ? s.y + s.h - h : s.y };
+        }
+        clamp(); draw();
+      });
+      box.addEventListener('pointerup', () => { drag = null; });
+      box.addEventListener('keydown', event => {
+        const step = 0.01, moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[event.key];
+        if (!moves) return;
+        event.preventDefault();
+        if (event.shiftKey) { crop.w += moves[0]; crop.h = ratio ? crop.w / (ratio * img.naturalHeight / img.naturalWidth) : crop.h + moves[1]; }
+        else { crop.x += moves[0]; crop.y += moves[1]; }
+        clamp(); draw();
+      });
+      dialog.querySelectorAll('[data-crop-cancel]').forEach(b => { b.onclick = () => finish(null); });
+      dialog.addEventListener('cancel', event => { event.preventDefault(); finish(null); });
+      dialog.querySelector('[data-crop-apply]').onclick = async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        try {
+          const canvas = document.createElement('canvas');
+          const sx = Math.round(crop.x * img.naturalWidth), sy = Math.round(crop.y * img.naturalHeight);
+          canvas.width = Math.max(1, Math.round(crop.w * img.naturalWidth));
+          canvas.height = Math.max(1, Math.round(crop.h * img.naturalHeight));
+          canvas.getContext('2d').drawImage(img, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+          const type = /\.png(\?|$)/i.test(url) ? 'image/png' : 'image/jpeg';
+          const blob = await new Promise(r => canvas.toBlob(r, type, 0.92));
+          if (!blob) throw new Error('The cropped image could not be created.');
+          if (blob.size > 10 * 1024 * 1024) throw new Error('The cropped image is larger than 10 MB. Choose a smaller area.');
+          notice('Saving cropped copy…');
+          const data = await api('uploads', { method: 'POST', headers: { 'content-type': type }, body: blob });
+          finish(data);
+        } catch (error) {
+          notice(error.message, true);
+          button.disabled = false;
+        }
+      };
+      dialog.showModal();
+      box.focus();
+    });
+  }
+  function applyMainImage(data) {
+    current.imageOriginal = data.url;
+    current.imageWidth = data.width;
+    current.imageHeight = data.height;
+    current.imageVariants = data.variants || [];
+    if ($('#field-image')) $('#field-image').value = data.url;
+    dirty = true;
+    updateImagePreview();
   }
 
   function linkRow(value = { type: '', link: '' }) {
@@ -538,6 +666,9 @@
     return used.length ? [...groups, ['Used on this site', used]] : groups;
   }
 
+  /* News categories are the three sections of the News page. */
+  const NEWS_SECTION_LABELS = { General: 'General: awards, people & announcements', Science: 'Science & Research: papers, tools, discoveries', Media: 'Media & Features: press coverage & interviews' };
+  const choiceLabel = (key, option) => key === 'category' && collection === 'news' ? NEWS_SECTION_LABELS[option] || option : option;
   /** A dropdown of sensible options with a "Custom…" entry that reveals a text box. */
   function choiceControl(key, field, value) {
     const groups = choiceGroups(key, value);
@@ -546,7 +677,7 @@
       <div class="choice-field" data-choice>
         <select id="field-${key}" name="${key}" class="styled-select" data-choice-select>
           <option value=""${value ? '' : ' selected'}>Not set</option>
-          ${groups.map(([label, options]) => `<optgroup label="${escape(label)}">${options.map(o => `<option value="${escape(o)}"${o === value ? ' selected' : ''}>${escape(o)}</option>`).join('')}</optgroup>`).join('')}
+          ${groups.map(([label, options]) => `<optgroup label="${escape(label)}">${options.map(o => `<option value="${escape(o)}"${o === value ? ' selected' : ''}>${escape(choiceLabel(key, o))}</option>`).join('')}</optgroup>`).join('')}
           <option value="__custom"${value && !inList ? ' selected' : ''}>Custom…</option>
         </select>
         <input type="text" data-choice-custom data-choice-for="${key}" class="styled-input" maxlength="${field.max || 300}" placeholder="Type a custom ${escape(field.label.toLowerCase())}" value="${value && !inList ? escape(value) : ''}"${value && !inList ? '' : ' hidden'}>
@@ -768,7 +899,7 @@
           </div>
           <div class="image-placement-preview" data-ratio="${defaultRatio}">
             <img alt="Image placement preview">
-            <div class="focal-dot" style="left: ${current.focalX ?? 50}%; top: ${current.focalY ?? 50}%;"></div>
+            <div class="focal-dot"></div>
           </div>
           <div class="image-studio-controls">
             <div class="preview-ratio-group">
@@ -784,6 +915,7 @@
             </div>
             <div class="preview-action-group">
               <button type="button" class="small-button primary-accent-btn" data-choose-image>Choose from Library</button>
+              <button type="button" class="small-button" data-crop-image>Crop…</button>
               <button type="button" class="small-button delete-button" data-remove-image>Remove Image</button>
             </div>
           </div>
@@ -812,103 +944,163 @@
     return `
       <div class="editor-field ${fullWidthKeys.includes(key) ? 'full-width' : ''}">
         <label id="label-${key}" for="${name}" class="field-label">
-          <span>${escape(key === 'gallery' && current.id === 'settings:home' ? 'Extra lab photos for the slideshow (shown after the main photo)' : field.label)}</span>
+          <span>${escape(fieldLabel(key, field))}</span>
           ${field.required ? '<span class="required-mark">*</span>' : ''}
         </label>
         ${control}
+        ${fieldHelp(key) ? `<p class="field-help">${escape(fieldHelp(key))}</p>` : ''}
       </div>
     `;
   }
 
+  /* Editor layout per content type. Everyday fields stay open; optional extras sit in collapsed
+     sections (collapsed: true) that show how many of their fields are filled in. */
+  const IMAGE_DISPLAY = { title: 'Image display options', collapsed: true, hint: 'Fit and focal point. Usually set by clicking the preview above.', keys: ['imageFit', 'focalX', 'focalY'] };
+  const RELATED = keys => ({ title: 'Related content', collapsed: true, hint: 'Optional links shown under the entry as “Related work”.', keys });
   function getFormSections(col, recId) {
     if (recId === 'settings:director') {
       return [
-        { title: 'Director Profile & Biography', keys: ['title', 'summary', 'body', 'email', 'phone', 'social'] },
-        { title: 'Profile Photo & Focal Studio', keys: ['image', 'imageAlt', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Academic Career & Recognition', keys: ['education', 'appointments', 'awards'] },
-        { title: 'Connected Scholarship', keys: ['publicationIds'] },
+        { title: 'Profile & biography', keys: ['title', 'summary', 'body', 'email', 'phone'] },
+        { title: 'Profile photo', keys: ['image', 'imageAlt'] },
+        IMAGE_DISPLAY,
+        { title: 'Profile links', keys: ['social'] },
+        { title: 'Education, appointments & awards', collapsed: true, hint: 'Timeline rows on the director profile.', keys: ['education', 'appointments', 'awards'] },
+        { title: 'Selected publications', collapsed: true, keys: ['publicationIds'] },
         { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (recId === 'settings:home') {
       return [
-        { title: 'Homepage Hero & Announcement', keys: ['title', 'summary', 'announcement', 'announcementLink', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink'] },
-        { title: 'Hero Artwork & Media', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Hero Slideshow', keys: ['heroMode', 'heroSlideCount', 'heroSlideIds', 'gallery'] },
-        { title: 'Homepage Feed Selection', keys: ['feedMode', 'feedCount', 'featuredIds', 'eventMode', 'eventIds', 'opportunityMode', 'opportunityIds'] },
+        { title: 'Headline & buttons', keys: ['title', 'summary', 'primaryLabel', 'primaryLink', 'secondaryLabel', 'secondaryLink'] },
+        { title: 'Hero photo', keys: ['image', 'imageAlt', 'imageCaption'] },
+        IMAGE_DISPLAY,
+        { title: 'Hero slideshow', keys: ['heroMode', 'heroSlideCount', 'heroSlideIds', 'gallery'] },
+        { title: 'Announcement bar', collapsed: true, hint: 'A one-line notice above the header on every page. Leave empty to hide it.', keys: ['announcement', 'announcementLink'] },
+        { title: 'Latest updates, event & opportunity panels', collapsed: true, hint: 'Which news, event and opening the homepage shows.', keys: ['feedMode', 'feedCount', 'featuredIds', 'eventMode', 'eventIds', 'opportunityMode', 'opportunityIds'] },
         { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (recId === 'settings:site') {
       return [
-        { title: 'General Lab & Contact Information', keys: ['title', 'footerText', 'address', 'email', 'phone', 'social'] },
-        { title: 'Footer Links & Affiliations', keys: ['resourceLinks', 'affiliationLinks'] },
+        { title: 'Lab name & contact details', keys: ['title', 'footerText', 'address', 'email', 'phone'] },
+        { title: 'Social & footer links', keys: ['social', 'resourceLinks', 'affiliationLinks'] },
         { title: 'Publishing', keys: ['status'] }
       ];
     }
-
     if (col === 'people') {
       return [
-        { title: 'Essential Identity & Position', keys: ['title', 'category', 'role', 'department', 'memberStatus', 'peopleGroup', 'email', 'phone', 'startYear', 'startMonth', 'endYear', 'endMonth'] },
-        { title: 'Profile Photo & Focal Studio', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Biography & Research Focus', keys: ['researchInterests', 'summary', 'body'] },
-        { title: 'Connected Lab Publications & Tools', keys: ['publicationIds', 'toolIds'] },
-        { title: 'Academic Qualifications & Career (Optional)', keys: ['education', 'appointments', 'awards', 'dissertationTitle', 'dissertationUrl'] },
-        { title: 'Links & Online Profiles', keys: ['social', 'workLinks'] },
-        { title: 'Publishing & Website Path', keys: ['route', 'status'] }
+        { title: 'Name & position', keys: ['title', 'role', 'department', 'peopleGroup', 'memberStatus', 'email', 'startYear', 'startMonth', 'endYear', 'endMonth'] },
+        { title: 'Photo', keys: ['image', 'imageAlt'] },
+        IMAGE_DISPLAY,
+        { title: 'About', keys: ['researchInterests', 'summary', 'body'] },
+        { title: 'Profile links', collapsed: true, hint: 'Google Scholar, ORCID, LinkedIn, GitHub, personal website, portfolio.', keys: ['social', 'workLinks'] },
+        { title: 'Education & career', collapsed: true, hint: 'Degrees, positions, awards and thesis.', keys: ['education', 'appointments', 'awards', 'dissertationTitle', 'dissertationUrl'] },
+        { title: 'Publications & tools', collapsed: true, hint: 'Shown on the profile page.', keys: ['publicationIds', 'toolIds'] },
+        { title: 'More options', collapsed: true, hint: 'Phone, imported category, caption and web address.', keys: ['phone', 'category', 'imageCaption', 'route'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'events') {
       return [
-        { title: 'Event Details & Schedule', keys: ['title', 'category', 'startDate', 'endDate', 'date', 'location', 'summary', 'body'] },
-        { title: 'Event Artwork & Photo Gallery', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY', 'gallery'] },
-        { title: 'Links & Connected Content', keys: ['link', 'researchIds', 'peopleIds', 'publicationIds', 'toolIds'] },
-        { title: 'Publishing & Homepage Visibility', keys: ['homeVisibility', 'publishDate', 'route', 'status'] }
+        { title: 'Event details', keys: ['title', 'startDate', 'endDate', 'location', 'summary', 'body'] },
+        { title: 'Cover photo', keys: ['image', 'imageAlt', 'imageCaption'] },
+        IMAGE_DISPLAY,
+        { title: 'Photo gallery', keys: ['gallery'] },
+        { title: 'External link & related content', collapsed: true, hint: 'An event website, and related tools, papers, people or research areas.', keys: ['link', 'researchIds', 'peopleIds', 'publicationIds', 'toolIds'] },
+        { title: 'Date text, homepage & web address', collapsed: true, hint: 'Override how the date reads, keep it off the homepage, or change its address.', keys: ['date', 'publishDate', 'homeVisibility', 'route'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'news') {
       return [
-        { title: 'News Article Information', keys: ['title', 'category', 'date', 'summary', 'body'] },
-        { title: 'Featured Image & Media', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Connected Content & Press Link', keys: ['link', 'researchIds', 'peopleIds', 'publicationIds', 'toolIds'] },
-        { title: 'Publishing & Homepage Visibility', keys: ['homeVisibility', 'publishDate', 'route', 'status'] }
+        { title: 'Story', keys: ['title', 'category', 'publishDate', 'summary', 'body'] },
+        { title: 'Featured image', keys: ['image', 'imageAlt', 'imageCaption'] },
+        IMAGE_DISPLAY,
+        { title: 'Press link & related content', collapsed: true, hint: 'Link to an outside article, and related tools, papers, people or research areas.', keys: ['link', 'researchIds', 'peopleIds', 'publicationIds', 'toolIds'] },
+        { title: 'Date text, homepage & web address', collapsed: true, hint: 'Override how the date reads, keep it off the homepage, or change its address.', keys: ['date', 'homeVisibility', 'route'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'publications') {
       return [
-        { title: 'Publication Citation Details', keys: ['title', 'authors', 'category', 'year', 'date', 'location', 'presentationType', 'link', 'body'] },
-        { title: 'Publishing & Homepage Visibility', keys: ['homeVisibility', 'publishDate', 'status'] }
+        { title: 'Citation', keys: ['title', 'authors', 'category', 'year', 'presentationType', 'location', 'date', 'link'] },
+        { title: 'Formatting, sorting & homepage', collapsed: true, hint: 'A formatted title (e.g. italic species names), an exact date for ordering, homepage visibility.', keys: ['body', 'publishDate', 'homeVisibility'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'tools') {
       return [
-        { title: 'Tool Information & Access', keys: ['title', 'category', 'link', 'summary', 'resourceLinks'] },
-        { title: 'Tool Logo & Artwork', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Connected Research & Team', keys: ['researchIds', 'peopleIds', 'publicationIds'] },
+        { title: 'Tool', keys: ['title', 'category', 'link', 'summary'] },
+        { title: 'Screenshot or logo', keys: ['image', 'imageAlt'] },
+        { title: 'Image display options', collapsed: true, hint: 'Screenshots default to “contain” so nothing is cut off.', keys: ['imageCaption', 'imageFit', 'focalX', 'focalY'] },
+        { title: 'Extra links', collapsed: true, hint: 'Documentation, GitHub, paper or download links shown under the card.', keys: ['resourceLinks'] },
+        RELATED(['researchIds', 'peopleIds', 'publicationIds', 'toolIds']),
         { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'research') {
       return [
-        { title: 'Research Area Details', keys: ['title', 'summary', 'body'] },
-        { title: 'Cover Media', keys: ['image', 'imageAlt', 'imageCaption', 'imageFit', 'focalX', 'focalY'] },
-        { title: 'Connected Team, Tools & Papers', keys: ['peopleIds', 'toolIds', 'publicationIds'] },
-        { title: 'Publishing & Path', keys: ['route', 'status'] }
+        { title: 'Research area', keys: ['title', 'summary', 'body'] },
+        { title: 'Cover image', keys: ['image', 'imageAlt', 'imageCaption'] },
+        IMAGE_DISPLAY,
+        { title: 'Tools & publications in this area', hint: 'Listed on the research area page.', keys: ['toolIds', 'publicationIds'] },
+        { title: 'People & web address', collapsed: true, keys: ['peopleIds', 'researchIds', 'route'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
     if (col === 'opportunities') {
       return [
-        { title: 'Opportunity & Vacancy Details', keys: ['title', 'category', 'location', 'deadline', 'openingStatus', 'summary', 'body', 'email', 'link'] },
-        { title: 'Publishing & Path', keys: ['route', 'status'] }
+        { title: 'Opening', keys: ['title', 'category', 'openingStatus', 'deadline', 'location', 'summary', 'body'] },
+        { title: 'How to apply', keys: ['email', 'link'] },
+        { title: 'Web address', collapsed: true, keys: ['route'] },
+        { title: 'Publishing', keys: ['status'] }
       ];
     }
-
+    if (col === 'pages') {
+      return [
+        { title: 'Page', keys: ['title', 'summary', 'body'] },
+        { title: 'Image', collapsed: true, keys: ['image', 'imageAlt', 'imageCaption'] },
+        IMAGE_DISPLAY,
+        { title: 'Web address', collapsed: true, keys: ['route'] },
+        { title: 'Publishing', keys: ['status'] }
+      ];
+    }
     return [
-      { title: 'Basic Information', keys: ['title', 'summary', 'body'] },
+      { title: 'Basic information', keys: ['title', 'summary', 'body'] },
       { title: 'Media', keys: ['image', 'imageAlt', 'imageCaption', 'gallery'] },
-      { title: 'Details & Publishing', keys: ['date', 'year', 'category', 'route', 'status'] }
+      { title: 'Details & publishing', keys: ['date', 'year', 'category', 'route', 'status'] }
     ];
   }
+
+  /* Clearer labels and help text where the shared schema label is ambiguous in a given editor. */
+  function fieldLabel(key, field) {
+    if (key === 'gallery' && current.id === 'settings:home') return 'Extra lab photos for the slideshow (shown after the main photo)';
+    if (key === 'publishDate') return collection === 'news' ? 'Date' : 'Exact date for ordering (optional)';
+    if (key === 'category' && collection === 'news') return 'News section';
+    if (key === 'date') return collection === 'publications' ? 'Date (as written in the citation)' : 'Date as shown (optional override)';
+    if (key === 'body' && collection === 'publications') return 'Formatted title (optional)';
+    if (key === 'link' && collection === 'news') return 'Outside article link (optional)';
+    return field.label;
+  }
+  const FIELD_HELP = {
+    date: 'e.g. “Spring 2024”. Leave empty to use the date above.',
+    publishDate: 'Sets the order on the website. Events without one are ordered by their start date.',
+    imageAlt: 'Describe the image for people using screen readers.',
+    route: 'Created from the title when left empty. Changing it breaks old links.',
+    gallery: 'Drag photos to change their order. The first photo opens the gallery.',
+    homeVisibility: 'Choose “Exclude” to keep this entry out of the homepage feed.',
+    peopleGroup: 'The heading this person appears under on the People page.',
+    imageFit: '“Cover” fills the frame (may crop); “Contain” shows the whole image.',
+  };
+  const fieldHelp = key => key === 'publishDate' && collection === 'news' ? 'Shown on the story and used to order the news list.' : FIELD_HELP[key];
+  const filledCount = keys => keys.filter(key => {
+    const value = current[key];
+    if (['focalX', 'focalY'].includes(key)) return value !== undefined && Number(value) !== 50;
+    if (key === 'imageFit') return value && value !== 'cover';
+    if (key === 'homeVisibility') return value === 'exclude';
+    if (key === 'route') return false;
+    return Array.isArray(value) ? value.length > 0 : Boolean(value && String(value).replace(/<[^>]*>/g, '').trim());
+  }).length;
 
   function updateStatusQuickToggle() {
     const wrap = $('#editor-status-quicktoggle');
@@ -917,7 +1109,7 @@
     wrap.innerHTML = `
       <div class="status-quicktoggle-wrap">
         <span class="status-quicktoggle-label">Status:</span>
-        <button type="button" class="status-pill-toggle ${isPub ? 'published' : 'draft'}" id="quick-toggle-btn" title="Click to toggle Draft / Published">
+        <button type="button" class="status-pill-toggle ${isPub ? 'status-published' : 'status-draft'}" id="quick-toggle-btn" title="Click to toggle Draft / Published">
           <span class="state-dot"></span>
           <span>${isPub ? 'Published' : 'Draft'}</span>
         </button>
@@ -939,6 +1131,8 @@
       collection = 'settings';
       record = records.find(r => r.id === 'settings:director') || record;
     }
+    // Re-opening the same entry (e.g. after saving) keeps expanded sections expanded.
+    const keepOpen = new Set(current?.id === record.id ? [...document.querySelectorAll('#editor-fields details.editor-collapsible[open] .editor-legend')].map(x => x.textContent) : []);
     current = structuredClone(record);
     dirty = false;
     $('#record-list').hidden = true;
@@ -958,11 +1152,21 @@
     let html = '';
 
     for (const section of sections) {
-      const sectionFields = f.filter(k => section.keys.includes(k));
-      if (sectionFields.length) {
+      const sectionFields = section.keys.filter(k => f.includes(k));
+      if (!sectionFields.length) continue;
+      const hint = section.hint ? `<p class="editor-section-hint">${escape(section.hint)}</p>` : '';
+      if (section.collapsed) {
+        const filled = filledCount(sectionFields);
+        html += `
+          <details class="editor-fieldset editor-collapsible"${keepOpen.has(section.title) ? ' open' : ''}>
+            <summary><span class="editor-legend">${escape(section.title)}</span>${filled ? `<span class="collapsible-count">${filled} set</span>` : '<span class="collapsible-count is-empty">Optional</span>'}${hint}</summary>
+            <div class="fieldset-grid">${sectionFields.map(fieldHTML).join('')}</div>
+          </details>
+        `;
+      } else {
         html += `
           <fieldset class="editor-fieldset">
-            <legend class="editor-legend">${section.title}</legend>
+            <legend class="editor-legend">${escape(section.title)}</legend>${hint}
             <div class="fieldset-grid">${sectionFields.map(fieldHTML).join('')}</div>
           </fieldset>
         `;
@@ -1381,6 +1585,32 @@
     }
   });
 
+  /* Gallery: drag photos to reorder (the arrow buttons do the same from the keyboard or on touch screens). */
+  let draggedPhoto = null;
+  $('#editor-fields').addEventListener('dragstart', event => {
+    const row = event.target.closest?.('.gallery-edit-row');
+    if (!row) return;
+    draggedPhoto = row;
+    row.classList.add('is-dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-kaabil-photo', '');
+  });
+  $('#editor-fields').addEventListener('dragover', event => {
+    if (!draggedPhoto) return;
+    const over = event.target.closest('.gallery-edit-row');
+    if (!over || over.parentElement !== draggedPhoto.parentElement) return;
+    event.preventDefault();
+    if (over === draggedPhoto) return;
+    const r = over.getBoundingClientRect();
+    if (event.clientX < r.left + r.width / 2) over.before(draggedPhoto); else over.after(draggedPhoto);
+  });
+  $('#editor-fields').addEventListener('dragend', () => {
+    if (!draggedPhoto) return;
+    draggedPhoto.classList.remove('is-dragging');
+    draggedPhoto = null;
+    dirty = true;
+  });
+
   $('#editor-fields').addEventListener('mousedown', event => {
     if (event.target.closest('[data-format]')) event.preventDefault();
   });
@@ -1388,6 +1618,38 @@
   $('#editor-fields').addEventListener('click', event => {
     if (event.target.closest('[data-choose-gallery]')) { chooseImage('gallery'); return; }
     if (event.target.closest('[data-remove-gallery]')) { event.target.closest('.gallery-edit-row').remove(); dirty = true; return; }
+    const galleryMove = event.target.closest('[data-gallery-move]');
+    if (galleryMove) {
+      const row = galleryMove.closest('.gallery-edit-row');
+      if (galleryMove.dataset.galleryMove === 'up' && row.previousElementSibling) row.after(row.previousElementSibling);
+      else if (galleryMove.dataset.galleryMove === 'down' && row.nextElementSibling) row.before(row.nextElementSibling);
+      galleryMove.focus();
+      dirty = true;
+      return;
+    }
+    const galleryCrop = event.target.closest('[data-crop-gallery]');
+    if (galleryCrop) {
+      const row = galleryCrop.closest('.gallery-edit-row');
+      cropImage(row.querySelector('[data-gallery-url]').value).then(data => {
+        if (!data) return;
+        row.outerHTML = galleryRow(data.url);
+        dirty = true;
+        notice('Cropped copy placed in the gallery. Save to apply.');
+      });
+      return;
+    }
+    if (event.target.closest('[data-crop-image]')) {
+      const url = current.imageOriginal && sameOrigin(current.imageOriginal) ? current.imageOriginal : $('#field-image')?.value;
+      cropImage(url).then(data => {
+        if (!data) return;
+        applyMainImage(data);
+        if ($('#field-focalX')) $('#field-focalX').value = 50;
+        if ($('#field-focalY')) $('#field-focalY').value = 50;
+        updateImagePreview();
+        notice('Cropped copy is now the image. Save to apply.');
+      });
+      return;
+    }
     if (event.target.closest('[data-preview-device]')) { event.target.closest('.image-studio-panel').querySelector('.image-placement-preview').dataset.device = event.target.dataset.previewDevice; return; }
     if (event.target.closest('[data-preview-ratio]')) { event.target.closest('.image-studio-panel').querySelector('.image-placement-preview').dataset.ratio = event.target.dataset.previewRatio; return; }
     if (event.target.closest('[data-choose-image]')) { chooseImage(); return; }
@@ -1522,6 +1784,7 @@
     if (hasValidationError) {
       notice('Please fix the highlighted errors before saving.', true);
       if (firstErrorField) {
+        firstErrorField.closest('details')?.setAttribute('open', '');
         firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
         firstErrorField.focus();
       }
