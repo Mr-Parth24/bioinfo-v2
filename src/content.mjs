@@ -87,6 +87,8 @@ export const FIELDS={
 social:{label:'Profile links (Google Scholar, ORCID, LinkedIn, GitHub, website…)',type:'links'},
   peopleGroup:{label:'People page group',type:'select',options:['','Staff','Postdoctoral researchers','PhD students',"Master's students",'Undergraduates','Visiting scholars','Student researchers']},
   gallery:{label:'Gallery image URLs',type:'images'},
+  toolStatus:{label:'Availability',type:'select',options:['auto','maintenance','none']},
+  statusNote:{label:'Availability note',type:'text',max:300},
   status:{label:'Publication status',type:'select',options:['draft','published']}
 };
 export const COLLECTION_FIELDS={
@@ -110,6 +112,7 @@ COLLECTION_FIELDS.events.splice(1,0,'startDate','endDate');
 for(const collection of ['news','events','people','research','tools','pages'])COLLECTION_FIELDS[collection].splice(COLLECTION_FIELDS[collection].indexOf('imageAlt')+1,0,'imageCaption','imageFit','focalX','focalY');
 for(const collection of ['news','events','research','tools'])COLLECTION_FIELDS[collection].push('researchIds','peopleIds','publicationIds','toolIds');
 COLLECTION_FIELDS.tools.push('resourceLinks');
+COLLECTION_FIELDS.tools.splice(COLLECTION_FIELDS.tools.indexOf('link')+1,0,'toolStatus','statusNote');
 export class InputError extends Error {constructor(message,status=400){super(message);this.status=status;}}
 export function validateRecord(record) {
   if(!record||typeof record!=='object'||Array.isArray(record))throw new InputError('A content record is required.');

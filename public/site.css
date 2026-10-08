@@ -939,6 +939,20 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tool-card:hover .tool-open .icon{transform:translate(2px,-2px)}
 .tool-host{font-size:12.5px;color:var(--faint);font-weight:500}
 
+/* Availability dots: small, solid, no glow. Text always accompanies the colour. */
+.tool-status{display:inline-flex;align-items:center;gap:7px;font:600 12.5px/1.3 var(--sans);color:var(--muted)}
+.tool-status i{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 16%,transparent)}
+.tool-status.is-up{color:#2f7d46}
+.tool-status.is-down{color:#b0413e}
+.tool-status.is-maintenance{color:#a76a12}
+.tool-card[data-status=down] .tool-shot,.tool-card[data-status=maintenance] .tool-shot{filter:grayscale(.85);opacity:.75}
+.tool-card[data-status=down] .tool-open,.tool-card[data-status=maintenance] .tool-open{color:var(--muted)}
+.status-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:-12px 0 24px;font-size:13px}
+.status-legend-note{color:var(--faint)}
+.tool-dialog h3{margin-bottom:10px}
+.tool-dialog-note{margin:-12px 0 20px;padding:10px 12px;border-left:3px solid #a76a12;background:#fbf6ec;font-size:14px;color:var(--ink)}
+.tool-dialog .dialog-actions{margin-top:0}
+
 /* Phones: tools become compact rows (thumbnail + text); the chips scroll sideways in one line. */
 @media(max-width:640px){
   .tools-directory .filter-bar{position:static;margin-inline:0;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none}

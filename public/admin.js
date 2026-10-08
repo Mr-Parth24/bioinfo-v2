@@ -833,6 +833,7 @@
             if (key === 'heroMode') optLabel = { single: 'Single photo (the image above)', selected: 'Slideshow: slides I choose below', latest: 'Slideshow: latest news, events & research', random: 'Slideshow: random mix, new on every visit' }[o];
             if (key === 'status') optLabel = o === 'published' ? 'Published (Live on website)' : 'Draft (Editor only)';
             if (key === 'openingStatus') optLabel = o === 'open' ? 'Open (Accepting applications)' : 'Closed';
+            if (key === 'toolStatus') optLabel = { auto: 'Automatic: live check from the kaabil.net uptime monitor', maintenance: 'Under maintenance: show a notice before opening', none: 'Do not show a status' }[o];
             if (key === 'homeVisibility') optLabel = o === 'include' ? 'Eligible for homepage feed' : 'Exclude from homepage feed';
             return `<option value="${o}"${o === value ? ' selected' : ''}>${optLabel}</option>`;
           }).join('')}
@@ -1031,6 +1032,7 @@
     if (col === 'tools') {
       return [
         { title: 'Tool', keys: ['title', 'category', 'link', 'summary'] },
+        { title: 'Availability', hint: 'The green / red dot on the Tools page.', keys: ['toolStatus', 'statusNote'] },
         { title: 'Screenshot or logo', keys: ['image', 'imageAlt'] },
         { title: 'Image display options', collapsed: true, hint: 'Screenshots default to “contain” so nothing is cut off.', keys: ['imageCaption', 'imageFit', 'focalX', 'focalY'] },
         { title: 'Extra links', collapsed: true, hint: 'Documentation, GitHub, paper or download links shown under the card.', keys: ['resourceLinks'] },
@@ -1091,6 +1093,8 @@
     homeVisibility: 'Choose “Exclude” to keep this entry out of the homepage feed.',
     peopleGroup: 'The heading this person appears under on the People page.',
     imageFit: '“Cover” fills the frame (may crop); “Contain” shows the whole image.',
+    toolStatus: 'Visitors who open a tool that is down or under maintenance see a short notice, with an option to open it anyway.',
+    statusNote: 'Optional, shown in that notice, e.g. “Moving to a new server; back in November.”',
   };
   const fieldHelp = key => key === 'publishDate' && collection === 'news' ? 'Shown on the story and used to order the news list.' : FIELD_HELP[key];
   const filledCount = keys => keys.filter(key => {

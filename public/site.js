@@ -177,6 +177,62 @@
     if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
   }
 
+  /* ---------- Tools: live availability dots and a notice before opening a tool that is down ---------- */
+  const toolCards = [...document.querySelectorAll('[data-tool-name]')];
+  const legend = document.querySelector('[data-status-legend]');
+  if (toolCards.some(card => card.dataset.status === 'auto') && 'fetch' in window) {
+    const controller = 'AbortController' in window ? new AbortController() : null;
+    const timer = setTimeout(() => controller?.abort(), 8000);
+    fetch('https://kaabil.net/api/uptime/uptimes', { signal: controller?.signal, credentials: 'omit' })
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('uptime ' + response.status)))
+      .then(list => {
+        if (!Array.isArray(list)) return;
+        const byName = new Map(list.filter(t => t && t.name).map(t => [String(t.name).toLowerCase(), t.availability]));
+        let shown = 0;
+        for (const card of toolCards) {
+          if (card.dataset.status !== 'auto') continue;
+          const availability = byName.get(card.dataset.toolName.toLowerCase());
+          const slot = card.querySelector('[data-status-slot]');
+          if (!availability || !slot) continue;
+          const up = availability === 'running';
+          slot.className = 'tool-status ' + (up ? 'is-up' : 'is-down');
+          slot.innerHTML = '<i aria-hidden="true"></i>' + (up ? 'Online' : 'Not responding');
+          slot.hidden = false;
+          if (!up) card.dataset.status = 'down';
+          shown++;
+        }
+        if (legend && shown) legend.hidden = false;
+      })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+  }
+  let toolDialog;
+  document.addEventListener('click', event => {
+    const link = event.target.closest('.tool-card-link');
+    const card = link?.closest('[data-tool-name]');
+    if (!card || !['down', 'maintenance'].includes(card.dataset.status)) return;
+    event.preventDefault();
+    if (!toolDialog) {
+      toolDialog = document.createElement('dialog');
+      toolDialog.className = 'form-dialog tool-dialog';
+      toolDialog.innerHTML = '<h3></h3><p class="dialog-desc"></p><p class="tool-dialog-note" hidden></p><div class="dialog-actions"><a class="button button-ghost" target="_blank" rel="noopener noreferrer">Open anyway</a><button type="button" class="button">OK</button></div>';
+      toolDialog.querySelector('button').addEventListener('click', () => toolDialog.close());
+      toolDialog.querySelector('a').addEventListener('click', () => toolDialog.close());
+      toolDialog.addEventListener('click', e => { if (e.target === toolDialog) toolDialog.close(); });
+      document.body.append(toolDialog);
+    }
+    const name = card.dataset.toolName, maintenance = card.dataset.status === 'maintenance';
+    toolDialog.querySelector('h3').textContent = maintenance ? `${name} is under maintenance` : `${name} is not responding right now`;
+    toolDialog.querySelector('.dialog-desc').textContent = maintenance
+      ? 'Sorry, this tool is temporarily unavailable while we work on it. Please check back soon.'
+      : 'Sorry, the lab’s server monitor reports this tool as down. It may be under maintenance; please try again later.';
+    const note = toolDialog.querySelector('.tool-dialog-note');
+    note.textContent = card.dataset.statusNote || '';
+    note.hidden = !card.dataset.statusNote;
+    toolDialog.querySelector('a').href = link.href;
+    toolDialog.showModal();
+  });
+
   /* ---------- Publications: author roles. Several can be selected; each draws its own coloured line
      under matching names, stacked in legend order, and publications without any of them step back. ---------- */
   const keyButtons = [...document.querySelectorAll('[data-author-key]')];
