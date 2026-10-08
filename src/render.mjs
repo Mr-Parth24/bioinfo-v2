@@ -433,6 +433,7 @@ function detail(input, records) {
   const record = { ...input, date: displayDate(input) };
   if (record.collection === 'people') return personProfile(record, records);
   if (record.collection === 'research') return researchArea(record, records);
+  if (record.id === 'pages:home' || record.id === 'pages:history') return infoPage(record, records);
   const collection = record.collection;
   const section = { pages: ['About', '/about'], news: ['News', '/news'], events: ['Events', '/events'], research: ['Research', '/research'], opportunities: ['Opportunities', '/opportunities'], tools: ['Tools', '/tools'], publications: ['Publications', '/publications'] }[collection] || [collection, '/' + collection];
   const isExternal = record.link && record.link.replace(/\/$/, '') !== record.route;
@@ -445,7 +446,7 @@ function detail(input, records) {
     ? `<p>This research area is part of the lab’s wider program. Explore the related tools and publications below.</p><ul class="link-tiles"><li><a href="/research#program">Research program ${arrow}</a></li><li><a href="/tools">Tools &amp; databases ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li></ul>`
     : '';
   const opportunity = collection === 'opportunities'
-    ? `<div class="notice-panel"><div><p class="eyebrow">${e(record.openingStatus === 'closed' ? 'Closed' : 'Open')} · ${e(record.category || 'Research opportunity')}</p>${record.deadline ? `<p>Apply by <strong>${e(record.deadline)}</strong></p>` : ''}</div>${record.link ? `<a class="button" href="${e(safeUrl(record.link))}">Application details ${arrow}</a>` : record.email ? `<a class="button" href="mailto:${e(record.email)}">Email to apply ${arrow}</a>` : ''}</div>`
+    ? `<div class="notice-panel"><div><p class="eyebrow">${e(record.openingStatus === 'closed' ? 'Closed' : 'Open')} · ${e(record.category || 'Research opportunity')}</p>${record.deadline ? `<p>Apply by <strong>${e(displayDate({ date: record.deadline }))}</strong></p>` : ''}</div>${record.link ? `<a class="button" href="${e(safeUrl(record.link))}">Application details ${arrow}</a>` : record.email ? `<a class="button" href="mailto:${e(record.email)}">Email to apply ${arrow}</a>` : ''}</div>`
     : '';
   // Galleries hold photos; video files are not served, so they are left out rather than shown as broken tiles.
   const photos = (record.gallery || []).filter(url => !/\.(mov|mp4|m4v|webm|avi)$/i.test(url));
@@ -460,6 +461,28 @@ function detail(input, records) {
     + `<p class="back-link"><a href="${section[1]}">${icons.back} Back to ${e(section[0].toLowerCase())}</a></p></div></article>`;
 }
 
+/** About and Lab overview: editable text beside facts counted from the records, so numbers never go stale. */
+function infoPage(record, records) {
+  const live = records.filter(r => r.status === 'published');
+  const c = setting(records, 'settings:site');
+  const about = record.id === 'pages:home';
+  const areas = live.filter(r => r.collection === 'research');
+  const n = (collection, category) => live.filter(r => r.collection === collection && (!category || r.category === category)).length;
+  const facts = [[areas.length, 'Research areas', '/research'], [n('tools'), 'Open tools & databases', '/tools'], [n('publications', 'Papers'), 'Peer-reviewed papers', '/publications'], [n('publications', 'Conferences'), 'Conference presentations', '/publications/conferences'], [n('people'), 'Lab members, past & present', '/people']].filter(([x]) => x);
+  const other = records.find(r => r.id === (about ? 'pages:history' : 'pages:home') && r.status === 'published');
+  const links = [['Dr. Rakesh Kaundal', '/people/rakesh'], ['People', '/people'], other && [other.title, other.route], ['Opportunities', '/opportunities'], ['Contact', '/contact']].filter(Boolean);
+  const trail = about ? [['About']] : [['About', '/about'], [record.title]];
+  return pageHeader(record.title, record.summary || '', 'About the lab', { trail })
+    + `<div class="wrap page-body info-layout"><div class="info-main"><div class="prose">${richBody(record.body, records)}</div>`
+    + (about && areas.length ? `<section class="info-areas"><h2>Research areas</h2><ul class="area-links">${areas.map(r => `<li><a href="${e(r.route)}"><span class="area-links-title">${e(r.title)}</span>${r.summary ? `<span class="area-links-note">${e(r.summary)}</span>` : ''}${arrow}</a></li>`).join('')}</ul></section>` : '')
+    + (about ? `<p class="info-video"><a class="link-more" href="https://www.youtube.com/watch?v=r-Ay28WKFLY" target="_blank" rel="noopener noreferrer">Watch Dr. Kaundal’s journey (video) ${icons.external}</a></p>` : '')
+    + `</div><aside class="info-aside">`
+    + (facts.length ? `<div class="aside-panel"><p class="eyebrow">At a glance</p><dl class="glance">${facts.map(([x, label, href]) => `<div><dd>${x}</dd><dt><a href="${href}">${e(label)}</a></dt></div>`).join('')}</dl></div>` : '')
+    + `<div class="aside-panel"><p class="eyebrow">Find us</p><address class="info-address">${e(c.address || '').replaceAll('\n', '<br>')}</address>${c.email ? `<p><a href="mailto:${e(c.email)}">${e(c.email)}</a></p>` : ''}</div>`
+    + `<nav class="aside-panel" aria-label="More about the lab"><p class="eyebrow">More</p><ul class="aside-links">${links.map(([label, href]) => `<li><a href="${e(href)}">${e(label)}</a></li>`).join('')}</ul></nav>`
+    + `</aside></div>`;
+}
+
 function sourceLink(href, primary) {
   let host = '';
   try { host = new URL(href).hostname.replace(/^www\./, ''); } catch { host = ''; }
@@ -471,50 +494,23 @@ function sourceLink(href, primary) {
 /* ---------- Contact ---------- */
 function contact(records) {
   const c = setting(records, 'settings:site');
-  const page = records.find(r => r.id === 'pages:contact');
   const phone = String(c.phone || '').replace(/[^+0-9]/g, '');
-  let body = richBody(page?.body || '', records);
-  body = body.replaceAll('rkaundal@usu.edu', e(c.email || 'rkaundal@usu.edu'))
-    .replace(/<a[^>]+>Go to Contact Form<\/a>/gi, '<a class="button" href="#enroll">Go to Contact Form</a>');
-  
   const active = activeOpportunities(records);
-  
-  const formHtml = `
-    <div class="contact-form-section" id="enroll">
-      <h2>Send a message</h2>
-      <form action="https://api.web3forms.com/submit" method="POST" class="web3form">
-        <input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a">
-        <input type="hidden" name="redirect" value="https://web3forms.com/success">
-        <div class="form-group">
-          <label for="name">Your Name</label>
-          <input type="text" id="name" name="name" required>
-        </div>
-        <div class="form-group">
-          <label for="email">Your Email</label>
-          <input type="email" id="email" name="email" required>
-        </div>
-        <div class="form-group">
-          <label for="subject">Subject</label>
-          <select id="subject" name="subject" required>
-            <option value="General Inquiry">General Inquiry</option>
-            <option value="Research Opportunity">Research Opportunity</option>
-            <option value="Appointment Request">Appointment Request</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" name="message" rows="5" required></textarea>
-        </div>
-        <button type="submit" class="button">Submit Message</button>
-      </form>
-    </div>
-  `;
-
-  return pageHeader('Contact', 'Questions, collaborations or your next research chapter — we would like to hear from you.', 'Get in touch', { trail: [['About', '/about'], ['Contact']] })
-    + `<div class="wrap page-body contact-layout"><aside class="contact-card"><h2>KAABiL at Utah State University</h2><ul class="contact-list stacked"><li><a href="mailto:${e(c.email)}">${icons.mail}<span>${e(c.email)}</span></a></li>${c.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(c.phone)}</span></a></li>` : ''}<li><span class="contact-address">${icons.pin}<span>${e(c.address).replaceAll('\n', '<br>')}</span></span></li></ul>`
-    + `<div class="contact-actions"><a class="button" href="mailto:${e(c.email)}?subject=KAABiL%20research%20opportunity">Email about joining ${arrow}</a><a class="button button-ghost" href="https://bookings.cloud.microsoft/bookwithme/user/730a81a335f5479480855a7cac4c8595@usu.edu?anonymous&ismsaljsauthenabled&ep=pcard" target="_blank" rel="noopener noreferrer">Request an appointment ${icons.external}</a><a class="link-more" href="https://maps.google.com/maps?q=41.742693,-111.810340" target="_blank" rel="noopener noreferrer">Directions on Google Maps ${icons.external}</a></div>`
-    + (active.length ? `<div class="facts-block"><p class="eyebrow">Open opportunities</p><ul>${active.map(r => `<li><a href="${e(r.route)}">${e(r.title)}</a></li>`).join('')}</ul></div>` : '')
-    + `</aside><div class="prose contact-prose">${body}${formHtml}</div></div>`;
+  const form = `<section class="contact-form-section" id="enroll" aria-labelledby="form-h"><h2 id="form-h">Send a message</h2><p class="contact-form-intro">We usually reply by email within a few working days.</p>`
+    + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form"><input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a"><input type="hidden" name="redirect" value="https://web3forms.com/success">`
+    + `<div class="form-row"><div class="form-group"><label for="name">Your name</label><input type="text" id="name" name="name" autocomplete="name" required></div><div class="form-group"><label for="email">Your email</label><input type="email" id="email" name="email" autocomplete="email" required></div></div>`
+    + `<div class="form-group"><label for="subject">Topic</label><select id="subject" name="subject" required><option value="General Inquiry">General question</option><option value="Research Opportunity">Joining the lab</option><option value="Collaboration">Collaboration or sequencing analysis</option><option value="Tool question">A tool or database</option><option value="Appointment Request">Appointment request</option></select></div>`
+    + `<div class="form-group"><label for="message">Message</label><textarea id="message" name="message" rows="6" required></textarea></div>`
+    + `<button type="submit" class="button">Send message ${arrow}</button></form></section>`;
+  const topics = `<ul class="contact-topics">`
+    + `<li><h3>Joining the lab</h3><p>Graduate, postdoctoral, summer and visiting positions${active.length ? ` — ${active.length === 1 ? '1 opening' : active.length + ' openings'} now` : ''}.</p><a class="link-more" href="/opportunities">Opportunities ${arrow}</a></li>`
+    + `<li><h3>Using a tool</h3><p>Questions about one of the lab’s web servers or databases.</p><a class="link-more" href="/tools">Tools &amp; databases ${arrow}</a></li>`
+    + `<li><h3>Meeting Dr. Kaundal</h3><p>Book a time through the university calendar.</p><a class="link-more" href="https://bookings.cloud.microsoft/bookwithme/user/730a81a335f5479480855a7cac4c8595@usu.edu?anonymous&amp;ismsaljsauthenabled&amp;ep=pcard" target="_blank" rel="noopener noreferrer">Request an appointment ${icons.external}</a></li></ul>`;
+  return pageHeader('Contact', 'Questions, collaborations or joining the lab: send a message or reach us directly.', 'Get in touch', { trail: [['About', '/about'], ['Contact']] })
+    + `<div class="wrap page-body"><div class="contact-layout"><div class="contact-main">${form}</div>`
+    + `<aside class="contact-card"><h2>KAABiL · Utah State University</h2><ul class="contact-list stacked"><li><a href="mailto:${e(c.email)}">${icons.mail}<span>${e(c.email)}</span></a></li>${c.phone ? `<li><a href="tel:${e(phone)}">${icons.phone}<span>${e(c.phone)}</span></a></li>` : ''}<li><span class="contact-address">${icons.pin}<span>${e(c.address).replaceAll('\n', '<br>')}</span></span></li></ul>`
+    + `<a class="link-more" href="https://maps.google.com/maps?q=41.742693,-111.810340" target="_blank" rel="noopener noreferrer">Directions on Google Maps ${icons.external}</a></aside></div>`
+    + `<section class="contact-more" aria-label="Other ways we can help">${topics}</section></div>`;
 }
 
 /* ---------- Search ---------- */
@@ -522,7 +518,7 @@ function searchPage(records) {
   const label = { news: 'News', events: 'Event', publications: 'Publication', people: 'Person', research: 'Research', tools: 'Tool', pages: 'Page', opportunities: 'Opportunity' };
   const items = records.filter(r => r.collection !== 'settings');
   return pageHeader('Search', 'Find people, research areas, publications, tools and stories across the site.', 'Explore KAABiL', { trail: [['Search']] })
-    + `<div class="wrap page-body" data-directory data-require-query>${filterBar(items, 'the website', { categories: false, autofocus: true })}<div class="search-hint" data-search-hint><p>Type a name, topic, tool or year. For example <em>RSLpred</em>, <em>metagenomics</em> or <em>2024</em>.</p><ul class="link-tiles"><li><a href="/people">People ${arrow}</a></li><li><a href="/research">Research ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li><li><a href="/tools">Tools ${arrow}</a></li><li><a href="/news">News ${arrow}</a></li></ul></div><ul class="search-results">${items.map(r => { const href = r.route || safeUrl(r.link) || '/publications'; return `<li data-item data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + (r.category || '') + ' ' + (r.authors || '')))}"><span class="tag">${e(label[r.collection] || r.collection)}</span><h2><a href="${e(href)}"${external(href)}>${e(plainText(r.title))}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}</li>`; }).join('')}</ul></div>`;
+    + `<div class="wrap page-body" data-directory data-require-query>${filterBar(items, 'the website', { categories: false, autofocus: true })}<div class="search-hint" data-search-hint><p>Type a name, topic, tool or year. For example <em>RSLpred</em>, <em>metagenomics</em> or <em>2024</em>.</p><ul class="link-tiles"><li><a href="/people">People ${arrow}</a></li><li><a href="/research">Research ${arrow}</a></li><li><a href="/publications">Publications ${arrow}</a></li><li><a href="/tools">Tools ${arrow}</a></li><li><a href="/news">News ${arrow}</a></li></ul></div><ul class="search-results">${items.map(r => { const href = r.id === 'pages:contact' ? '/opportunities#joining' : r.route || safeUrl(r.link) || '/publications'; return `<li data-item data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + (r.category || '') + ' ' + (r.authors || '')))}"><span class="tag">${e(label[r.collection] || r.collection)}</span><h2><a href="${e(href)}"${external(href)}>${e(plainText(r.title))}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}</li>`; }).join('')}</ul></div>`;
 }
 
 function notFound(title, intro, actionHref = '/', actionLabel = 'Back to the homepage') {

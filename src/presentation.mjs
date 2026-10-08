@@ -138,7 +138,7 @@ export function navigation(records) {
       links: [['News', '/news', 'General, science and media stories'], ['Events', '/events', 'Conferences, symposia and lab life']] },
     { label: 'About', href: '/about', match: ['/about', '/contact', '/opportunities'],
       intro: 'Who we are, how to join us and how to reach us.',
-      links: [['About the lab', '/about', 'Mission and history'], ['Research & lab overview', '/about/overview', 'Facilities and approach'], ['Opportunities', '/opportunities', 'Open positions and how to apply'], ['Contact', '/contact', 'Address, email and directions']] },
+      links: [['About the lab', '/about', 'Who we are and what we work on'], ['Lab overview', '/about/overview', 'Facility, tools, collaboration and training'], ['Opportunities', '/opportunities', 'Open positions and how to apply'], ['Contact', '/contact', 'Message, address and appointments']] },
   ];
 }
 
@@ -297,7 +297,7 @@ export function homepage(records) {
   const [lead, ...rest] = updates;
   const latest = (updates.length || event || opening) ? `<section class="home-section home-latest"><div class="wrap">${sectionHead('From the lab', 'Latest news & activity', '/news', 'All news')}`
     + `<div class="latest-grid">${updates.length ? `<div class="latest-main">${updateItem(lead, true)}${rest.length ? `<ul class="update-list">${rest.map(r => updateItem(r)).join('')}</ul>` : ''}</div>` : ''}`
-    + ((event || opening) ? `<aside class="latest-aside">${event ? eventPanel(event) : ''}${opening ? `<div class="aside-panel aside-opportunity"><p class="eyebrow">Open opportunity</p><h3><a href="${e(opening.route)}">${e(opening.title)}</a></h3>${opening.summary ? `<p>${e(opening.summary)}</p>` : ''}${opening.deadline ? `<p class="meta">Apply by ${e(opening.deadline)}</p>` : ''}<a class="link-more" href="${e(opening.route)}">Details ${arrow}</a></div>` : ''}</aside>` : '')
+    + ((event || opening) ? `<aside class="latest-aside">${event ? eventPanel(event) : ''}${opening ? `<div class="aside-panel aside-opportunity"><p class="eyebrow">Open opportunity</p><h3><a href="${e(opening.route)}">${e(opening.title)}</a></h3>${opening.summary ? `<p>${e(opening.summary)}</p>` : ''}${opening.deadline ? `<p class="meta">Apply by ${e(displayDate({ date: opening.deadline }))}</p>` : ''}<a class="link-more" href="${e(opening.route)}">Details ${arrow}</a></div>` : ''}</aside>` : '')
     + `</div></div></section>` : '';
 
   const groups = toolGroups(records);
@@ -357,12 +357,14 @@ export function opportunities(records) {
   const all = records.filter(r => r.collection === 'opportunities');
   const active = activeOpportunities(records);
   const closed = all.filter(r => !active.includes(r));
-  const cards = rows => `<ul class="opportunity-list">${rows.map(r => `<li class="opportunity-card glow"><div><p class="eyebrow">${e(r.category || 'Research opportunity')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="meta">${[r.location, r.deadline ? 'Apply by ' + r.deadline : ''].filter(Boolean).map(e).join(' · ')}</p></div><a class="button button-ghost" href="${e(r.route)}">Details ${arrow}</a></li>`).join('')}</ul>`;
-  const empty = `<div class="notice-panel"><div><h2>No open positions are listed right now</h2><p>We still welcome enquiries from prospective graduate students, postdoctoral researchers and visiting scholars. Send Dr. Kaundal a short note about your interests and background.</p></div><div class="join-actions"><a class="button" href="/contact">How to apply ${arrow}</a></div></div>`;
-  return pageHeader('Opportunities', 'Find your next research chapter with KAABiL.', 'Join the lab', { trail: [['About', '/about'], ['Opportunities']] })
+  // The "Joining the lab" page record (pages:contact) holds the eligibility text editors maintain.
+  const joining = records.find(r => r.id === 'pages:contact' && r.status === 'published');
+  const cards = rows => `<ul class="opportunity-list">${rows.map(r => `<li class="opportunity-card glow"><div><p class="eyebrow">${e(r.category || 'Research opportunity')}</p><h2><a href="${e(r.route)}">${e(r.title)}</a></h2>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<p class="meta">${[r.location, r.deadline ? 'Apply by ' + displayDate({ date: r.deadline }) : ''].filter(Boolean).map(e).join(' · ')}</p></div><a class="button button-ghost" href="${e(r.route)}">Details ${arrow}</a></li>`).join('')}</ul>`;
+  const empty = `<div class="notice-panel"><div><h2>No open positions are listed right now</h2><p>We still welcome enquiries from prospective graduate students, postdoctoral researchers and visiting scholars. Send Dr. Kaundal a short note about your interests and background.</p></div><div class="join-actions"><a class="button" href="#joining">Who can join ${arrow}</a></div></div>`;
+  return pageHeader('Opportunities', 'Open positions in the lab, and who can join.', 'Join the lab', { trail: [['About', '/about'], ['Opportunities']] })
     + `<div class="wrap page-body">${active.length ? cards(active) : empty}${closed.length ? `<details class="archive-panel"><summary>Past opportunities (${closed.length})</summary>${cards(closed)}</details>` : ''}`
-    + `<section class="info-grid"><div><h2>Graduate students</h2><p>PhD and MS degrees are available through the Department of Plants, Soils &amp; Climate or the Department of Computer Science.</p></div><div><h2>Postdoctoral fellows</h2><p>Researchers with strong records in bioinformatics or computational biology are encouraged to contact Dr. Kaundal directly.</p></div><div><h2>Undergraduates &amp; visitors</h2><p>Summer and short-term positions (3–4 months) are available for students and independently funded visitors.</p></div></section>`
-    + `<p class="page-body-more"><a class="link-more" href="/contact">Eligibility, criteria and contact details ${arrow}</a></p></div>`;
+    + (joining?.body ? `<section class="split-section" id="joining"><div class="split-head"><p class="eyebrow">How to join</p><h2>${e(joining.title)}</h2><a class="button button-ghost" href="/contact">Contact the lab ${arrow}</a></div><div class="prose">${sanitizeHtml(joining.body)}</div></section>` : '')
+    + `</div>`;
 }
 
 export { media };

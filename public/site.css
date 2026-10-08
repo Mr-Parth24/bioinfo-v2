@@ -550,7 +550,42 @@ button,input,select,textarea{font:inherit;color:inherit}
 .prose iframe{max-width:100%}
 
 /* ---------- Contact, search, opportunities ---------- */
-.contact-layout{display:grid;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:start}
+.contact-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:clamp(28px,5vw,72px);align-items:start}
+.contact-main .contact-form-section{margin:0;padding:0;border:0}
+.contact-form-intro{margin:-14px 0 22px;color:var(--muted);font-size:15px}
+.web3form .form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.contact-card .link-more{margin-top:14px}
+.contact-more{margin-top:clamp(40px,5vw,64px);padding-top:clamp(28px,4vw,40px);border-top:1px solid var(--rule)}
+.contact-topics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.contact-topics li{display:grid;gap:6px;align-content:start;padding:22px;border:1px solid var(--rule);border-radius:var(--radius);background:#fff}
+.contact-topics h3{font-size:19px}
+.contact-topics p{font-size:15px;color:var(--muted)}
+.contact-topics .link-more{margin-top:4px;font-size:14.5px}
+/* About and Lab overview */
+.info-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:clamp(28px,5vw,72px);align-items:start}
+.info-main .prose{max-width:70ch}
+.info-aside{position:sticky;top:calc(var(--header-h) + 24px);display:grid;gap:16px}
+.glance{display:grid;gap:12px}
+.glance div{display:flex;align-items:baseline;gap:12px}
+.glance dd{min-width:2.4ch;font:600 26px/1 var(--serif);color:var(--navy);font-variant-numeric:tabular-nums}
+.glance dt{font-size:14.5px}
+.glance dt a{color:var(--ink)}
+.glance dt a:hover{color:var(--crimson)}
+.info-address{font-style:normal;color:var(--muted);font-size:15px;line-height:1.55}
+.info-areas{margin-top:clamp(36px,4vw,52px)}
+.info-areas h2{font-size:clamp(24px,2.4vw,30px);margin-bottom:14px}
+.area-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rule)}
+.area-links li{border-bottom:1px solid var(--rule)}
+.area-links li:nth-child(odd){padding-right:20px}
+.area-links a{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 0;color:inherit}
+.area-links-title{font:600 18px/1.3 var(--serif);color:var(--navy);transition:color .15s}
+.area-links-note{grid-row:2;font-size:14px;color:var(--muted)}
+.area-links .icon{grid-row:1/3;grid-column:2;align-self:center;color:var(--muted);transition:transform .2s var(--ease)}
+.area-links a:hover .area-links-title{color:var(--crimson)}
+.area-links a:hover .icon{transform:translateX(4px)}
+.info-video{margin-top:24px}
+@media(max-width:900px){.info-layout{grid-template-columns:1fr}.info-aside{position:static}.contact-topics{grid-template-columns:1fr}}
+@media(max-width:640px){.area-links{grid-template-columns:1fr}.area-links li:nth-child(odd){padding-right:0}.web3form .form-row{grid-template-columns:1fr}.contact-topics li{padding:18px}}
 .contact-card{position:sticky;top:calc(var(--header-h) + 24px);display:grid;gap:4px;padding:28px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)}
 .contact-card h2{font-size:26px}
 .contact-actions{display:grid;gap:10px;margin-top:22px}
@@ -721,6 +756,8 @@ button,input,select,textarea{font:inherit;color:inherit}
   .search-field{min-height:46px}
   .button{min-height:46px;padding:11px 18px;font-size:15px}
   .eyebrow{font-size:11.5px}
+  .prose{font-size:16.5px;line-height:1.65}
+  .prose h2{font-size:24px}
 }
 @media(max-width:640px){
   .area-grid{gap:0}

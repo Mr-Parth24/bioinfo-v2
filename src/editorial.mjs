@@ -54,7 +54,7 @@ function fill(record, fields) {
 /* Replacements swap a value (e.g. an image) only while every field in `when` still holds the value
    being replaced, so a record an editor has already changed is left alone. */
 function replace(record, update) {
-  if (!update || !Object.entries(update.when).every(([key, value]) => record[key] === value)) return null;
+  if (!update || !Object.entries(update.when).every(([key, value]) => (record[key] ?? '') === value)) return null;
   return { ...record, ...update.set };
 }
 const REPLACE_KEY = 'content-replacements:2026-10';
@@ -62,7 +62,7 @@ const REPLACE_KEY = 'content-replacements:2026-10';
 export function withContentUpdates(records) {
   return records.map(record => {
     const filled = (contentUpdates.records[record.id] && fill(record, contentUpdates.records[record.id])) || record;
-    return replace(filled, contentUpdates.replacements?.records[record.id]) || filled;
+    return replacementSets().reduce((r, set) => replace(r, set.records?.[record.id]) || r, filled);
   });
 }
 export function applyContentUpdates(store) {
@@ -76,14 +76,19 @@ export function applyContentUpdates(store) {
   store.setMeta(UPDATE_KEY, new Date().toISOString());
   return count + applyReplacements(store);
 }
+/* Replacement sets run in order, each once per database (its own marker). The first set predates
+   the list and keeps its original marker; later ones live in replacementSets with their own key. */
+const replacementSets = () => [{ key: REPLACE_KEY, records: contentUpdates.replacements?.records || {} }, ...(contentUpdates.replacementSets || [])];
 function applyReplacements(store) {
-  if (store.meta(REPLACE_KEY)) return 0;
   let count = 0;
-  for (const [id, update] of Object.entries(contentUpdates.replacements?.records || {})) {
-    const current = store.get(id);
-    const next = current && replace(current, update);
-    if (next) { store.save(next, current.version, 'content-update'); count++; }
+  for (const set of replacementSets()) {
+    if (store.meta(set.key)) continue;
+    for (const [id, update] of Object.entries(set.records || {})) {
+      const current = store.get(id);
+      const next = current && replace(current, update);
+      if (next) { store.save(next, current.version, 'content-update'); count++; }
+    }
+    store.setMeta(set.key, new Date().toISOString());
   }
-  store.setMeta(REPLACE_KEY, new Date().toISOString());
   return count;
 }
