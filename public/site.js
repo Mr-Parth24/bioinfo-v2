@@ -10,7 +10,7 @@
 
   /* ---------- Header: elevation on scroll, mobile menu, navigation panels ---------- */
   const header = document.querySelector('[data-site-header]');
-  const menuButton = document.querySelector('.menu-button');
+  const menuButtons = document.querySelectorAll('.menu-button');
   const nav = document.getElementById('site-nav');
 
   let ticking = false;
@@ -19,7 +19,7 @@
     ticking = true;
     requestAnimationFrame(() => {
       header?.classList.toggle('is-scrolled', scrollY > 8);
-      toTop?.classList.toggle('is-visible', scrollY > 900);
+      toTop?.classList.toggle('is-visible', scrollY > 450);
       ticking = false;
     });
   };
@@ -30,15 +30,20 @@
     item.querySelector('.nav-expand')?.setAttribute('aria-expanded', 'false');
   });
   const setMenu = open => {
-    if (!header || !menuButton) return;
+    if (!header || !menuButtons.length) return;
     if (open) document.documentElement.style.setProperty('--menu-top', Math.max(0, header.getBoundingClientRect().bottom) + 'px');
     header.classList.toggle('menu-open', open);
     document.documentElement.classList.toggle('menu-locked', open);
-    menuButton.setAttribute('aria-expanded', String(open));
-    menuButton.querySelector('.menu-button-label').textContent = open ? 'Close' : 'Menu';
+    menuButtons.forEach(btn => {
+      btn.setAttribute('aria-expanded', String(open));
+      const label = btn.querySelector('.menu-button-label');
+      if (label) label.textContent = open ? 'Close' : 'Menu';
+    });
     if (!open) closePanels();
   };
-  menuButton?.addEventListener('click', () => setMenu(menuButton.getAttribute('aria-expanded') !== 'true'));
+  menuButtons.forEach(btn => {
+    btn.addEventListener('click', () => setMenu(btn.getAttribute('aria-expanded') !== 'true'));
+  });
 
   document.querySelectorAll('.nav-expand').forEach(button => {
     button.addEventListener('click', () => {
@@ -53,7 +58,7 @@
     if (event.key !== 'Escape') return;
     const openItem = document.querySelector('.nav-item.is-open');
     if (openItem) { closePanels(); openItem.querySelector('.nav-expand')?.focus(); }
-    if (header?.classList.contains('menu-open')) { setMenu(false); menuButton.focus(); }
+    if (header?.classList.contains('menu-open')) { setMenu(false); menuButtons[0]?.focus(); }
   });
   document.addEventListener('click', event => {
     if (desktop() && !event.target.closest('.nav-item')) closePanels();
@@ -108,9 +113,20 @@
       if (counter) counter.textContent = shown;
       if (empty) empty.hidden = shown !== 0 || waiting;
       directory.classList.toggle('is-filtering', Boolean(query || cat || year?.value || from || onlyRoles.length));
+      if (search) {
+        try {
+          const u = new URL(location.href);
+          if (query) u.searchParams.set('q', search.value.trim()); else u.searchParams.delete('q');
+          history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+        } catch {}
+      }
       directory.dispatchEvent(new CustomEvent('directory:update'));
     };
-    search?.addEventListener('input', update);
+    let searchTimer;
+    search?.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(update, 120);
+    });
     category?.addEventListener('change', update);
     year?.addEventListener('change', update);
     radios.forEach(r => r.addEventListener('change', update));
@@ -219,7 +235,7 @@
     };
     const schedule = () => {
       clearInterval(timer);
-      if (!stopped && !held) timer = setInterval(() => go(index + 1), 6000);
+      if (!stopped && !held) timer = setInterval(() => go(index + 1), 2000);
       show.classList.toggle('is-paused', stopped);
       pause.setAttribute('aria-label', stopped ? 'Play slideshow' : 'Pause slideshow');
     };
@@ -394,5 +410,78 @@
     if (event.target !== dialog) return;
     const r = dialog.getBoundingClientRect();
     if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
+  });
+
+  /* ---------- Report Issue Dialog ---------- */
+  const reportBtn = document.querySelector('[data-report-issue]');
+  const reportDialog = document.getElementById('report-issue-dialog');
+  if (reportBtn && reportDialog) {
+    reportBtn.addEventListener('click', () => {
+      // Auto-fill the current URL so we know what page they are reporting
+      const urlInput = reportDialog.querySelector('.report-url-input');
+      if (urlInput) urlInput.value = window.location.href;
+      reportDialog.showModal();
+    });
+    const closeBtn = reportDialog.querySelector('[data-close-report]');
+    if (closeBtn) closeBtn.addEventListener('click', () => reportDialog.close());
+    
+    // Close on clicking outside
+    reportDialog.addEventListener('click', event => {
+      if (event.target === reportDialog) reportDialog.close();
+    });
+  }
+
+  /* ---------- Contact Form AJAX Submission ---------- */
+  const web3forms = document.querySelectorAll('.web3form');
+  web3forms.forEach(form => {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+      
+      const formData = new FormData(form);
+      formData.delete('redirect');
+      
+      const object = Object.fromEntries(formData);
+      const json = JSON.stringify(object);
+      
+      try {
+        const response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: json
+        });
+        if (response.ok) {
+          const successDialog = document.createElement('dialog');
+          successDialog.className = 'form-success-dialog';
+          successDialog.innerHTML = '<div class="dialog-content"><h3>Report Sent!</h3><p>Thank you for letting us know. We will look into it.</p><button type="button" class="button">Close</button></div>';
+          
+          if (form.classList.contains('web3form-report')) {
+            reportDialog.close();
+          } else {
+            successDialog.innerHTML = '<div class="dialog-content"><h3>Message Sent!</h3><p>Thank you for reaching out. We have received your message and will get back to you shortly.</p><button type="button" class="button">Close</button></div>';
+          }
+          
+          document.body.append(successDialog);
+          successDialog.showModal();
+          successDialog.querySelector('button').addEventListener('click', () => {
+            successDialog.close();
+            successDialog.remove();
+          });
+          form.reset();
+        } else {
+          alert('Something went wrong. Please try again.');
+        }
+      } catch (error) {
+        alert('Error sending message. Please check your connection and try again.');
+      }
+      btn.textContent = originalText;
+      btn.disabled = false;
+    });
   });
 })();

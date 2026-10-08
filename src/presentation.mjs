@@ -31,6 +31,10 @@ export const icons = {
   copy: svg('<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/>'),
   doc: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>'),
   globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+  home: svg('<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'),
+  people: svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  flask: svg('<path d="M9 2v2h6V2"/><path d="M11 6v6l-4 8h10l-4-8V6"/>'),
+  code: svg('<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>'),
 };
 export const arrow = icons.arrow;
 
@@ -163,7 +167,8 @@ export function header(path, records = []) {
     + `<nav id="site-nav" class="primary-nav" aria-label="Main navigation"><ul class="nav-list">${items}</ul>`
     + `<div class="nav-mobile-footer">${resources.map(r => `<a href="${e(safeUrl(r.link))}">${e(r.type)}</a>`).join('')}<a href="https://biocluster.usu.edu/rstudio" target="_blank" rel="noopener noreferrer">USU RStudio</a><a href="/contact">Contact</a></div></nav>`
     + `<div class="header-actions"><a class="icon-button" href="/search" aria-label="Search the website">${icons.search}</a><a class="button button-small header-cta" href="/opportunities">Join the lab</a><button type="button" class="menu-button" aria-controls="site-nav" aria-expanded="false"><span class="menu-button-label">Menu</span>${icons.menu}${icons.close}</button></div>`
-    + `</div></header>`;
+    + `</div></header>`
+    + `<nav class="mobile-dock" aria-label="Quick navigation"><a href="/"${path === '/' ? ' aria-current="page"' : ''}>${icons.home}<span>Home</span></a><a href="/research"${path.startsWith('/research') ? ' aria-current="page"' : ''}>${icons.flask}<span>Research</span></a><a href="/tools"${path.startsWith('/tools') ? ' aria-current="page"' : ''}>${icons.code}<span>Tools</span></a><a href="/people"${path.startsWith('/people') ? ' aria-current="page"' : ''}>${icons.people}<span>People</span></a><button type="button" class="dock-menu-button menu-button" aria-controls="site-nav" aria-expanded="false">${icons.menu}<span>Menu</span></button></nav>`;
 }
 
 export function footer(records = []) {
@@ -176,9 +181,21 @@ export function footer(records = []) {
     + `<address class="footer-contact"><span>${icons.pin}<span>${e(c.address).replaceAll('\n', '<br>')}</span></span><a href="mailto:${e(c.email)}">${icons.mail}<span>${e(c.email)}</span></a>${c.phone ? `<a href="tel:${e(phone)}">${icons.phone}<span>${e(c.phone)}</span></a>` : ''}</address></div>`
     + `<nav class="footer-nav" aria-label="Footer"><div><h2>Research</h2><ul><li><a href="/research">Research program</a></li>${research.map(r => `<li><a href="${e(r.route)}">${e(r.title)}</a></li>`).join('')}</ul></div>`
     + `<div><h2>Explore</h2><ul><li><a href="/people">People</a></li><li><a href="/publications">Publications</a></li><li><a href="/tools">Tools &amp; databases</a></li><li><a href="/news">News</a></li><li><a href="/events">Events</a></li></ul></div>`
-    + `<div><h2>About</h2><ul><li><a href="/about">About the lab</a></li><li><a href="/about/overview">Lab overview</a></li><li><a href="/opportunities">Opportunities</a></li><li><a href="/contact">Contact</a></li></ul></div>`
+    + `<div><h2>About</h2><ul><li><a href="/about">About the lab</a></li><li><a href="/about/overview">Lab overview</a></li><li><a href="/opportunities">Opportunities</a></li><li><a href="/contact">Contact</a></li><li><button type="button" class="link-btn report-issue-btn" data-report-issue>Report a website issue</button></li></ul></div>`
     + `<div><h2>Affiliations</h2><ul>${links(c.affiliationLinks)}${links(c.resourceLinks)}</ul></div></nav></div>`
-    + `<div class="wrap footer-bottom"><p>© ${new Date().getFullYear()} ${e(c.title)}</p><ul class="footer-social">${links(c.social)}</ul><a class="footer-admin" href="/admin">Editor sign-in</a></div></footer>`;
+    + `<div class="wrap footer-bottom"><p>© ${new Date().getFullYear()} ${e(c.title)}</p><ul class="footer-social">${links(c.social)}</ul><a class="footer-admin" href="/admin">Editor sign-in</a></div>`
+    + `<dialog id="report-issue-dialog" class="form-dialog">`
+    + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form web3form-report">`
+    + `<input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a">`
+    + `<h3>Report an Issue</h3>`
+    + `<p class="dialog-desc">Found a bug or broken link? Let us know so we can fix it!</p>`
+    + `<input type="hidden" name="subject" value="Website Issue Report">`
+    + `<input type="hidden" name="page_url" class="report-url-input">`
+    + `<div class="form-group"><label for="report-type">Issue Type</label><select id="report-type" name="issue_type"><option value="Broken Link">Broken link</option><option value="Missing Content">Missing image/content</option><option value="Design Issue">Layout or design issue</option><option value="Typo">Typo or incorrect info</option><option value="Other">Other</option></select></div>`
+    + `<div class="form-group"><label for="report-desc">Description</label><textarea id="report-desc" name="message" required placeholder="What is wrong?"></textarea></div>`
+    + `<div class="dialog-actions"><button type="submit" class="button">Send Report</button><button type="button" class="button button-ghost" data-close-report>Cancel</button></div>`
+    + `</form></dialog>`
+    + `</footer>`;
 }
 
 /* ---------- Home ---------- */
@@ -216,11 +233,12 @@ function pickOpportunity(records, c) {
   return open[0] || null;
 }
 
-const SLIDE_LABEL = { news: 'News', events: 'Event', research: 'Research' };
+const SLIDE_LABEL = { news: 'News', events: 'Event', research: 'Research', pages: 'About' };
 /** Hero slides: the homepage photo, any extra lab photos, then chosen, latest or random records with images. */
-function heroSlides(records, c) {
+function heroSlides(records, inC) {
+  const c = { heroMode: 'random', heroSlideCount: 8, ...inC };
   const slides = c.image ? [{ record: c, caption: c.imageCaption || '' }] : [];
-  if (!c.heroMode || c.heroMode === 'single') return slides;
+  if (c.heroMode === 'single') return slides;
   for (const url of c.gallery || []) slides.push({ record: { image: url, imageAlt: 'Life in the KAABiL lab', title: 'KAABiL lab' }, caption: '' });
   const pool = published(records).filter(r => SLIDE_LABEL[r.collection] && r.image && r.route);
   let picked;
@@ -291,9 +309,11 @@ export function homepage(records) {
 
   const lab = showDirector ? `<section class="home-section home-director"><div class="wrap director-band">${image(director, 'director-band-image', false)}<div class="director-band-text"><p class="eyebrow">Principal investigator</p><h2>${e(director.title)}</h2><p class="director-band-role">${e(director.summary)}</p><p>Dr. Kaundal leads KAABiL and directs the Bioinformatics Facility at Utah State University.</p><div class="hero-actions"><a class="button" href="/people/rakesh">Read profile ${arrow}</a><a class="button button-ghost" href="/people">Meet the team</a></div></div></div></section>` : '';
 
+  const sponsors = `<section class="home-section home-sponsors"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Institutional support & research sponsors</p><h2>Partners &amp; Affiliations</h2></div></div><ul class="chip-links"><li><a href="https://www.usu.edu/" target="_blank" rel="noopener noreferrer">Utah State University ${icons.external}</a></li><li><a href="https://caas.usu.edu/" target="_blank" rel="noopener noreferrer">College of Agriculture &amp; Applied Sciences ${icons.external}</a></li><li><a href="https://psc.usu.edu/" target="_blank" rel="noopener noreferrer">Plants, Soils &amp; Climate ${icons.external}</a></li><li><a href="https://nifa.usda.gov/" target="_blank" rel="noopener noreferrer">USDA-NIFA ${icons.external}</a></li><li><a href="https://www.nsf.gov/" target="_blank" rel="noopener noreferrer">National Science Foundation ${icons.external}</a></li><li><a href="https://www.nih.gov/" target="_blank" rel="noopener noreferrer">National Institutes of Health ${icons.external}</a></li></ul></div></section>`;
+
   const join = `<section class="home-join"><div class="wrap join-band"><div><p class="eyebrow">Join us</p><h2>Students, postdocs and visiting researchers are welcome.</h2><p>We look for curious people from biology, computer science, statistics and engineering. Tell us about your interests.</p></div><div class="join-actions"><a class="button button-light" href="/opportunities">See opportunities ${arrow}</a><a class="button button-outline-light" href="/contact">Contact the lab</a></div></div></section>`;
 
-  return hero + areas + latest + tools + pubs + lab + join;
+  return hero + areas + latest + tools + pubs + lab + sponsors + join;
 }
 
 function eventPanel({ record: r, label }) {

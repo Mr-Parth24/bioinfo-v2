@@ -65,11 +65,11 @@ export function adminPage({session,configured}) {
           <span class="editor-breadcrumb" id="editor-breadcrumb">News / Edit</span>
         </div>
         <div class="editor-actions">
-          <button type="button" class="small-button delete-button" id="delete-record">Delete</button>
           <button type="button" class="small-button" id="duplicate-record">Duplicate ⎘</button>
           <a id="preview-record" class="small-button" target="_blank" rel="noopener">Live Preview ↗</a>
           <button type="button" class="small-button" id="save-close-record">Save & Close</button>
           <button type="submit" class="button primary-btn" id="save-record">Save Changes</button>
+          <button type="button" class="small-button delete-button" id="delete-record">Delete</button>
         </div>
       </div>
       <div class="editor-meta-strip">
