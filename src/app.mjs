@@ -20,7 +20,7 @@ const securityHeaders={
  'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'strict-origin-when-cross-origin',
  'permissions-policy':'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), display-capture=(), interest-cohort=()',
  'cross-origin-opener-policy':'same-origin','cross-origin-resource-policy':'same-site','x-permitted-cross-domain-policies':'none','origin-agent-cluster':'?1',
- 'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; font-src 'self'; connect-src 'self' https://api.web3forms.com; media-src 'self'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://api.web3forms.com"
+ 'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https:; font-src 'self'; connect-src 'self' https://api.web3forms.com https://kaabil.net; media-src 'self'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://api.web3forms.com"
 };
 const robots='User-agent: *\nDisallow: /admin\nDisallow: /uploads/\n';
 function response(body,status=200,headers={}){return new Response(body,{status,headers:{...securityHeaders,'cache-control':'no-store',...headers}});}

@@ -22,7 +22,7 @@ test('content updates fill empty fields once and never overwrite editors',()=>{
  assert.ok(applyContentUpdates(store)>=0);
  assert.equal(store.get('research:hpi').body,'<p>Editor text</p>','editor body kept');
  assert.ok(store.get('research:hpi').toolIds.length,'empty relations filled');
- assert.match(store.get('research:ai').body,/Our approach/);
+ assert.match(store.get('research:ai').body,/Computational modeling through pattern recognition/,'untouched text gets the latest replacement');
  const cleared={...store.get('research:ai'),body:''};store.save(cleared,cleared.version,'editor');
  assert.equal(applyContentUpdates(store),0,'runs once per database');
  assert.equal(store.get('research:ai').body,'','a deliberately emptied field stays empty');
