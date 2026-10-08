@@ -146,17 +146,15 @@ function toolsPage(records) {
   const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   const card = r => `<li class="tool-card glow" data-tone="${toneFor(r.category)}" data-item data-category="${e(r.category)}" data-search="${e(r.title + ' ' + r.category + ' ' + (r.summary || ''))}"><a class="tool-card-link" href="${e(r.link)}" target="_blank" rel="noopener noreferrer">`
     + `<div class="tool-window"><div class="tool-window-bar" aria-hidden="true"><i></i><i></i><i></i><span>${e(hostOf(r.link))}</span></div><div class="tool-shot">${r.image ? image({ ...r, imageFit: r.imageFit || 'contain' }, '', false) : `<span class="tool-mark">${e(r.title.slice(0, 2))}</span>`}</div></div>`
-    + `<div class="tool-card-body"><span class="tool-cat">${e(r.category)}</span><h3>${e(r.title)}</h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<span class="tool-open">Open tool ${icons.external}<span class="sr-only">(opens ${e(hostOf(r.link))} in a new tab)</span></span></div></a>`
+    + `<div class="tool-card-body"><h3>${e(r.title)}</h3>${r.summary ? `<p>${e(r.summary)}</p>` : ''}<span class="tool-open">Open tool ${icons.external}<span class="sr-only">(opens ${e(hostOf(r.link))} in a new tab)</span></span></div></a>`
     + `${r.resourceLinks?.length ? `<div class="tool-resources">${r.resourceLinks.map(x => `<a href="${e(safeUrl(x.link))}">${e(x.type)}</a>`).join('')}</div>` : ''}</li>`;
-  const chips = `<div class="filter-chips tone-chips" role="group" aria-label="Filter by category"><label class="chip"><input type="radio" name="category" value="" data-category-filter checked><span>All<small>${tools.length}</small></span></label>${groups.map(g => `<label class="chip" data-tone="${g.tone}"><input type="radio" name="category" value="${e(g.name)}" data-category-filter><span><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}<small>${g.items.length}</small></span></label>`).join('')}</div>`;
-  const aside = `<aside class="side-nav"><p class="eyebrow">Categories</p><ul>${groups.map(g => `<li><a href="#${e(g.anchor)}" data-tone="${g.tone}"><span><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}</span><span>${g.items.length}</span></a></li>`).join('')}</ul></aside>`;
+  const chips = `<div class="filter-chips tone-chips scroll-chips" role="group" aria-label="Filter by category"><label class="chip"><input type="radio" name="category" value="" data-category-filter checked><span>All<small>${tools.length}</small></span></label>${groups.map(g => `<label class="chip" data-tone="${g.tone}"><input type="radio" name="category" value="${e(g.name)}" data-category-filter><span><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}<small>${g.items.length}</small></span></label>`).join('')}</div>`;
   return pageHeader('Tools & databases', 'Web servers, prediction tools and databases developed at KAABiL. Each opens on its original site and is free for academic research.', 'Resources', {
     aside: `<dl class="header-facts"><div><dt>Resources</dt><dd data-countup="${tools.length}">${tools.length}</dd></div><div><dt>Categories</dt><dd data-countup="${groups.length}">${groups.length}</dd></div></dl>`,
   })
-    + `<div class="wrap page-body tools-layout" data-directory>`
-    + aside
-    + `<div class="tools-main"><form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search tools</span>${icons.search}<input name="q" type="search" placeholder="Search tools, e.g. localization, wheat, deep learning…" data-search-input autocomplete="off"></label><p class="result-count" aria-live="polite"><span data-count>${tools.length}</span> tools</p>${chips}</form><p class="empty-state" data-empty hidden>No tool matches that search.</p>`
-    + groups.map(g => `<section class="tool-group" data-tone="${g.tone}" data-filter-group id="${e(g.anchor)}" aria-labelledby="tg-${e(g.anchor)}"><div class="group-head"><h2 id="tg-${e(g.anchor)}"><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}</h2><span>${count(g.items.length, 'resource')}</span></div><ul class="tool-grid">${g.items.map(card).join('')}</ul></section>`).join('') + `</div></div>`;
+    + `<div class="wrap page-body tools-directory" data-directory>`
+    + `<form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search tools</span>${icons.search}<input name="q" type="search" placeholder="Search tools, e.g. localization, wheat, deep learning…" data-search-input autocomplete="off"></label><p class="result-count" aria-live="polite"><span data-count>${tools.length}</span> tools</p>${chips}</form><p class="empty-state" data-empty hidden>No tool matches that search. Try another word or choose “All”.</p>`
+    + groups.map(g => `<section class="tool-group" data-tone="${g.tone}" data-filter-group id="${e(g.anchor)}" aria-labelledby="tg-${e(g.anchor)}"><div class="group-head"><h2 id="tg-${e(g.anchor)}"><i class="tone-dot" aria-hidden="true"></i>${e(g.name)}</h2><span>${count(g.items.length, 'resource')}</span></div><ul class="tool-grid">${g.items.map(card).join('')}</ul></section>`).join('') + `</div>`;
 }
 
 /* ---------- Publications ---------- */
@@ -247,11 +245,11 @@ function publicationPage(records, params) {
   const tabs = `<nav class="tabs" aria-label="Publication types">${modes.map(([key, , label, href]) => `<a href="${href}"${mode === key ? ' aria-current="page"' : ''}>${label}<span>${pubs.filter(r => r.category === key).length}</span></a>`).join('')}<a class="tabs-external" href="https://scholar.google.com/citations?user=Vu1-tr8AAAAJ&amp;hl=en&amp;oi=ao" target="_blank" rel="noopener noreferrer">Google Scholar ${icons.external}</a></nav>`;
   const ranges = yearRanges(selected.map(yearOf));
   const rangeChips = ranges.length > 1
-    ? `<div class="control-row"><p class="control-label" id="years-label">Years</p><div class="filter-chips range-chips" role="group" aria-labelledby="years-label"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div></div>`
+    ? `<div class="control-row"><p class="control-label" id="years-label">Years</p><div class="filter-chips range-chips scroll-chips" role="group" aria-labelledby="years-label"><label class="chip"><input type="radio" name="years" value="" data-year-range checked><span>All<small>${selected.length}</small></span></label>${ranges.map(r => `<label class="chip"><input type="radio" name="years" value="${r.start}-${r.end}" data-year-range><span>${r.start}–${r.end}<small>${r.n}</small></span></label>`).join('')}</div></div>`
     : '';
   const roleCounts = AUTHOR_ROLES.map(([id, label, help]) => ({ id, label, help, n: selected.filter(r => authorRoles(r.authors).includes(id)).length })).filter(x => x.n);
   const roleControl = roleCounts.length
-    ? `<div class="control-row"><p class="control-label" id="roles-label">Author roles</p><div class="role-filter"><div class="filter-chips" role="group" aria-labelledby="roles-label">${roleCounts.map(x => `<button type="button" class="role-chip role-${x.id}" data-author-key="${x.id}" aria-pressed="false" title="${e(x.help)}"><span class="role-dot" aria-hidden="true"></span><span>${e(x.label)}</span><small>${x.n}</small></button>`).join('')}</div><div class="role-actions" hidden><label class="only-toggle"><input type="checkbox" data-role-only><span>Only show these publications</span></label><button type="button" class="role-clear" data-role-clear>Clear selection</button></div></div></div>`
+    ? `<div class="control-row"><p class="control-label" id="roles-label">Author roles</p><div class="role-filter"><div class="filter-chips scroll-chips" role="group" aria-labelledby="roles-label">${roleCounts.map(x => `<button type="button" class="role-chip role-${x.id}" data-author-key="${x.id}" aria-pressed="false" title="${e(x.help)}"><span class="role-dot" aria-hidden="true"></span><span>${e(x.label)}</span><small>${x.n}</small></button>`).join('')}</div><div class="role-actions" hidden><label class="only-toggle"><input type="checkbox" data-role-only><span>Only show these publications</span></label><button type="button" class="role-clear" data-role-clear>Clear selection</button></div></div></div>`
     : '';
   return pageHeader('Publications', 'Journal articles, conference presentations and editorial work from the lab, newest first.', 'Scholarship', { trail: mode === 'Papers' ? [['Publications']] : [['Publications', '/publications'], [modes.find(m => m[0] === mode)[2]]] })
     + `<div class="wrap page-body">${tabs}<div data-directory><div class="pub-controls">${filterBar(selected, 'publications', { categories: false })}${rangeChips}${roleControl}</div>`
@@ -364,22 +362,24 @@ const NEWS_SECTIONS = [
 ];
 const newsSection = r => (NEWS_SECTIONS.some(c => c.id === r.category) ? r.category : 'General');
 
-function newsCard(input, records) {
+function newsCard(input, records, lead = false) {
   const r = { ...input, date: displayDate(input) };
   const href = r.route || linkFor(r, records);
   const ext = /^https?:/i.test(href);
   const sec = newsSection(r);
-  return `<li class="news-card${r.image ? ' has-thumb' : ''}" data-item data-category="${e(sec)}" data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + r.date))}"><a href="${e(href)}"${external(href)}>${r.image ? `<div class="news-thumb">${image(r, '', false)}</div>` : ''}<div class="news-card-text"><p class="meta"><time>${e(r.date)}</time>${r.category && r.category !== sec ? `<span class="tag">${e(r.category)}</span>` : ''}</p><h3>${e(r.title)}${ext ? ` ${icons.external}` : ''}</h3>${r.summary ? `<p class="news-summary">${e(r.summary)}</p>` : ''}</div></a></li>`;
+  const label = NEWS_SECTIONS.find(s => s.id === sec).label;
+  return `<li class="news-card${r.image ? ' has-thumb' : ''}" data-item data-category="${e(sec)}"${lead ? ' data-lead' : ''} data-search="${e(plainText(r.title + ' ' + (r.summary || '') + ' ' + r.date + ' ' + label))}"><a href="${e(href)}"${external(href)}>${r.image ? `<div class="news-thumb">${image(r, '', false)}</div>` : ''}<div class="news-card-text"><p class="meta"><span class="tag">${e(label)}</span><time>${e(r.date)}</time></p><h3>${e(r.title)}${ext ? ` ${icons.external}` : ''}</h3>${r.summary ? `<p class="news-summary">${e(r.summary)}</p>` : ''}</div></a></li>`;
 }
 
+/** One lead story, then every story once: a single list filtered by section and search, revealed in pages. */
 function newsListing(list, records) {
-  const [lead, ...side] = list.slice(0, 3);
+  const lead = list[0];
   const leadHref = lead && (lead.route || linkFor(lead, records));
-  const featured = lead ? `<section class="news-featured" aria-label="Latest stories"><article class="news-lead${lead.image ? ' has-image' : ''}">${lead.image ? `<a class="news-lead-media" href="${e(leadHref)}" tabindex="-1" aria-hidden="true">${image(lead, '', false)}</a>` : ''}<div class="news-lead-text"><p class="meta"><span class="tag tag-accent">Latest</span><span class="tag">${e(NEWS_SECTIONS.find(s => s.id === newsSection(lead)).label)}</span><time>${e(displayDate(lead))}</time></p><h2><a href="${e(leadHref)}"${external(leadHref)}>${e(lead.title)}</a></h2>${lead.summary ? `<p>${e(lead.summary)}</p>` : ''}</div></article><ul class="news-side">${side.map(r => { const h = r.route || linkFor(r, records); return `<li><p class="meta"><span class="tag">${e(NEWS_SECTIONS.find(s => s.id === newsSection(r)).label)}</span><time>${e(displayDate(r))}</time></p><h3><a href="${e(h)}"${external(h)}>${e(r.title)}</a></h3></li>`; }).join('')}</ul></section>` : '';
+  const featured = lead ? `<section class="news-featured" aria-label="Latest story"><article class="news-lead${lead.image ? ' has-image' : ''}">${lead.image ? `<a class="news-lead-media" href="${e(leadHref)}" tabindex="-1" aria-hidden="true">${image(lead, '', false)}</a>` : ''}<div class="news-lead-text"><p class="meta"><span class="tag tag-accent">Latest</span><span class="tag">${e(NEWS_SECTIONS.find(s => s.id === newsSection(lead)).label)}</span><time>${e(displayDate(lead))}</time></p><h2><a href="${e(leadHref)}"${external(leadHref)}>${e(lead.title)}</a></h2>${lead.summary ? `<p>${e(lead.summary)}</p>` : ''}<a class="link-more" href="${e(leadHref)}"${external(leadHref)}>Read the story ${arrow}</a></div></article></section>` : '';
   const groups = NEWS_SECTIONS.map(c => ({ ...c, items: list.filter(r => newsSection(r) === c.id) })).filter(c => c.items.length);
-  const tabs = `<div class="news-tabs" role="tablist" aria-label="News sections"><button type="button" role="tab" class="news-tab is-active" aria-selected="true" data-view="all">All sections<span>${list.length}</span></button>${groups.map(c => `<button type="button" role="tab" class="news-tab" aria-selected="false" data-view="${e(c.id)}">${e(c.label)}<span>${c.items.length}</span></button>`).join('')}</div>`;
-  const cols = groups.map(c => `<section class="news-col" data-col="${e(c.id)}" data-filter-group aria-labelledby="nc-${e(c.id)}"><header class="news-col-head"><h2 id="nc-${e(c.id)}">${e(c.label)}</h2><p>${e(c.desc)}</p><span class="count-badge">${c.items.length}</span></header><ul class="news-list">${c.items.map(r => newsCard(r, records)).join('')}</ul><button type="button" class="news-more" hidden>Show more</button></section>`).join('');
-  return `${featured}<div class="news-controls">${filterBar(list, 'news', { categories: false })}${tabs}</div><div class="news-board" data-view="all">${cols}</div>`;
+  const chips = `<div class="filter-chips scroll-chips" role="group" aria-label="Filter by section"><label class="chip"><input type="radio" name="category" value="" data-category-filter checked><span>All stories<small>${list.length}</small></span></label>${groups.map(c => `<label class="chip" title="${e(c.desc)}"><input type="radio" name="category" value="${e(c.id)}" data-category-filter><span>${e(c.label)}<small>${c.items.length}</small></span></label>`).join('')}</div>`;
+  const controls = `<form class="filter-bar" role="search"><label class="search-field"><span class="sr-only">Search news</span>${icons.search}<input name="q" type="search" placeholder="Search news, e.g. award, grant, StripeNET…" data-search-input autocomplete="off"></label><p class="result-count" aria-live="polite"><span data-count>${list.length}</span> stories</p>${chips}</form><p class="empty-state" data-empty hidden>No story matches that search. Try another word or choose “All stories”.</p>`;
+  return `${featured}<section class="news-archive" aria-labelledby="news-all"><div class="group-head"><h2 id="news-all">All stories</h2></div>${controls}<ul class="news-list" data-paginate="10">${list.map((r, i) => newsCard(r, records, i === 0)).join('')}</ul><p class="list-more"><button type="button" class="button button-ghost" data-more hidden>Show more stories</button></p></section>`;
 }
 
 /* ---------- Events ---------- */
@@ -400,8 +400,8 @@ function eventsListing(list) {
   const cards = rows => rows.map(eventCard).join('');
   const upcomingBlock = upcoming.length
     ? `<section class="event-upcoming" data-filter-group aria-labelledby="up-h"><h2 id="up-h" class="group-title">Upcoming</h2><ul class="event-grid event-grid-wide">${cards(upcoming)}</ul></section>`
-    : `<div class="notice-panel"><div><p class="eyebrow">Coming up</p><h2>No events are scheduled right now</h2><p>New events appear here as soon as they are announced.</p></div><a class="button button-ghost" href="/contact">Contact the lab ${arrow}</a></div>`;
-  const yearNav = years.length ? `<nav class="year-nav" aria-label="Jump to year">${years.map(y => `<a href="#year-${e(y)}">${e(y)}</a>`).join('')}</nav>` : '';
+    : `<p class="inline-notice">${icons.calendar}<span><strong>No upcoming events right now.</strong> New events appear here as soon as they are announced.</span></p>`;
+  const yearNav = years.length > 1 ? `<nav class="year-nav" aria-label="Jump to year"><span class="year-nav-label">Jump to</span>${years.map(y => `<a href="#year-${e(y)}">${e(y)}</a>`).join('')}</nav>` : '';
   const undated = past.filter(r => !eventYear(r));
   return `${upcomingBlock}${yearNav}${years.map(y => { const rows = past.filter(r => eventYear(r) === y); return `<section class="event-year" id="year-${e(y)}" data-filter-group aria-labelledby="y-${e(y)}"><div class="group-head"><h2 id="y-${e(y)}">${e(y)}</h2><span>${count(rows.length, 'event')}</span></div><ul class="event-grid">${cards(rows)}</ul></section>`; }).join('')}${undated.length ? `<section class="event-year" data-filter-group><ul class="event-grid">${cards(undated)}</ul></section>` : ''}`;
 }
@@ -419,7 +419,7 @@ function listing(records, collection) {
       + `<div class="wrap page-body" data-directory>${sectionSwitch(records, 'news')}${newsListing(list, records)}</div>`;
   }
   return pageHeader('Events', 'Conferences, symposia, presentations and the moments that bring our research community together.', 'News & events', { trail: [['Events']] })
-    + `<div class="wrap page-body" data-directory>${sectionSwitch(records, 'events')}${filterBar(list, 'events', { categories: false, years: true })}${eventsListing(list)}</div>`;
+    + `<div class="wrap page-body" data-directory>${sectionSwitch(records, 'events')}${filterBar(list, 'events', { categories: false })}${eventsListing(list)}</div>`;
 }
 
 /* ---------- Detail pages (news, events, research areas, pages, opportunities) ---------- */

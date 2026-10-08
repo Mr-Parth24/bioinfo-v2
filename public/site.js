@@ -13,6 +13,7 @@
   const menuButtons = document.querySelectorAll('.menu-button');
   const nav = document.getElementById('site-nav');
 
+  const stickyBar = document.querySelector('.tools-directory .filter-bar');
   let ticking = false;
   const onScroll = () => {
     if (ticking) return;
@@ -20,6 +21,7 @@
     requestAnimationFrame(() => {
       header?.classList.toggle('is-scrolled', scrollY > 8);
       toTop?.classList.toggle('is-visible', scrollY > 450);
+      if (stickyBar) stickyBar.classList.toggle('is-stuck', stickyBar.getBoundingClientRect().top <= (header?.getBoundingClientRect().bottom || 0) + 1);
       ticking = false;
     });
   };
@@ -137,53 +139,42 @@
     update();
   });
 
-  /* ---------- News board: section tabs and "show more" ---------- */
-  const board = document.querySelector('.news-board');
-  if (board) {
-    const directory = board.closest('[data-directory]');
-    const tabs = [...document.querySelectorAll('.news-tab')];
-    const cols = [...board.querySelectorAll('.news-col')];
-    const small = () => matchMedia('(max-width: 720px)').matches;
-    const step = view => view === 'all' ? (small() ? 4 : 6) : (small() ? 6 : 12);
-    const limits = new Map();
-    let view = 'all';
+  /* ---------- Long lists: reveal in pages ("Show more"); filtering or searching shows every match ---------- */
+  document.querySelectorAll('[data-paginate]').forEach(list => {
+    const directory = list.closest('[data-directory]');
+    const button = list.parentElement.querySelector('[data-more]');
+    const size = Number(list.dataset.paginate) || 10;
+    let limit = size;
     const apply = () => {
       const filtering = directory?.classList.contains('is-filtering');
-      for (const col of cols) {
-        const limit = limits.get(col) || step(view);
-        let shown = 0, more = 0;
-        for (const card of col.querySelectorAll('.news-card')) {
-          if (card.hidden) { card.classList.remove('is-extra'); continue; }
-          if (filtering || shown < limit) { card.classList.remove('is-extra'); shown++; }
-          else { card.classList.add('is-extra'); more++; }
-        }
-        const button = col.querySelector('.news-more');
-        button.hidden = more === 0;
-        if (more) button.textContent = `Show ${Math.min(more, step(view))} more (${more} remaining)`;
+      // The lead story is already featured above the list, so it only joins the list while filtering.
+      const visible = [...list.querySelectorAll('[data-item]')].filter(item => !item.hidden && (filtering || !item.hasAttribute('data-lead')));
+      let shown = 0;
+      for (const item of visible) {
+        const extra = !filtering && shown >= limit;
+        item.classList.toggle('is-extra', extra);
+        if (!extra) shown++;
+      }
+      const more = filtering ? 0 : visible.length - shown;
+      if (button) {
+        button.hidden = more <= 0;
+        button.textContent = `Show ${Math.min(more, size)} more (${more} remaining)`;
       }
     };
-    const setView = (next, updateUrl = true) => {
-      view = next;
-      board.dataset.view = next;
-      limits.clear();
-      tabs.forEach(tab => {
-        const on = tab.dataset.view === next;
-        tab.classList.toggle('is-active', on);
-        tab.setAttribute('aria-selected', String(on));
-      });
-      if (updateUrl) { try { history.replaceState(null, '', next === 'all' ? location.pathname + location.search : '#' + next.toLowerCase()); } catch {} }
+    button?.addEventListener('click', () => {
+      const first = list.querySelector('.is-extra');
+      limit += size;
       apply();
-    };
-    tabs.forEach(tab => tab.addEventListener('click', () => setView(tab.dataset.view)));
-    cols.forEach(col => col.querySelector('.news-more').addEventListener('click', () => {
-      limits.set(col, (limits.get(col) || step(view)) + step(view));
-      apply();
-    }));
-    directory?.addEventListener('directory:update', apply);
-    const wanted = location.hash.slice(1).toLowerCase();
-    const match = tabs.find(tab => tab.dataset.view.toLowerCase() === wanted);
-    setView(match ? match.dataset.view : 'all', false);
-    addEventListener('resize', () => { limits.clear(); apply(); });
+      first?.querySelector('a')?.focus({ preventScroll: true });
+    });
+    directory?.addEventListener('directory:update', () => { limit = size; apply(); });
+    apply();
+  });
+  /* Old links such as /news#science select that section. */
+  const wanted = location.hash.slice(1).toLowerCase();
+  if (wanted) {
+    const radio = [...document.querySelectorAll('input[type="radio"][data-category-filter]')].find(r => r.value && r.value.toLowerCase() === wanted);
+    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
   }
 
   /* ---------- Publications: author roles. Several can be selected; each draws its own coloured line
@@ -235,7 +226,7 @@
     };
     const schedule = () => {
       clearInterval(timer);
-      if (!stopped && !held) timer = setInterval(() => go(index + 1), 2000);
+      if (!stopped && !held) timer = setInterval(() => go(index + 1), 6000);
       show.classList.toggle('is-paused', stopped);
       pause.setAttribute('aria-label', stopped ? 'Play slideshow' : 'Pause slideshow');
     };
@@ -412,6 +403,10 @@
     if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
   });
 
+})();
+
+/* ---------- Report-an-issue dialog and contact form (on every page, with or without images) ---------- */
+(() => {
   /* ---------- Report Issue Dialog ---------- */
   const reportBtn = document.querySelector('[data-report-issue]');
   const reportDialog = document.getElementById('report-issue-dialog');

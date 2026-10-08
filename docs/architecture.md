@@ -53,7 +53,7 @@ A news update takes this path:
 | `src/admin-render.mjs` | Editor/login HTML shell; no secrets embedded | `adminPage()` |
 | `public/site.css` | The whole public design: self-hosted fonts, tokens, chrome, components, page layouts, motion, print | Sections in that order; token names used by `admin.css` are kept |
 | `public/fonts/` | Inter and Source Serif 4 (SIL Open Font License); the CSP forbids external fonts | Allowlisted in `src/app.mjs` |
-| `public/site.js` | Navigation panels and mobile menu, directory filters, news tabs, copy buttons, image viewer, reveal and count-up motion | Progressive enhancement; every page works without it |
+| `public/site.js` | Navigation panels and mobile menu, directory filters, Show more for long lists, copy buttons, image viewer, reveal and count-up motion | Progressive enhancement; every page works without it |
 | `public/admin.css` | Content Studio: widget styles, then a final "Studio layer" with the app bar, list and editor layout | Loaded after `site.css` on `/admin` |
 | `public/admin.js` | Editor state, forms, uploads, publishing, revision loading and login | Calls `/admin/api/*` |
 | `content/seed.json` | Initial imported content, stable record IDs and provenance | Imported once for a new database |

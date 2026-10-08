@@ -89,6 +89,12 @@ How editing works:
 - **Conflicts.** If two people edit the same entry, the second save is refused instead of silently
   overwriting.
 - **Rich text** has formatting buttons; pasted HTML is cleaned (scripts, styles and unsafe links removed).
+- **Optional extras are collapsed.** Each editor shows the everyday fields first; related content, date
+  overrides, web address, image display options and similar extras sit in collapsed sections that show
+  how many of their fields are filled in.
+- **Images:** click the preview to set the focal point, or use *Crop…* to save a cropped copy (the original
+  stays in Media Assets). Gallery photos can be dragged into order (or moved with the ← → buttons) and
+  cropped individually. Cropping works for images stored on this site; upload a remote image first.
 
 What is **not** editable in the studio (change it in code): menu labels, section page titles/intros
 ("Tools & databases", "News"…), homepage section headings, the authorship-key meanings, layout and colours.
@@ -181,8 +187,8 @@ writable. Health check: `GET /healthz`.
 | `/research`, `/research/<area>` | Program overview; each area has written content, numbers, a tools table and its publications |
 | `/people`, `/people/alumni`, `/people/<name>`, `/people/rakesh` | Directory grouped by Staff / PhD / Master's / Undergraduates…; rich profiles; director profile |
 | `/publications` (+ `/conferences`, `/editorials`) | Grouped by year; search, year-range chips, author-role badges with highlight/filter, DOI and copy-citation |
-| `/tools` | 36 tools, colour-coded by category, with screenshots, descriptions, filter chips and hover glow |
-| `/news`, `/events` | News in General / Science / Media sections with tabs; events grouped by year |
+| `/tools` | 36 tools grouped by category, with screenshots, descriptions, one search + category-chip filter (sticky on desktop) |
+| `/news`, `/events` | Lead story, then every story once with General / Science / Media chips, search and *Show more*; events grouped by year |
 | `/about`, `/about/overview`, `/contact`, `/opportunities`, `/search` | About, contact, openings, site search |
 | `/admin` | Content Studio (not indexed by search engines) |
 
@@ -208,7 +214,7 @@ src/
   uploads.mjs        Upload validation, re-encoding, responsive variants
 public/
   site.css           The whole public design (tokens at the top)
-  site.js            Menus, filters, news tabs, author-role highlight, glow, image viewer, motion
+  site.js            Menus, filters, Show more, author-role highlight, glow, image viewer, motion
   admin.css / admin.js   Content Studio
   fonts/             Inter + Source Serif 4 (self-hosted; the CSP forbids external fonts)
   media/, asset-map.json  Local copies of original images
@@ -244,7 +250,7 @@ Research-institute style rather than a startup landing page (rules in
 - **Type:** Source Serif 4 headings, Inter body. **Colour:** USU navy + KAABiL crimson accent, warm
   neutrals; per-category tones for tools (`toneFor()` in `presentation.mjs`, `[data-tone]` in CSS).
 - **Components:** page header with breadcrumbs, cards, chips, tabs, timelines, data tables, `.glow`
-  (gradient border that follows the pointer).
+  (a faint light and tinted edge that follow the pointer; pointer devices only).
 - **Motion:** reveal on scroll, count-up numbers, view transitions — all disabled for
   `prefers-reduced-motion`.
 - **Accessibility:** one `<h1>` per page, alt text, keyboard-operable menus, WCAG 2 AA contrast

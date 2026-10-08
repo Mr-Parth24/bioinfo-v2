@@ -34,7 +34,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;}
   await p.click('[data-collection=news]'); await p.click('#new-record'); await p.waitForSelector('#field-title');
   await p.fill('#field-title',TITLE);
   await p.fill('#field-summary','A story created by the automated editor test.');
-  await p.fill('#field-category','Science');
+  await p.selectOption('#field-category','Science');
   await p.fill('#field-publishDate','2026-10-06');
   await p.selectOption('#field-status','draft');
   await p.click('#save-record'); await p.waitForTimeout(1200);
@@ -63,7 +63,9 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;}
   // homepage settings
   await p.click('#back-list'); await p.waitForTimeout(400);
   await p.click('[data-collection=settings]'); await p.waitForTimeout(400);
-  await p.click('.list-edit-btn[data-edit="settings:home"]'); await p.waitForSelector('#field-announcement');
+  await p.click('.list-edit-btn[data-edit="settings:home"]'); await p.waitForSelector('#field-announcement',{state:'attached'});
+  // Announcement and feed settings sit in collapsed sections; expand them as an editor would.
+  await p.$$eval('details.editor-collapsible',ds=>ds.forEach(d=>{d.open=true;}));
   await p.fill('#field-announcement','E2E announcement: applications open');
   await p.selectOption('#field-feedMode','hidden');
   await p.click('#save-record'); await p.waitForTimeout(1200);
