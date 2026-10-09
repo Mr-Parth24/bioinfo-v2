@@ -330,8 +330,8 @@ Backups contain password hashes — keep them private. Restore steps: [`docs/ope
 
 - **Not yet on the lab server.** Docker setup is verified in CI; deployment needs the server, HTTPS proxy
   and DNS (see Deploying).
-- **Content to review:** research-area text was written from the lab's tools, paper titles and news —
-  have the lab check the wording. Newer papers (2023–2025) have no authorship marks. One person's
+- **Content to review:** research-area text now uses only the lab's own statements from the original
+  site and is short on purpose — extend it in the studio. Newer papers (2023–2025) have no authorship marks. One person's
   category reads "Ungraduate". Event dates conflict in the source for Spring SRS 2026 and PSC Showcase.
 - **People relations are empty:** no member has publications, tools, education or links attached yet;
   profiles show those sections once editors add them.
@@ -339,6 +339,22 @@ Backups contain password hashes — keep them private. Restore steps: [`docs/ope
   on the lab server before launch.
 - **Security follow-ups:** revoke the mail-service credential the old site exposed; add rate limiting at
   the proxy; consider editor roles / SSO.
+- **Old developer guides** (`/guides/dev-env`, `run-local`, `scm-setup`) describe the original site's
+  workflow and are unpublished (Site Pages in the studio). The legacy `/admin/…` redirects still point to them.
+
+Deliberately left for later:
+
+- **Shrinking the git repository (≈426 MB).** The archived photos are still in git history, which is what
+  makes them restorable. Removing them needs a history rewrite (`git filter-repo --path data/uploads
+  --invert-paths` on a fresh clone, then a force-push) and everyone must re-clone. Do it only once the lab
+  has its own backup of those photos, and before many people clone the repository.
+- **One source for default content.** `content/seed.json`, `editorial.json`, `content-updates.json` and the
+  committed `data/content.sqlite` all feed a new database today. After the server is live, its database
+  is the source of truth: replace the seed + update layers with one exported snapshot and keep a small
+  seed for tests.
+- **Splitting the large front-end files.** `public/admin.js` (~95 KB) and `src/render.mjs` (~65 KB) work
+  but are long; split them into ES modules (the CSP already allows `<script type="module">`) when they
+  next need substantial changes.
 
 ---
 

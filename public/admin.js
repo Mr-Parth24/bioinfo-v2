@@ -919,7 +919,10 @@
 
     if (value === undefined || value === null) {
       if (['range'].includes(field.type)) value = 50;
-      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 4 : 0;
+      // Defaults must match what the site does when a setting was never saved (presentation.mjs),
+      // otherwise saving a record silently changes the site.
+      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 8 : 0;
+      else if (key === 'heroMode') value = 'random';
       else if (key === 'memberStatus') value = current.category?.split(/\s*\/\s*/).includes('Alumni') ? 'alumni' : 'current';
       else if (key === 'imageFit') value = 'cover';
       else value = '';

@@ -18,7 +18,14 @@ production one. Sign-in is limited to 10 attempts per 15 minutes per IP.
 
 ## Last verified (October 2026, cleanup pass)
 
-See the pull request description for the exact results of the latest run.
+- `npm test`: 59 tests passed.
+- `cms-e2e.cjs`: 16 of 16 checks passed (now also checks that saving homepage settings keeps the slideshow).
+- `security-probe.mjs`: all checks passed.
+- Static export: 121 pages; the unpublished developer guides are not exported.
+- 22 public pages at 390 px: no page-level horizontal overflow (chip rows scroll inside themselves).
+- Cleanup refactors (dead code, shared helpers, merged CSS rules) were checked by comparing screenshots
+  of 17 public pages at 1440/390 px and 7 studio screens with the previous commit: pixel-identical
+  except the intended phone fixes (breadcrumb, research tables).
 
 ## Known limits
 
