@@ -1274,17 +1274,6 @@ body.admin-body {
 /* Clean up Admin Studio Header to remove public site clutter */
 
 /* List View Controls & Filter Bar */
-.list-controls-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-  background: white;
-  padding: 16px;
-  border-radius: var(--admin-radius);
-  border: 1px solid var(--admin-border);
-  box-shadow: var(--admin-shadow);
-}
 
 .list-search-wrap {
   display: flex;
@@ -1356,25 +1345,6 @@ body.admin-body {
 }
 
 /* Entry Cards with Action Buttons */
-.entry-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-  padding: 14px 18px;
-  margin-bottom: 8px;
-  transition: all 0.15s ease;
-  box-shadow: var(--admin-shadow);
-  gap: 16px;
-}
-
-.entry-card:hover {
-  border-color: #cbd5e1;
-  background: #fcfdfe;
-  box-shadow: var(--admin-shadow-lg);
-}
 
 .entry-main-click {
   flex: 1;
@@ -1392,12 +1362,6 @@ body.admin-body {
   flex-wrap: wrap;
 }
 
-.entry-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--admin-text-main);
-}
-
 .entry-meta-row {
   display: flex;
   align-items: center;
@@ -1413,13 +1377,6 @@ body.admin-body {
   font-weight: 500;
   padding: 2px 8px;
   border-radius: 4px;
-}
-
-.entry-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
 }
 
 .list-edit-btn:hover {
@@ -1536,10 +1493,10 @@ body.admin-body {
 .list-controls-bar .status-pill.is-active{background:#fff;color:var(--navy);box-shadow:0 1px 2px rgb(15 36 57/.12)}
 .list-controls-bar .styled-select{width:auto;min-width:0;min-height:42px;padding:8px 12px;border:1px solid var(--rule-strong);border-radius:var(--radius-sm);background:#fff;font-size:14.5px}
 #entries{display:grid;gap:8px}
-.entry-card{display:flex;align-items:center;gap:16px;margin:0;padding:14px 16px;border:1px solid var(--rule);border-radius:var(--radius);background:#fff;box-shadow:none;transition:border-color .15s,box-shadow .2s}
-.entry-card:hover{border-color:var(--rule-strong);box-shadow:var(--shadow);transform:none}
-.entry-title{font:600 17px/1.35 var(--serif);color:var(--navy)}
-.entry-card-actions{display:flex;gap:6px;flex:none}
+.entry-card{justify-content: space-between;margin-bottom: 8px;display:flex;align-items:center;gap:16px;margin:0;padding:14px 16px;border:1px solid var(--rule);border-radius:var(--radius);background:#fff;box-shadow:none;transition:border-color .15s,box-shadow .2s}
+.entry-card:hover{background: #fcfdfe;border-color:var(--rule-strong);box-shadow:var(--shadow);transform:none}
+.entry-title{font-size: 15px;font-weight: 600;font:600 17px/1.35 var(--serif);color:var(--navy)}
+.entry-card-actions{align-items: center;flex-shrink: 0;display:flex;gap:6px;flex:none}
 .entry-card-actions .small-button{padding:6px 10px;font-size:13px;border-radius:var(--radius-sm)}
 .entry-card-actions .list-edit-btn{background:var(--navy);border-color:var(--navy);color:#fff}
 .entry-card-actions .list-edit-btn:hover{background:var(--navy-2)}
@@ -1629,10 +1586,10 @@ body.admin-body {
 .crop-dialog::backdrop{background:rgb(10 22 36/.6)}
 .crop-ratios{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
 .crop-ratios .is-active{background:var(--navy);border-color:var(--navy);color:#fff}
-.crop-stage{position:relative;width:fit-content;max-width:100%;margin:0 auto;user-select:none;touch-action:none;background:#0f172a}
+
 .crop-stage img{display:block;max-width:100%;max-height:62vh;width:auto;height:auto}
 .crop-box{position:absolute;box-shadow:0 0 0 9999px rgb(10 22 36/.55);outline:2px solid #fff;cursor:move;background-image:linear-gradient(rgb(255 255 255/.35) 1px,transparent 1px),linear-gradient(90deg,rgb(255 255 255/.35) 1px,transparent 1px);background-size:33.333% 33.333%;background-position:-1px -1px}
-.crop-stage{overflow:hidden}
+.crop-stage{position:relative;width:fit-content;max-width:100%;margin:0 auto;user-select:none;touch-action:none;background:#0f172a;overflow:hidden}
 .crop-box:focus-visible{outline:3px solid #7cb7ff}
 .crop-box i{position:absolute;width:16px;height:16px;background:#fff;border:2px solid var(--navy);border-radius:3px}
 .crop-box [data-handle=nw]{left:-2px;top:-2px;cursor:nwse-resize}

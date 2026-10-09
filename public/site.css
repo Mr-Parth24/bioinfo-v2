@@ -192,11 +192,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* ---------- Page header and sections ---------- */
 .breadcrumbs ol{display:flex;flex-wrap:wrap;gap:4px 0;font-size:13.5px;color:var(--muted)}
-.breadcrumbs li{display:flex;align-items:center}
+.breadcrumbs li{display:flex;align-items:center;min-width:0;max-width:100%}
 .breadcrumbs li+li::before{content:"/";margin-inline:9px;color:var(--rule-strong)}
 .breadcrumbs a{color:var(--muted)}
 .breadcrumbs a:hover{color:var(--crimson)}
-.breadcrumbs [aria-current]{color:var(--ink);font-weight:500;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.breadcrumbs [aria-current]{color:var(--ink);font-weight:500;max-width:min(46ch,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .page-header{background:var(--surface);border-bottom:1px solid var(--rule)}
 .page-header-inner{padding-block:22px clamp(36px,5vw,60px)}
 .page-header-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:32px;margin-top:clamp(26px,4vw,48px)}
@@ -787,10 +787,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .chip span{gap:8px}
 .chip input:checked+span small{color:rgb(255 255 255/.75)}
 .role-filter{display:grid;gap:10px}
-.role-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font:500 14px/1.3 var(--sans);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s}
-.role-chip:hover{border-color:var(--navy)}
-.role-chip[aria-pressed=true]{border-color:var(--navy);background:var(--navy);color:#fff}
-.role-chip[aria-pressed=true] small{color:rgb(255 255 255/.7)}
+
 .only-toggle{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;color:var(--navy);cursor:pointer;width:fit-content}
 .only-toggle input{width:18px;height:18px;accent-color:var(--crimson)}
 
@@ -803,7 +800,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .role-undergrad{--role:var(--role-undergrad)}
 .role-mentored{--role:var(--role-mentored)}
 .role-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--role)}
-.role-chip{padding:6px 12px}
+.role-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule-strong);border-radius:999px;background:#fff;font:500 14px/1.3 var(--sans);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s;padding:6px 12px}
 .role-chip .role-dot{width:9px;height:9px}
 .role-chip:hover{border-color:var(--role)}
 .role-chip[aria-pressed=true]{border-color:var(--role);background:color-mix(in srgb,var(--role) 9%,#fff);color:var(--ink);box-shadow:inset 0 -3px 0 var(--role)}
@@ -894,6 +891,17 @@ button,input,select,textarea{font:inherit;color:inherit}
 .data-table tbody th a:hover{color:var(--crimson)}
 .data-table td:nth-child(2){color:var(--muted);min-width:240px}
 .data-table td:last-child{white-space:nowrap}
+/* Phones: each table row becomes a small card (name + open link, then the description). */
+@media(max-width:640px){
+  .table-wrap{overflow:visible}
+  .data-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .data-table tbody tr{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--rule)}
+  .data-table tbody tr:last-child{border-bottom:0}
+  .data-table th,.data-table td{padding:0;border:0}
+  .data-table td:nth-child(2){grid-column:1/-1;grid-row:2;min-width:0;font-size:14.5px}
+  .data-table td:nth-child(3){display:none}
+  .data-table td:last-child{grid-column:2;grid-row:1}
+}
 @media(max-width:900px){.area-hero,.area-layout{grid-template-columns:1fr}.area-aside{position:static}.area-hero-figure{order:-1}}
 @media(max-width:640px){.data-table th:nth-child(3),.data-table td:nth-child(3){display:none}}
 

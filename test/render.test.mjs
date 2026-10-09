@@ -27,3 +27,13 @@ test('homepage navigation and all three publication archives are available witho
  }
  assert.equal(renderPage('/not-a-page',new URLSearchParams(),records).status,404);
 });
+
+test('menu and tools page agree on category anchors, also for uncategorised tools; previews show draft tools',async()=>{
+ const {renderPage}=await renderer();
+ const extra=[{id:'tools:nocat',collection:'tools',title:'Loose tool',status:'published',link:'https://example.org/t/'},{id:'tools:draft',collection:'tools',title:'Draft tool',status:'draft',link:'https://example.org/d/'}];
+ const html=renderPage('/tools',new URLSearchParams(),[...records,...extra]).html;
+ assert.ok(html.includes('href="/tools#category-other-tools"'),'menu link');
+ assert.ok(html.includes('id="category-other-tools"'),'matching section');
+ assert.ok(!html.includes('Draft tool'),'drafts stay private');
+ assert.ok(renderPage('/tools',new URLSearchParams(),[...records,...extra],{previewRecord:extra[1]}).html.includes('Draft tool'),'editor preview shows the draft');
+});

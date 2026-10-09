@@ -108,16 +108,21 @@ export function toneFor(category = '') {
 
 /* ---------- Navigation ---------- */
 const published = records => records.filter(r => r.status === 'published');
-const toolGroups = records => {
+/** Published tools grouped by category, in first-seen order. The anchor is the historic one (#hpi…)
+    when the migrated records carry it, so the menu, homepage and Tools page always agree. */
+export const toolGroups = (records, { includeDrafts = false } = {}) => {
   const groups = new Map();
-  for (const t of published(records).filter(r => r.collection === 'tools')) {
+  for (const t of (includeDrafts ? records : published(records)).filter(r => r.collection === 'tools')) {
     const name = t.category || 'Other tools';
-    const anchor = t.anchor || 'category-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    if (!groups.has(name)) groups.set(name, { name, anchor, count: 0 });
-    groups.get(name).count++;
+    if (!groups.has(name)) groups.set(name, { name, anchor: t.anchor || 'category-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), items: [] });
+    groups.get(name).items.push(t);
   }
-  return [...groups.values()];
+  return [...groups.values()].map(g => ({ ...g, count: g.items.length }));
 };
+/** "kaabil.net" from "https://www.kaabil.net/x/". */
+export const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+/** Public Web3Forms access key (it only routes form submissions to the lab's inbox). */
+export const WEB3FORMS_KEY = '00849017-c746-4914-9c81-2d8c4ee2d17a';
 
 export function navigation(records) {
   const research = published(records).filter(r => r.collection === 'research');
@@ -187,7 +192,7 @@ export function footer(records = []) {
     + `<div class="wrap footer-bottom"><p>© ${new Date().getFullYear()} ${e(c.title)}</p><ul class="footer-social">${links(c.social)}</ul><a class="footer-admin" href="/admin">Editor sign-in</a></div>`
     + `<dialog id="report-issue-dialog" class="form-dialog">`
     + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form web3form-report">`
-    + `<input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a">`
+    + `<input type="hidden" name="access_key" value="${WEB3FORMS_KEY}">`
     + `<h3>Report an Issue</h3>`
     + `<p class="dialog-desc">Found a bug or broken link? Let us know so we can fix it!</p>`
     + `<input type="hidden" name="subject" value="Website Issue Report">`

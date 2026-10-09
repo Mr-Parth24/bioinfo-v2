@@ -1504,38 +1504,19 @@
     }
   });
 
+  /** Upload files into an image field or the gallery (drag and drop or the file picker). */
+  async function uploadInto(files, key) {
+    const uploaded = await uploadFiles([...files]);
+    for (const data of uploaded) {
+      if (key === 'gallery') addGalleryImage(data.url);
+      else applyMainImage(data);
+    }
+    dirty = true;
+    notice(uploaded.length > 1 ? `${uploaded.length} images uploaded. Click "Save changes" to apply.` : 'Image uploaded. Click "Save changes" to apply.');
+  }
   async function handleDroppedFiles(files, dropzone) {
     if (!files || !files.length) return;
-    const isGallery = dropzone.closest('.gallery-picker') !== null;
-    const key = isGallery ? 'gallery' : 'image';
-    notice('Uploading dropped image…');
-    try {
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) throw new Error('Only image files (PNG, JPG, WebP) are accepted.');
-        if (file.size > 10 * 1024 * 1024) throw new Error('Image size must be 10 MB or smaller.');
-        const data = await api('uploads', {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file
-        });
-        if (key === 'image') {
-          if (current) {
-            current.imageOriginal = data.url;
-            current.imageWidth = data.width;
-            current.imageHeight = data.height;
-            current.imageVariants = data.variants || [];
-          }
-          if ($('#field-image')) $('#field-image').value = data.url;
-          updateImagePreview();
-        } else if (key === 'gallery') {
-          addGalleryImage(data.url);
-        }
-      }
-      dirty = true;
-      notice('Image successfully uploaded and placed!');
-    } catch (err) {
-      notice(err.message, true);
-    }
+    try { await uploadInto(files, dropzone.closest('.gallery-picker') ? 'gallery' : 'image'); } catch (err) { notice(err.message, true); }
   }
 
   document.addEventListener('drop', async event => {
@@ -1856,30 +1837,9 @@
       updateImagePreview();
       return;
     }
-    const key = target.dataset.upload;
     target.disabled = true;
     try {
-      for (const file of target.files) {
-        if (file.size > 10 * 1024 * 1024) throw new Error('Each image must be 10 MB or smaller.');
-        notice('Uploading ' + file.name + '…');
-        const data = await api('uploads', {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file
-        });
-        const field = $('#field-' + key);
-        if (key === 'image') {
-          current.imageOriginal = data.url;
-          current.imageWidth = data.width;
-          current.imageHeight = data.height;
-          current.imageVariants = data.variants || [];
-          if (field) field.value = data.url;
-        }
-        if (key === 'gallery') addGalleryImage(data.url);
-      }
-      dirty = true;
-      updateImagePreview();
-      notice('Image uploaded successfully! Click "Save changes" to apply.');
+      await uploadInto(target.files, target.dataset.upload);
     } catch (error) {
       notice(error.message, true);
     } finally {
