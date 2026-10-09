@@ -145,7 +145,7 @@ work branch  ──push──▶  pull request  ──merge──▶  main  ─�
 
 - **`main`** is what the live preview shows. Pages deploys **only from `main`**
   (`.github/workflows/pages.yml`; Settings → Pages → Source must be **GitHub Actions**).
-- Work happens on a branch (Claude sessions use `claude/website-update-help-r254ix`), then a pull request
+- Work happens on a branch (Claude sessions use a `claude/…` branch), then a pull request
   is merged into `main`.
 - Every push runs `npm test`; the Pages build also runs the static export.
 - **`.github/workflows/docker.yml`** builds the real Docker image on every push, checks it runs as a
@@ -238,9 +238,10 @@ scripts/
   export-preview.mjs     Static snapshot for GitHub Pages
   cms-e2e.cjs            Browser test of the whole editor workflow
   security-probe.mjs     Attacks a running copy (SQLi, XSS, CSRF, traversal, uploads…)
-  migrate.py, *.py       Original migration and older browser checks
-test/                    Node tests (*.test.mjs) and the Python migration test
-docs/                    Architecture, operations, security, redesign plan, migration report
+  restore-archived-uploads.mjs  Bring back archived photos from git history
+  research-art.mjs       Generator for the research-area illustrations
+test/                    Node tests (*.test.mjs)
+docs/                    Architecture, operations, security, redesign plan, verification, archived uploads
 .github/workflows/       pages.yml (preview deploy), docker.yml (image build + security check)
 ```
 
@@ -291,10 +292,9 @@ Known limits: every editor can publish and delete (no roles, MFA or SSO yet).
 ## Testing and checks
 
 ```sh
-npm test                                   # 48 Node tests: routes, auth, CSRF, drafts, uploads,
+npm test                                   # Node tests: routes, auth, CSRF, drafts, uploads, media library,
                                            # revisions, sanitizer, headers, content updates, research pages
 npm run preview:export                     # builds all 126 routes into preview/
-python -m unittest discover -s test -p 'test_*.py'   # migration test (Python 3.12+)
 ```
 
 Against a running site, with a **disposable** editor account (not production):
@@ -335,12 +335,10 @@ Backups contain password hashes — keep them private. Restore steps: [`docs/ope
   category reads "Ungraduate". Event dates conflict in the source for Spring SRS 2026 and PSC Showcase.
 - **People relations are empty:** no member has publications, tools, education or links attached yet;
   profiles show those sections once editors add them.
-- **Images:** many galleries still load from Raikou; a one-time import of Raikou images into local storage
-  could be added (must run on the server).
+- **Images:** many galleries still load from Raikou. Run *Media library → Copy all remote images to site*
+  on the lab server before launch.
 - **Security follow-ups:** revoke the mail-service credential the old site exposed; add rate limiting at
   the proxy; consider editor roles / SSO.
-- **Leftover scratch files** in the repo root (`homepage_test.html`, `news.html`, `update-*.cjs`) are from
-  before the redesign and are obsolete — the `update-*.cjs` scripts patch old templates and must not be run.
 
 ---
 
@@ -357,7 +355,12 @@ October 2026, in order:
 6. Publications: year-range chips, author-role badges with highlight and filter.
 7. People: grouped directory, rich profiles with links, education/experience, publications and tools.
 8. Research areas: written content, tools tables, related publications; tool descriptions.
-9. Tools: colour-coded categories, framed screenshots, hover glow.
+9. Tools: colour-coded categories, framed screenshots, live availability dots.
+10. Media library, archived unused uploads (431 MB), portable backup/restore; codebase cleanup.
+
+The one-time migration tooling from the original site (`scripts/migrate.py`, its Python tests and
+`docs/migration-report.json`) and the older Python browser checks were removed in the cleanup; they are
+in git history at commit `9c15528` (`git show 9c15528:scripts/migrate.py`).
 
 More detail: `git log`, [`docs/redesign-plan.md`](docs/redesign-plan.md),
-[`docs/architecture.md`](docs/architecture.md), [`docs/progress.md`](docs/progress.md).
+[`docs/architecture.md`](docs/architecture.md).

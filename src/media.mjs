@@ -83,7 +83,7 @@ export function mediaLibrary(store, assetManifest, dataDir) {
     items.push({ kind: local ? 'local' : 'remote', url, thumb: url, usage: uses, importable: url.startsWith(IMPORT_PREFIX) });
   }
   for (const item of items) item.sections = [...new Set(item.usage.map(u => u.section))];
-  return items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') || a.url.localeCompare(b.url));
 }
 
 /**

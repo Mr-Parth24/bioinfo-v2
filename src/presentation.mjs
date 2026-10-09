@@ -12,7 +12,8 @@ const assets = JSON.parse(readFileSync(new URL('../public/asset-map.json', impor
 export const dimensions = url => (assets[url]?.width ? assets[url] : null);
 export const asset = url => assets[url]?.url || url || '';
 export const logo = asset('https://bioinfocore.usu.edu/raikou/image/bioinfo/kbllogo.png');
-const media = 'https://bioinfocore.usu.edu/raikou';
+/** The original lab image server (Raikou). */
+const RAIKOU = 'https://bioinfocore.usu.edu/raikou';
 
 /* ---------- Icons (inline SVG, no inline styles: the CSP forbids them) ---------- */
 const svg = (body, cls = '') => `<svg class="icon${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -73,7 +74,7 @@ export function pageHeader(title, intro, eyebrow = '', { trail = [], aside = '' 
   return `<header class="page-header"><div class="wrap page-header-inner">${breadcrumbs(trail.length ? trail : [[title]])}<div class="page-header-grid"><div class="page-header-text">${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h1>${e(title)}</h1>${intro ? `<p class="lede">${e(intro)}</p>` : ''}</div>${aside ? `<div class="page-header-aside">${aside}</div>` : ''}</div></div></header>`;
 }
 
-export function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
+function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
   return `<div class="section-head"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2>${e(title)}</h2>${intro ? `<p class="section-intro">${e(intro)}</p>` : ''}</div>${link ? `<a class="link-more" href="${e(link)}">${e(linkLabel)} ${arrow}</a>` : ''}</div>`;
 }
 
@@ -215,7 +216,7 @@ function updateItem(r, lead = false) {
 
 function pickEvent(records, c) {
   const all = published(records).filter(r => r.collection === 'events');
-  if (c.eventMode === 'hidden' || c.showEvents === 'no' || setting(records, 'settings:editorial')?.eventsVisible === false) return null;
+  if (c.eventMode === 'hidden') return null;
   if (c.eventMode === 'selected') {
     const chosen = (c.eventIds || []).map(id => all.find(r => r.id === id)).find(Boolean);
     return chosen ? { record: chosen, label: dateValue(chosen) >= today() ? 'Upcoming event' : 'Featured event' } : null;
@@ -227,7 +228,7 @@ function pickEvent(records, c) {
 }
 
 function pickOpportunity(records, c) {
-  if (c.opportunityMode === 'hidden' || c.showOpportunities === 'no' || setting(records, 'settings:editorial')?.opportunitiesVisible === false) return null;
+  if (c.opportunityMode === 'hidden') return null;
   const open = activeOpportunities(records);
   if (c.opportunityMode === 'selected') return (c.opportunityIds || []).map(id => open.find(r => r.id === id)).find(Boolean) || null;
   return open[0] || null;
@@ -367,4 +368,4 @@ export function opportunities(records) {
     + `</div>`;
 }
 
-export { media };
+export { RAIKOU };

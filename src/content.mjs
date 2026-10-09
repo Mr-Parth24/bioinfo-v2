@@ -25,8 +25,6 @@ export const FIELDS={
   heroMode:{label:'Hero picture',type:'select',options:['single','selected','latest','random']},
   heroSlideIds:{label:'Slideshow slides (move into display order)',type:'relations',collection:['news','events','research'],ordered:true},
   heroSlideCount:{label:'Slides taken from news, events & research',type:'number',min:1,maxValue:8},
-  showEvents:{label:'Show upcoming event',type:'select',options:['yes','no']},
-  showOpportunities:{label:'Show current opportunity',type:'select',options:['yes','no']},
   announcement:{label:'Announcement',type:'text',max:600},
   announcementLink:{label:'Announcement destination',type:'url',max:4000},
   primaryLabel:{label:'Primary button label',type:'text',max:100},

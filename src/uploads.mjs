@@ -15,7 +15,7 @@ export async function readLimited(request,max=1024*1024){
  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>max){await reader.cancel();throw new InputError('Request is too large.',413);}chunks.push(Buffer.from(value));}}finally{reader.releaseLock();}
  return Buffer.concat(chunks);
 }
-export function detectImage(bytes){
+function detectImage(bytes){
  if(bytes.length<24)return null;
  if(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))&&bytes.subarray(12,16).toString()==='IHDR'&&bytes.readUInt32BE(16)>0&&bytes.readUInt32BE(20)>0&&bytes.readUInt32BE(16)<=20000&&bytes.readUInt32BE(20)<=20000&&bytes.includes(Buffer.from('IEND')))return {ext:'png',mime:'image/png'};
  if(['GIF87a','GIF89a'].includes(bytes.subarray(0,6).toString())&&bytes.readUInt16LE(6)>0&&bytes.readUInt16LE(8)>0&&bytes.at(-1)===59)return {ext:'gif',mime:'image/gif'};

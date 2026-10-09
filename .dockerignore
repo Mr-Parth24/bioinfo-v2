@@ -3,7 +3,6 @@
 data
 preview
 artifacts
-__pycache__
 test
 docs
 node_modules
@@ -12,10 +11,6 @@ node_modules
 .github
 .claude
 coverage
-scripts/*.py
 scripts/cms-e2e.cjs
 scripts/security-probe.mjs
-homepage_test.html
-news.html
-update-*.cjs
 *.md

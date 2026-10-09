@@ -5,7 +5,7 @@
  */
 import {
   header, footer, homepage, director, opportunities, related,
-  image, pageHeader, breadcrumbs, icons, arrow, asset, media, profileLinks, linkButtons, toneFor,
+  image, pageHeader, breadcrumbs, icons, arrow, asset, RAIKOU, profileLinks, linkButtons, toneFor,
 } from './presentation.mjs';
 import { setting, dateValue, activeOpportunities, displayDate } from './editorial.mjs';
 import { escapeHtml as e, sanitizeHtml, safeUrl, plainText } from './security.mjs';
@@ -50,7 +50,6 @@ export const legacyRedirects = {
 };
 export const baseRoutes = ['/home', '/search', '/opportunities', '/', '/research', '/research/research-areas', '/people', '/people/our-team', '/people/alumni', '/publications', '/publications/conferences', '/publications/editorials', '/tools', '/news', '/events', '/contact', '/about'];
 
-const DEFAULT_DEPARTMENT = 'Department of Plants, Soils & Climate';
 
 /* ---------- Document shell ---------- */
 export function shell(title, body, { path = '/', description = 'Kaundal Artificial Intelligence & Advanced Bioinformatics Lab (KAABiL) at Utah State University: machine learning, multi-omics and open bioinformatics tools.', admin = false, records = [] } = {}) {
@@ -308,7 +307,7 @@ function peoplePage(records, path) {
   const directorVisible = d && d.status === 'published';
   const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length + (directorVisible ? 1 : 0)}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
   const lead = !showingAlumni && directorVisible
-    ? `<a class="lead-card reveal glow" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
+    ? `<a class="lead-card reveal glow" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: RAIKOU + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
     : '';
   const groups = PEOPLE_GROUPS.map(name => ({ name, rows: list.filter(r => peopleGroup(r) === name) })).filter(g => g.rows.length);
   const chips = groups.length > 1

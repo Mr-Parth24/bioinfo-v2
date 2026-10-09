@@ -316,7 +316,7 @@
     const shown = items.filter(i => (mediaState.filter === 'all' || (mediaState.filter === 'unused' ? !i.usage.length : mediaState.filter === 'remote' ? i.kind === 'remote' : i.sections.includes(mediaState.filter)))
       && (!q || (fileName(i.url) + ' ' + (i.source || '') + ' ' + i.usage.map(u => u.title).join(' ')).toLowerCase().includes(q)));
     const by = { newest: (a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''), used: (a, b) => b.usage.length - a.usage.length, size: (a, b) => (b.bytes || 0) - (a.bytes || 0), name: (a, b) => fileName(a.url).localeCompare(fileName(b.url)) };
-    return shown.sort(by[mediaState.sort]);
+    return shown.sort((a, b) => by[mediaState.sort](a, b) || a.url.localeCompare(b.url));
   };
   function mediaCard(item, index, mode) {
     const uses = item.usage;
