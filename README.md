@@ -376,7 +376,7 @@ October 2026, in order:
 
 The one-time migration tooling from the original site (`scripts/migrate.py`, its Python tests and
 `docs/migration-report.json`) and the older Python browser checks were removed in the cleanup; they are
-in git history at commit `9c15528` (`git show 9c15528:scripts/migrate.py`).
+in git history at commit `9eb65ff` on `main` (`git show 9eb65ff:scripts/migrate.py`).
 
 More detail: `git log`, [`docs/redesign-plan.md`](docs/redesign-plan.md),
 [`docs/architecture.md`](docs/architecture.md).
