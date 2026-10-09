@@ -112,17 +112,28 @@ The full list is in [`docs/architecture.md`](docs/architecture.md#what-editors-c
 
 ## Images: old and new
 
-- **Existing photos** are links to the Raikou image server (`https://bioinfocore.usu.edu/raikou/…`), loaded
-  straight from there as before. 120 of them also have compressed local copies in `public/media/`
-  (mapped by `public/asset-map.json`), which show even if Raikou is down. **Keep Raikou running.**
-- **New photos uploaded in the studio** are validated (PNG/JPEG/GIF/WebP, ≤ 10 MB), stripped of
-  EXIF/GPS metadata, resized into 320/640/1200 px WebP versions, stored in `data/uploads/` (the
-  `bioinfo_data` Docker volume) and served by the site at `/uploads/…`. Nothing goes to Raikou.
-- You can still paste any image URL (e.g. a Raikou link) into an entry's *Image URL* field.
-- *Media Assets* in the studio lists uploads and where each is used; an image in use cannot be deleted.
+All images are managed in one place: **Media library** in the studio sidebar. It lists every image the
+site knows about and labels each by where it appears (People, News, Events, Tools, Research, Homepage…),
+or *Not used*. From there you can upload (button or drag and drop), **Replace…** an image everywhere it
+is used, delete unused uploads (one or many), open the entry that uses an image, and **Copy to site**.
+
+- **Where images live.** *Uploaded* images are stored in `data/uploads/` (the `bioinfo_data` Docker
+  volume). *Built-in copies* are compressed copies of original Raikou images shipped in `public/media/`
+  (mapped by `public/asset-map.json`). *Remote* images are still loaded from the Raikou server.
+- **Moving off Raikou.** *Copy to site* (or *Copy all remote images to site*) downloads a Raikou image
+  on the server, stores it as an upload and switches every entry to it, saving a revision for each.
+  Only `https://bioinfocore.usu.edu/raikou/…` can be copied. Run it on the lab server, which can reach
+  Raikou; after that the site no longer depends on Raikou for those images.
+- **Uploads** are validated (PNG/JPEG/GIF/WebP, ≤ 10 MB), stripped of EXIF/GPS metadata, stored at most
+  2560 px on the long edge, and get 320/640/1200 px WebP versions that the pages use.
+- **Deleting.** Images used by current content cannot be deleted; replace them there first. Images that
+  only old revisions mention can be deleted after a confirmation.
+- **Archived photos.** 977 upload files (431 MB) that belonged only to events deleted in the studio were
+  removed from the working tree in October 2026. They are listed in `docs/archived-uploads.json` and can
+  be brought back from git history: `node scripts/restore-archived-uploads.mjs list`.
 
 There is no separate image database to set up: the SQLite file stores the image addresses, the volume
-stores the files.
+stores the files. `node scripts/manage.mjs optimize-uploads` shrinks older oversized originals.
 
 ---
 
@@ -134,7 +145,7 @@ work branch  ──push──▶  pull request  ──merge──▶  main  ─�
 
 - **`main`** is what the live preview shows. Pages deploys **only from `main`**
   (`.github/workflows/pages.yml`; Settings → Pages → Source must be **GitHub Actions**).
-- Work happens on a branch (Claude sessions use `claude/website-update-help-r254ix`), then a pull request
+- Work happens on a branch (Claude sessions use a `claude/…` branch), then a pull request
   is merged into `main`.
 - Every push runs `npm test`; the Pages build also runs the static export.
 - **`.github/workflows/docker.yml`** builds the real Docker image on every push, checks it runs as a
@@ -227,9 +238,10 @@ scripts/
   export-preview.mjs     Static snapshot for GitHub Pages
   cms-e2e.cjs            Browser test of the whole editor workflow
   security-probe.mjs     Attacks a running copy (SQLi, XSS, CSRF, traversal, uploads…)
-  migrate.py, *.py       Original migration and older browser checks
-test/                    Node tests (*.test.mjs) and the Python migration test
-docs/                    Architecture, operations, security, redesign plan, migration report
+  restore-archived-uploads.mjs  Bring back archived photos from git history
+  research-art.mjs       Generator for the research-area illustrations
+test/                    Node tests (*.test.mjs)
+docs/                    Architecture, operations, security, redesign plan, verification, archived uploads
 .github/workflows/       pages.yml (preview deploy), docker.yml (image build + security check)
 ```
 
@@ -280,10 +292,9 @@ Known limits: every editor can publish and delete (no roles, MFA or SSO yet).
 ## Testing and checks
 
 ```sh
-npm test                                   # 48 Node tests: routes, auth, CSRF, drafts, uploads,
+npm test                                   # Node tests: routes, auth, CSRF, drafts, uploads, media library,
                                            # revisions, sanitizer, headers, content updates, research pages
 npm run preview:export                     # builds all 126 routes into preview/
-python -m unittest discover -s test -p 'test_*.py'   # migration test (Python 3.12+)
 ```
 
 Against a running site, with a **disposable** editor account (not production):
@@ -303,7 +314,9 @@ If the probe says sign-in is rate-limited, wait 15 minutes — that is the brute
 ```sh
 node scripts/manage.mjs inventory                       # record counts
 node scripts/manage.mjs checkpoint                      # fold the WAL into content.sqlite (before a commit)
-node scripts/manage.mjs backup  /safe/content.sqlite    # database (content, accounts, revisions)
+node scripts/manage.mjs backup-all /safe/kaabil-2026-10 # database + every upload, in one folder
+node scripts/manage.mjs restore-all /safe/kaabil-2026-10 # into an empty DATA_DIR (server stopped)
+node scripts/manage.mjs backup  /safe/content.sqlite    # database only (content, accounts, revisions)
 node scripts/manage.mjs export  /safe/content.json      # content as JSON
 node scripts/manage.mjs import  /safe/revised.json      # validated, atomic import
 ```
@@ -317,17 +330,31 @@ Backups contain password hashes — keep them private. Restore steps: [`docs/ope
 
 - **Not yet on the lab server.** Docker setup is verified in CI; deployment needs the server, HTTPS proxy
   and DNS (see Deploying).
-- **Content to review:** research-area text was written from the lab's tools, paper titles and news —
-  have the lab check the wording. Newer papers (2023–2025) have no authorship marks. One person's
+- **Content to review:** research-area text now uses only the lab's own statements from the original
+  site and is short on purpose — extend it in the studio. Newer papers (2023–2025) have no authorship marks. One person's
   category reads "Ungraduate". Event dates conflict in the source for Spring SRS 2026 and PSC Showcase.
 - **People relations are empty:** no member has publications, tools, education or links attached yet;
   profiles show those sections once editors add them.
-- **Images:** many galleries still load from Raikou; a one-time import of Raikou images into local storage
-  could be added (must run on the server).
+- **Images:** many galleries still load from Raikou. Run *Media library → Copy all remote images to site*
+  on the lab server before launch.
 - **Security follow-ups:** revoke the mail-service credential the old site exposed; add rate limiting at
   the proxy; consider editor roles / SSO.
-- **Leftover scratch files** in the repo root (`homepage_test.html`, `news.html`, `update-*.cjs`) are from
-  before the redesign and are obsolete — the `update-*.cjs` scripts patch old templates and must not be run.
+- **Old developer guides** (`/guides/dev-env`, `run-local`, `scm-setup`) describe the original site's
+  workflow and are unpublished (Site Pages in the studio). The legacy `/admin/…` redirects still point to them.
+
+Deliberately left for later:
+
+- **Shrinking the git repository (≈426 MB).** The archived photos are still in git history, which is what
+  makes them restorable. Removing them needs a history rewrite (`git filter-repo --path data/uploads
+  --invert-paths` on a fresh clone, then a force-push) and everyone must re-clone. Do it only once the lab
+  has its own backup of those photos, and before many people clone the repository.
+- **One source for default content.** `content/seed.json`, `editorial.json`, `content-updates.json` and the
+  committed `data/content.sqlite` all feed a new database today. After the server is live, its database
+  is the source of truth: replace the seed + update layers with one exported snapshot and keep a small
+  seed for tests.
+- **Splitting the large front-end files.** `public/admin.js` (~95 KB) and `src/render.mjs` (~65 KB) work
+  but are long; split them into ES modules (the CSP already allows `<script type="module">`) when they
+  next need substantial changes.
 
 ---
 
@@ -344,7 +371,12 @@ October 2026, in order:
 6. Publications: year-range chips, author-role badges with highlight and filter.
 7. People: grouped directory, rich profiles with links, education/experience, publications and tools.
 8. Research areas: written content, tools tables, related publications; tool descriptions.
-9. Tools: colour-coded categories, framed screenshots, hover glow.
+9. Tools: colour-coded categories, framed screenshots, live availability dots.
+10. Media library, archived unused uploads (431 MB), portable backup/restore; codebase cleanup.
+
+The one-time migration tooling from the original site (`scripts/migrate.py`, its Python tests and
+`docs/migration-report.json`) and the older Python browser checks were removed in the cleanup; they are
+in git history at commit `9eb65ff` on `main` (`git show 9eb65ff:scripts/migrate.py`).
 
 More detail: `git log`, [`docs/redesign-plan.md`](docs/redesign-plan.md),
-[`docs/architecture.md`](docs/architecture.md), [`docs/progress.md`](docs/progress.md).
+[`docs/architecture.md`](docs/architecture.md).

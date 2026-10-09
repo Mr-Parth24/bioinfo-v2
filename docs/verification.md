@@ -1,41 +1,36 @@
-# Verification record
+# Verification
 
-Verified on 2026-10-03 after network and process access became available.
+How to check the site before merging or deploying, and what was last verified.
 
-## Automated and browser checks
+## Checks to run
 
-- `npm test`: 38 Node tests passed. Covers authentication, sessions, CSRF/origin checks, parameterized database access, uploads, revisions, concurrent saves, drafts, publication, backups, content rendering, member relationships and date-range ordering.
-- `python -m unittest discover -s test -p 'test_*.py'`: 3 migration tests passed.
-- `python scripts/browser-check.py`: 33 page checks at 1440, 768 and 390 pixels passed, including tool search, empty search state, mobile navigation and JavaScript errors.
-- `python scripts/browser-check.py --all`: 252 checks across all 126 routes at 1440 and 320 pixels passed. No horizontal overflow or JavaScript errors. Checks original guide redirects too.
-- `python scripts/browser-cms-check.py`: real browser login, member creation, labeled work links, publication/tool selections, photo upload, draft privacy, preview, publishing, current-to-alumni move, mobile editor layout and logout passed. Uses a temporary database/account; no QA account or invented member remains in project data.
-- `python scripts/audit-content.py`: 288 migrated records match a fresh migration; original structured tool/member/news/event/research objects match; 3,316 source files checksummed. 126 static pages have zero broken local file or fragment links.
-- Representative accessibility audit: nine pages returned zero axe WCAG A/AA violations. Keyboard menus, image expansion/focus return, reduced motion and JavaScript-disabled profile navigation passed.
-- Extended CMS workflow passed: ordered homepage curation, image crop previews/library, shared footer/contact settings, director repeatable rows and vacancy publication.
-- Sharp decoding, EXIF orientation, protected media deletion and draft director migration have regression coverage. Edited legacy drafts remain unpublished and intentionally removed images stay removed.
-- Browser screenshots inspected for desktop and mobile homepage layout. Broken remote images were deliberately simulated to verify placeholders.
+| Check | Command | What it covers |
+|---|---|---|
+| Unit and integration tests | `npm test` (Node 22: `node --test test/*.test.mjs`) | Routes, auth, sessions, CSRF/origin, uploads, media library, revisions, drafts, sanitizer, headers, content updates, research pages |
+| Static export | `npm run preview:export`, then delete `preview/` | Every public route renders; stale routes removed |
+| Editor workflow (browser) | `EDITOR_EMAIL=… EDITOR_PASSWORD=… node scripts/cms-e2e.cjs` | Sign-in, draft privacy, preview, publish, upload, homepage settings, revisions, delete |
+| Attack probe | `EDITOR_EMAIL=… EDITOR_PASSWORD=… node scripts/security-probe.mjs` | SQLi, XSS, CSRF, traversal, upload abuse, headers, session handling |
+| Docker | `.github/workflows/docker.yml` (runs on pull requests) | Image build, non-root read-only container, health, persistence, security probe |
+| Layout | Render changed pages at 1440 px and 390 px | No horizontal overflow, no JavaScript errors |
 
-## Docker
+Use a disposable editor account for the browser checks (`scripts/manage.mjs create-user`), never a
+production one. Sign-in is limited to 10 attempts per 15 minutes per IP.
 
-- Image built successfully with Node 24.
-- Container ran with a read-only root filesystem, no added capabilities, no-new-privileges, persistent data volume and loopback port mapping.
-- `/healthz` responded successfully; Docker reported healthy.
-- All 291 records (288 originals and 3 editorial settings) were present before and after container restart.
-- Compose configuration validation passed.
+## Last verified (October 2026, cleanup pass)
 
-## Fixes discovered during verification
+- `npm test`: 59 tests passed.
+- `cms-e2e.cjs`: 16 of 16 checks passed (now also checks that saving homepage settings keeps the slideshow).
+- `security-probe.mjs`: all checks passed.
+- Static export: 121 pages; the unpublished developer guides are not exported.
+- 22 public pages at 390 px: no page-level horizontal overflow (chip rows scroll inside themselves).
+- Cleanup refactors (dead code, shared helpers, merged CSS rules) were checked by comparing screenshots
+  of 17 public pages at 1440/390 px and 7 studio screens with the previous commit: pixel-identical
+  except the intended phone fixes (breadcrumb, research tables).
 
-- Narrow-phone header overflow at 320 pixels: allow the lab name to wrap beside the menu.
-- Dates containing ranges sorted below older events: sort by the first day while retaining the original displayed date.
-- Arrow glyphs absent in the installed font: primary link arrows now use inline SVG.
-- Earlier independent review fixes cover stale exported pages, conference metadata, relative legacy links, tool URL validation, editable alumni membership, guide redirects and reserved routes.
+## Known limits
 
-## Known limits and source issues
-
-- External tool links: 17 of 36 returned successful HTTP responses; 19 returned server errors or redirect loops. Every assigned destination is unchanged. See [availability report](external-tool-availability.md). HTTP success does not verify tool functionality.
-- Source event dates conflict for Spring SRS 2026 and PSC Showcase 2026. Both source values remain in the migration report; the listing value drives display pending editorial correction.
-- Six original research detail bodies are empty; no research claims were invented to fill them.
-- Large Box media packages have not been imported. 116 original images are cached and optimized locally; four unavailable images retain replaceable fallbacks.
-- The hosted review is a static snapshot. The working SQLite CMS requires the supplied Node/Docker application; it is not a backend on static hosting.
-- These checks do not certify exhaustive security or compatibility across every browser. Chromium desktop/tablet/mobile was tested; Safari and Firefox were not.
-- The original Express/Nunjucks application was inspected, not launched. Its source remains untouched.
+- External tool availability is shown live on the Tools page (kaabil.net uptime monitor); HTTP success
+  does not prove a tool works.
+- Source event dates conflict for Spring SRS 2026 and PSC Showcase 2026; the listing value is displayed.
+- Chromium was tested at desktop and mobile sizes; Safari and Firefox were not.
+- The GitHub Pages preview is a static snapshot without the editor.

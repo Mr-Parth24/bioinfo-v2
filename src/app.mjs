@@ -10,6 +10,7 @@ import { adminPage } from './admin-render.mjs';
 import { equalSecret,hashPassword,verifyPassword,sanitizeHtml } from './security.mjs';
 import { FIELDS,COLLECTIONS,COLLECTION_FIELDS,SETTINGS_FIELDS,InputError } from './content.mjs';
 import { readLimited,saveImage,uploadedImage,removeImage } from './uploads.mjs';
+import { mediaLibrary,replaceEverywhere,importRemote } from './media.mjs';
 const publicDir=fileURLToPath(new URL('../public/',import.meta.url));
 const assetManifest=JSON.parse(await readFile(join(publicDir,'asset-map.json'),'utf8'));
 const mediaNames=new Set(Object.values(assetManifest).map(x=>x.url?.replace('/assets/','')).filter(Boolean));
@@ -87,8 +88,10 @@ export function createApp({store,origin='http://localhost:3000',dataDir,producti
     }
     if(path==='/admin/api/revisions'&&method==='GET')return json(store.revisions(url.searchParams.get('id')||'').map(r=>({...r,data:editShape(r.data)})));
     if(path==='/admin/api/export'&&method==='GET')return json({schemaVersion:1,records:store.list()},200,{'content-disposition':'attachment; filename="bioinfo-content.json"'});
-    if(path==='/admin/api/media'&&method==='GET')return json([...store.mediaList(),...Object.entries(assetManifest).filter(([,v])=>v.url).map(([source,v])=>({...v,source,type:'image/webp',usage:store.mediaUsage(source),builtIn:true}))]);
-    if(path==='/admin/api/media'&&method==='DELETE'){const payload=await readJSON(request);await removeImage(payload.url,dataDir,store);return json({ok:true});}
+    if(path==='/admin/api/media'&&method==='GET')return json(mediaLibrary(store,assetManifest,dataDir));
+    if(path==='/admin/api/media'&&method==='DELETE'){const payload=await readJSON(request);await removeImage(payload.url,dataDir,store,{force:payload.force===true});return json({ok:true});}
+    if(path==='/admin/api/media/replace'&&method==='POST'){const payload=await readJSON(request);const file=typeof payload.to==='string'&&payload.to.startsWith('/uploads/')?store.mediaFiles().find(f=>f.url===payload.to)||null:null;return json({updated:replaceEverywhere(store,String(payload.from||''),String(payload.to||''),session.email,file)});}
+    if(path==='/admin/api/media/import'&&method==='POST'){const payload=await readJSON(request);return json(await importRemote(store,payload.url,dataDir,session.email),201);}
     if(path==='/admin/api/records'&&method==='DELETE'){const payload=await readJSON(request);if(!payload.id||typeof payload.id!=='string')throw new InputError('Record ID is required.');const record=store.get(payload.id);if(!record)throw new InputError('Record not found.',404);if(record.collection==='settings')throw new InputError('Settings records cannot be deleted.');store.deleteRecord(payload.id,session.email);return json({ok:true});}
     if(path==='/admin/api/uploads'&&method==='POST'){const file=await saveImage(request,dataDir);store.addMedia(file);return json(file,201);}
     return json({error:'Unknown editor endpoint.'},404);

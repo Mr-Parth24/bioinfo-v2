@@ -71,6 +71,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;}
   await p.click('#save-record'); await p.waitForTimeout(1200);
   let home = await pub('/');
   ok(home.includes('E2E announcement: applications open'),'announcement appears on site');
+  ok(home.includes('data-slideshow'),'saving homepage settings keeps the hero slideshow');
   ok(!home.includes(TITLE),'latest-updates hidden when feed mode is hidden');
   await p.fill('#field-announcement','');
   await p.selectOption('#field-feedMode','automatic');

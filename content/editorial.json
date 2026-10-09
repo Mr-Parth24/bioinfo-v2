@@ -16,9 +16,7 @@
     "secondaryLink": "/people",
     "feedMode": "automatic",
     "feedCount": 3,
-    "featuredIds": [],
-    "showEvents": "yes",
-    "showOpportunities": "yes"
+    "featuredIds": []
   },
   {
     "collection": "settings",

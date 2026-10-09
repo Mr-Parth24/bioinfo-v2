@@ -94,11 +94,6 @@
     "width": 1600,
     "height": 1200
   },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/functionalbg_resized.png": {
-    "url": "/assets/media/e39f271a39c948cc833c.webp",
-    "width": 271,
-    "height": 211
-  },
   "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/suyash.jpg": {
     "url": "/assets/media/36999ad65e6a3cbfa855.webp",
     "width": 290,
@@ -108,11 +103,6 @@
     "url": "/assets/media/9247a24c46c7e1804d75.webp",
     "width": 1055,
     "height": 1200
-  },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/HPI_new.gif": {
-    "url": "/assets/media/47d76a3c2321ce8edd74.webp",
-    "width": 270,
-    "height": 211
   },
   "https://bioinfocore.usu.edu/raikou/image/raw/bioinfo/profile/mitchell.jpg": {
     "url": "/assets/media/7e0756d37d3ff7d0f660.webp",
@@ -173,11 +163,6 @@
     "url": "/assets/media/d77de98254b61fbcd070.webp",
     "width": 1600,
     "height": 917
-  },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/sabbi-post/p_agr.jpg": {
-    "url": "/assets/media/30ce56a082a1f913b1e5.webp",
-    "width": 271,
-    "height": 211
   },
   "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/hucovaria.jpg?a=height&w=6&h=6": {
     "url": "/assets/media/2a5fe5ffb7792f575d99.webp",
@@ -253,11 +238,6 @@
     "url": "/assets/media/897e9d0a2c38d6a210f6.webp",
     "width": 997,
     "height": 663
-  },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/events/2022-Mitchell-Farewell/PXL_20220812_194602003.MP.jpg": {
-    "url": "/assets/media/b1b56e112b579f8e2227.webp",
-    "width": 1600,
-    "height": 1200
   },
   "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/legumeloc.png": {
     "url": "/assets/media/eb83c081c6d34bfc5473.webp",
@@ -468,11 +448,6 @@
     "width": 1158,
     "height": 1200
   },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/meta_new.png": {
-    "url": "/assets/media/e62273084e08a726c521.webp",
-    "width": 1020,
-    "height": 797
-  },
   "https://bioinfocore.usu.edu/raikou/image/bioinfo/tools/rslpred2.png": {
     "url": "/assets/media/fff889cefd0a980ae506.webp",
     "width": 1600,
@@ -497,11 +472,6 @@
     "url": "/assets/media/981ae3d74324e430ca92.webp",
     "width": 885,
     "height": 885
-  },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/AI-processor-LowRes-v1.jpg": {
-    "url": "/assets/media/01d3e2156c39f7788fab.webp",
-    "width": 271,
-    "height": 211
   },
   "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/tritikbdb.png?a=height&w=6&h=6": {
     "url": "/assets/media/f226503547842758c440.webp",
@@ -580,11 +550,6 @@
     "url": "/assets/media/64bb44636df39958e7b7.webp",
     "width": 957,
     "height": 957
-  },
-  "https://bioinfocore.usu.edu/raikou/image/bioinfo/datamining-lowres.png": {
-    "url": "/assets/media/ff161b9ebb309b2116b9.webp",
-    "width": 271,
-    "height": 211
   },
   "https://bioinfocore.usu.edu/raikou/image/aspect/bioinfo/tools/predHpi.PNG?a=height&w=6&h=6": {
     "url": "/assets/media/dfa4e2076722840b9391.webp",

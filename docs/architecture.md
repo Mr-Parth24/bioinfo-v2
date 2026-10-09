@@ -46,6 +46,7 @@ A news update takes this path:
 | `src/app.mjs` | Routes HTTP, enforces editor access, serves allowlisted assets and images, returns security headers | `createApp({ store, origin, dataDir, production })` → async handler |
 | `src/store.mjs` | SQLite records, revisions, accounts, sessions, rate-limit counters, transactions and backups | `Store` |
 | `src/content.mjs` | Collections, field metadata, editor field order and record validation | `FIELDS`, `COLLECTION_FIELDS`, `validateRecord()` |
+| `src/media.mjs` | Media library: every image (uploads, built-in copies, remote URLs) with where it is used; replace everywhere; copy Raikou images into storage | `mediaLibrary()`, `replaceEverywhere()`, `importRemote()` |
 | `src/security.mjs` | Password hashing, constant-time comparisons, URL checks, HTML escaping and rich-text allowlist | `hashPassword()`, `verifyPassword()`, `safeUrl()`, `sanitizeHtml()` |
 | `src/uploads.mjs` | Bounded body reads, accepted image signatures and generated upload names | `readLimited()`, `saveImage()`, `uploadedImage()` |
 | `src/render.mjs` | Document shell, router and page templates: research, people and profiles, publications, tools, news, events, articles, contact, search | `renderPage(path, searchParams, records)`, `shell()` |
@@ -57,10 +58,9 @@ A news update takes this path:
 | `public/admin.css` | Content Studio: widget styles, then a final "Studio layer" with the app bar, list and editor layout | Loaded after `site.css` on `/admin` |
 | `public/admin.js` | Editor state, forms, uploads, publishing, revision loading and login | Calls `/admin/api/*` |
 | `content/seed.json` | Initial imported content, stable record IDs and provenance | Imported once for a new database |
-| `scripts/migrate.py` | One-time source migration without executing the old code | Original ZIP → seed and migration report |
 | `scripts/manage.mjs` | Account setup/reset, bulk import/export, backup and inventory | See `node scripts/manage.mjs` |
 | `scripts/export-preview.mjs` | Clean public HTML snapshot; removes stale/unpublished routes | `exportPreview()` / `npm run preview:export` |
-| `scripts/browser-check.py` | Local browser test at desktop/tablet/mobile sizes | Requires Playwright, Chromium and permission to open local sockets |
+| `scripts/cms-e2e.cjs`, `scripts/security-probe.mjs` | Browser test of the editor workflow; attack checks against a running copy | Need a disposable editor account |
 
 ## Content contract
 
@@ -133,7 +133,7 @@ Exported content JSON is useful for versioning or migration, but does not contai
 
 **Change a tool destination:** edit the tool record's `link` after checking the actual target. Preserve the exact case and trailing path; several existing hosts use case-sensitive routes. The redesign does not move those services into this application.
 
-**Connect the image bundle:** compare the supplied folders against `docs/migration-report.json → assetReferences`; preserve directory names. Prefer a media host or controlled import into `data/uploads`, then update records. Do not place the complete 800 MB bundle inside a Docker application layer or overwrite source paths without a mapping.
+**Bring images onto the site:** use *Media library → Copy to site* on the lab server (Raikou images only), or upload new files. See the README's Images section.
 
 **Change the design:** colours, type and spacing are tokens in `:root` at the top of `public/site.css`; the design rules are in [redesign-plan.md](redesign-plan.md). Page structure lives in `src/render.mjs` (pages) and `src/presentation.mjs` (shared chrome and homepage). The CSP forbids inline `style` attributes and `data:` images, so put all styling in the stylesheet. After layout edits, check search, keyboard focus, the mobile menu, long titles, missing images and reduced motion, and run `scripts/cms-e2e.cjs` against a disposable editor account.
 

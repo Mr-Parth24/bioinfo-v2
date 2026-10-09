@@ -12,7 +12,8 @@ const assets = JSON.parse(readFileSync(new URL('../public/asset-map.json', impor
 export const dimensions = url => (assets[url]?.width ? assets[url] : null);
 export const asset = url => assets[url]?.url || url || '';
 export const logo = asset('https://bioinfocore.usu.edu/raikou/image/bioinfo/kbllogo.png');
-const media = 'https://bioinfocore.usu.edu/raikou';
+/** The original lab image server (Raikou). */
+const RAIKOU = 'https://bioinfocore.usu.edu/raikou';
 
 /* ---------- Icons (inline SVG, no inline styles: the CSP forbids them) ---------- */
 const svg = (body, cls = '') => `<svg class="icon${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -73,7 +74,7 @@ export function pageHeader(title, intro, eyebrow = '', { trail = [], aside = '' 
   return `<header class="page-header"><div class="wrap page-header-inner">${breadcrumbs(trail.length ? trail : [[title]])}<div class="page-header-grid"><div class="page-header-text">${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h1>${e(title)}</h1>${intro ? `<p class="lede">${e(intro)}</p>` : ''}</div>${aside ? `<div class="page-header-aside">${aside}</div>` : ''}</div></div></header>`;
 }
 
-export function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
+function sectionHead(eyebrow, title, link, linkLabel, intro = '') {
   return `<div class="section-head"><div>${eyebrow ? `<p class="eyebrow">${e(eyebrow)}</p>` : ''}<h2>${e(title)}</h2>${intro ? `<p class="section-intro">${e(intro)}</p>` : ''}</div>${link ? `<a class="link-more" href="${e(link)}">${e(linkLabel)} ${arrow}</a>` : ''}</div>`;
 }
 
@@ -107,16 +108,21 @@ export function toneFor(category = '') {
 
 /* ---------- Navigation ---------- */
 const published = records => records.filter(r => r.status === 'published');
-const toolGroups = records => {
+/** Published tools grouped by category, in first-seen order. The anchor is the historic one (#hpi…)
+    when the migrated records carry it, so the menu, homepage and Tools page always agree. */
+export const toolGroups = (records, { includeDrafts = false } = {}) => {
   const groups = new Map();
-  for (const t of published(records).filter(r => r.collection === 'tools')) {
+  for (const t of (includeDrafts ? records : published(records)).filter(r => r.collection === 'tools')) {
     const name = t.category || 'Other tools';
-    const anchor = t.anchor || 'category-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    if (!groups.has(name)) groups.set(name, { name, anchor, count: 0 });
-    groups.get(name).count++;
+    if (!groups.has(name)) groups.set(name, { name, anchor: t.anchor || 'category-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), items: [] });
+    groups.get(name).items.push(t);
   }
-  return [...groups.values()];
+  return [...groups.values()].map(g => ({ ...g, count: g.items.length }));
 };
+/** "kaabil.net" from "https://www.kaabil.net/x/". */
+export const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+/** Public Web3Forms access key (it only routes form submissions to the lab's inbox). */
+export const WEB3FORMS_KEY = '00849017-c746-4914-9c81-2d8c4ee2d17a';
 
 export function navigation(records) {
   const research = published(records).filter(r => r.collection === 'research');
@@ -186,7 +192,7 @@ export function footer(records = []) {
     + `<div class="wrap footer-bottom"><p>© ${new Date().getFullYear()} ${e(c.title)}</p><ul class="footer-social">${links(c.social)}</ul><a class="footer-admin" href="/admin">Editor sign-in</a></div>`
     + `<dialog id="report-issue-dialog" class="form-dialog">`
     + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form web3form-report">`
-    + `<input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a">`
+    + `<input type="hidden" name="access_key" value="${WEB3FORMS_KEY}">`
     + `<h3>Report an Issue</h3>`
     + `<p class="dialog-desc">Found a bug or broken link? Let us know so we can fix it!</p>`
     + `<input type="hidden" name="subject" value="Website Issue Report">`
@@ -215,7 +221,7 @@ function updateItem(r, lead = false) {
 
 function pickEvent(records, c) {
   const all = published(records).filter(r => r.collection === 'events');
-  if (c.eventMode === 'hidden' || c.showEvents === 'no' || setting(records, 'settings:editorial')?.eventsVisible === false) return null;
+  if (c.eventMode === 'hidden') return null;
   if (c.eventMode === 'selected') {
     const chosen = (c.eventIds || []).map(id => all.find(r => r.id === id)).find(Boolean);
     return chosen ? { record: chosen, label: dateValue(chosen) >= today() ? 'Upcoming event' : 'Featured event' } : null;
@@ -227,7 +233,7 @@ function pickEvent(records, c) {
 }
 
 function pickOpportunity(records, c) {
-  if (c.opportunityMode === 'hidden' || c.showOpportunities === 'no' || setting(records, 'settings:editorial')?.opportunitiesVisible === false) return null;
+  if (c.opportunityMode === 'hidden') return null;
   const open = activeOpportunities(records);
   if (c.opportunityMode === 'selected') return (c.opportunityIds || []).map(id => open.find(r => r.id === id)).find(Boolean) || null;
   return open[0] || null;
@@ -367,4 +373,4 @@ export function opportunities(records) {
     + `</div>`;
 }
 
-export { media };
+export { RAIKOU };

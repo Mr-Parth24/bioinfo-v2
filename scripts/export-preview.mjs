@@ -30,7 +30,8 @@ export function exportPreview({ records, out, uploadsDir }) {
   const target = path => join(staging, path === '/' ? 'index.html' : path.slice(1) + '/index.html');
   let previous;
   try {
-    cpSync(new URL('../public/', import.meta.url), join(staging, 'assets'), { recursive: true });
+    // The static copy has no editor, so the studio's script and stylesheet are left out.
+    cpSync(new URL('../public/', import.meta.url), join(staging, 'assets'), { recursive: true, filter: source => !/[\\/]admin\.(js|css)$/.test(source) });
     if (uploadsDir && existsSync(uploadsDir)) cpSync(uploadsDir, join(staging, 'uploads'), { recursive: true });
     for (const route of routes) {
       const file = target(route), folder = dirname(file);

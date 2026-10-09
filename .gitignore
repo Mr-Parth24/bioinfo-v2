@@ -1,8 +1,6 @@
 
 preview/
 artifacts/
-__pycache__/
-*.pyc
 .env
 node_modules/
 # SQLite sidecar files: never commit them. Run `npm run manage checkpoint`

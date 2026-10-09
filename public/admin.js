@@ -145,6 +145,7 @@
   }
 
   function list() {
+    $('#media-view').hidden = true;
     $('#record-list').hidden = false;
     $('#record-editor').hidden = true;
     $('#collection-title').textContent = labels[collection] || titleCase(collection);
@@ -298,86 +299,205 @@
     if (coords) coords.textContent = `Focus: ${fX}% X, ${fY}% Y`;
   }
 
-  // Media Library Dialog
-  async function chooseImage(key = 'image') {
-    try {
-      const media = await api('media');
-      const dialog = document.createElement('dialog');
-      dialog.className = 'media-library-dialog';
-      dialog.innerHTML = `
-        <div class="dialog-top">
-          <div>
-            <h2>Media Assets Library</h2>
-            <p class="dialog-desc">Select an uploaded image or remove unused files to save storage.</p>
-          </div>
-          <button type="button" class="small-button" data-close-library>Close ✕</button>
-        </div>
-        <div class="dialog-search-bar">
-          <input type="search" data-media-search placeholder="Search images by filename, title, or record…" autofocus class="styled-input">
-        </div>
-        <div class="media-library-grid">
-          ${media.map((m, i) => `
-            <div class="media-library-item" data-search="${escape((m.source || m.url) + ' ' + (m.usage || []).map(x => records.find(r => r.id === x.id)?.title || x.id).join(' '))}">
-              <button type="button" data-media-index="${i}" class="media-thumb-btn">
-                <img src="${escape(m.url)}" loading="lazy" alt="">
-                <span class="media-dim">${m.width ? m.width + ' × ' + m.height : 'Original'}</span>
-              </button>
-              ${m.usage?.length ? `<details class="media-usage"><summary>Used in ${m.usage.length} place(s)</summary><small>${[...new Set(m.usage.map(u => records.find(r => r.id === u.id)?.title || u.id))].map(escape).join('<br>')}</small></details>` : ''}
-              ${!m.builtIn && !m.usage?.length ? `<button type="button" class="small-button delete-media-btn" data-delete-media="${i}">Delete unused</button>` : ''}
-            </div>
-          `).join('')}
-        </div>
-      `;
-      document.body.append(dialog);
+  /* ---------- Media library: every image in one place, labelled by where it is used ---------- */
+  const KIND_LABEL = { upload: 'Uploaded', local: 'Built-in copy', remote: 'Remote server' };
+  const SECTION_ORDER = ['People', 'News', 'Events', 'Tools', 'Research', 'Homepage', 'Director', 'Site', 'Pages', 'Opportunities', 'Publications'];
+  const fileName = url => decodeURIComponent(String(url).split('?')[0].split('/').pop() || url);
+  const kb = bytes => bytes ? (bytes > 1e6 ? (bytes / 1e6).toFixed(1) + ' MB' : Math.round(bytes / 1e3) + ' KB') : '';
+  const mediaState = { filter: 'all', query: '', sort: 'newest', items: [] };
+  const mediaFilters = items => {
+    const counts = { all: items.length, unused: items.filter(i => !i.usage.length).length, remote: items.filter(i => i.kind === 'remote').length };
+    for (const i of items) for (const s of i.sections) counts[s] = (counts[s] || 0) + 1;
+    const chips = [['all', 'All'], ...SECTION_ORDER.filter(s => counts[s]).map(s => [s, s]), ['unused', 'Not used'], ['remote', 'On remote server']].filter(([k]) => counts[k]);
+    return `<div class="media-chips" role="group" aria-label="Show images">${chips.map(([k, label]) => `<button type="button" class="media-chip${mediaState.filter === k ? ' is-active' : ''}" data-media-filter="${escape(k)}" aria-pressed="${mediaState.filter === k}">${escape(label)}<small>${counts[k]}</small></button>`).join('')}</div>`;
+  };
+  const mediaVisible = items => {
+    const q = mediaState.query.toLowerCase();
+    const shown = items.filter(i => (mediaState.filter === 'all' || (mediaState.filter === 'unused' ? !i.usage.length : mediaState.filter === 'remote' ? i.kind === 'remote' : i.sections.includes(mediaState.filter)))
+      && (!q || (fileName(i.url) + ' ' + (i.source || '') + ' ' + i.usage.map(u => u.title).join(' ')).toLowerCase().includes(q)));
+    const by = { newest: (a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''), used: (a, b) => b.usage.length - a.usage.length, size: (a, b) => (b.bytes || 0) - (a.bytes || 0), name: (a, b) => fileName(a.url).localeCompare(fileName(b.url)) };
+    return shown.sort((a, b) => by[mediaState.sort](a, b) || a.url.localeCompare(b.url));
+  };
+  function mediaCard(item, index, mode) {
+    const uses = item.usage;
+    const where = uses.length
+      ? `<ul class="media-uses">${uses.slice(0, 3).map(u => `<li><span class="media-section">${escape(u.section)}</span>${u.id ? `<button type="button" class="link-button" data-open-record="${escape(u.id)}" title="Open in the editor">${escape(u.title || u.id)}</button>` : `<span>${escape(u.title)}</span>`}${u.status === 'draft' ? ' <small>(draft)</small>' : ''}</li>`).join('')}${uses.length > 3 ? `<li class="media-more">+ ${uses.length - 3} more</li>` : ''}</ul>`
+      : `<p class="media-unused">Not used on the site</p>`;
+    const meta = [KIND_LABEL[item.kind], item.width ? `${item.width} × ${item.height}` : '', kb(item.bytes)].filter(Boolean).join(' · ');
+    const actions = mode === 'pick'
+      ? `<button type="button" class="small-button primary-accent-btn" data-media-pick="${index}">Use this image</button>`
+      : [`<button type="button" class="small-button" data-media-copy="${index}">Copy link</button>`,
+         uses.length ? `<button type="button" class="small-button" data-media-replace="${index}">Replace…</button>` : '',
+         item.importable ? `<button type="button" class="small-button" data-media-import="${index}" title="Copy this image into the website’s own storage and switch every page to it">Copy to site</button>` : '',
+         item.kind === 'upload' && !uses.length ? `<button type="button" class="small-button delete-button" data-media-delete="${index}">Delete</button>` : '',
+         `<a class="small-button" href="${escape(item.url)}" target="_blank" rel="noopener">Open ↗</a>`].join('');
+    return `<li class="media-card${uses.length ? '' : ' is-unused'}">`
+      + (mode === 'manage' && item.kind === 'upload' && !uses.length ? `<label class="media-select"><input type="checkbox" data-media-select="${index}"><span class="sr-only">Select ${escape(fileName(item.url))}</span></label>` : '')
+      + `<div class="media-thumb"><img src="${escape(item.thumb || item.url)}" alt="" loading="lazy"></div>`
+      + `<div class="media-card-body"><p class="media-name" title="${escape(item.source || item.url)}">${escape(fileName(item.source || item.url))}</p><p class="media-meta">${escape(meta)}</p>${where}<div class="media-actions">${actions}</div></div></li>`;
+  }
+  function mediaGrid(container, mode) {
+    const items = mediaState.items, visible = mediaVisible(items);
+    container.querySelector('[data-media-filters]').innerHTML = mediaFilters(items);
+    container.querySelector('[data-media-grid]').innerHTML = visible.length
+      ? visible.map(item => mediaCard(item, items.indexOf(item), mode)).join('')
+      : '<li class="media-empty">No images match. Try another filter or search.</li>';
+    const count = container.querySelector('[data-media-count]');
+    if (count) count.textContent = `${visible.length} of ${items.length} images`;
+    container.querySelector('[data-media-bulk]')?.toggleAttribute('hidden', !container.querySelector('[data-media-select]'));
+  }
+  const mediaToolbar = () => `
+    <div class="media-toolbar">
+      <label class="media-search"><span class="sr-only">Search images</span><input type="search" data-media-search placeholder="Search by file name or where it is used…" value="${escape(mediaState.query)}" class="styled-input"></label>
+      <label><span class="sr-only">Sort images</span><select data-media-sort class="styled-select">${[['newest', 'Newest first'], ['used', 'Most used'], ['size', 'Largest files'], ['name', 'File name']].map(([v, l]) => `<option value="${v}"${mediaState.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+    </div>
+    <div data-media-filters></div>`;
+  async function loadMedia() { mediaState.items = await api('media'); }
 
-      dialog.querySelector('[data-media-search]').oninput = event => {
-        const q = event.target.value.toLowerCase();
-        dialog.querySelectorAll('.media-library-item').forEach(item => {
-          item.hidden = !item.dataset.search.toLowerCase().includes(q);
-        });
-      };
-      dialog.querySelector('[data-close-library]').onclick = () => dialog.close();
-      dialog.addEventListener('close', () => dialog.remove());
-
-      dialog.onclick = async event => {
-        const selected = event.target.closest('[data-media-index]');
-        if (selected) {
-          const picked = media[Number(selected.dataset.mediaIndex)];
-          if (key === 'gallery') {
-            addGalleryImage(picked.url);
-            dirty = true;
-            dialog.close();
-            return;
-          }
-          if ($('#field-image')) {
-            $('#field-image').value = picked.url;
-            if (current) {
-              current.imageOriginal = picked.source || picked.url;
-              current.imageWidth = picked.width;
-              current.imageHeight = picked.height;
-              current.imageVariants = picked.variants || [];
-            }
-            dirty = true;
-            updateImagePreview();
-          }
-          dialog.close();
-          return;
-        }
-        const del = event.target.closest('[data-delete-media]');
-        if (del && confirm('Permanently delete this unused uploaded image?')) {
-          try {
-            await api('media', { method: 'DELETE', body: JSON.stringify({ url: media[Number(del.dataset.deleteMedia)].url }) });
-            del.closest('.media-library-item').remove();
-            notice('Image deleted.');
-          } catch (err) {
-            notice(err.message, true);
-          }
-        }
-      };
-      dialog.showModal();
-    } catch (error) {
-      notice(error.message, true);
+  async function uploadFiles(files) {
+    const done = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not an image (PNG, JPG, GIF or WebP).`);
+      if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name} is larger than 10 MB.`);
+      notice(`Uploading ${file.name}…`);
+      done.push(await api('uploads', { method: 'POST', headers: { 'content-type': file.type }, body: file }));
     }
+    return done;
+  }
+  const pickFile = (multiple = false) => new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/png,image/jpeg,image/gif,image/webp'; input.multiple = multiple;
+    input.onchange = () => resolve([...input.files]);
+    input.click();
+  });
+
+  async function mediaView() {
+    if (!discard()) return;
+    current = null; dirty = false;
+    $('#record-list').hidden = true; $('#record-editor').hidden = true; $('#studio-notice').hidden = true;
+    const view = $('#media-view');
+    view.hidden = false;
+    view.innerHTML = `
+      <div class="admin-list-heading"><div class="list-heading-left"><h2 id="media-title">Media library</h2><span class="list-total-count" data-media-count>Loading…</span></div>
+        <div class="media-heading-actions"><button type="button" class="small-button" data-media-import-all hidden>Copy all remote images to site</button><button type="button" class="button primary-btn" data-media-upload>+ Upload images</button></div></div>
+      <p class="media-intro">Every image the website uses, wherever it is stored. Labels show where each one appears; “Not used” images can be deleted. Drop files anywhere here to upload.</p>
+      <div class="media-panel">${mediaToolbar()}
+        <div class="media-bulk" data-media-bulk hidden><label><input type="checkbox" data-media-select-all> Select all unused uploads shown</label><button type="button" class="small-button delete-button" data-media-delete-selected>Delete selected</button></div>
+        <ul class="media-grid" data-media-grid><li class="media-empty">Loading images…</li></ul></div>`;
+    try { await loadMedia(); } catch (error) { notice(error.message, true); return; }
+    const refresh = () => {
+      mediaGrid(view, 'manage');
+      const remote = mediaState.items.filter(i => i.importable && i.usage.length);
+      const all = view.querySelector('[data-media-import-all]');
+      all.hidden = !remote.length;
+      all.textContent = `Copy all remote images to site (${remote.length})`;
+    };
+    refresh();
+    const reload = async message => { await loadMedia(); records = await api('records'); nav(); refresh(); if (message) notice(message); };
+    view.oninput = event => { if (event.target.matches('[data-media-search]')) { mediaState.query = event.target.value; refresh(); } };
+    view.onchange = event => {
+      if (event.target.matches('[data-media-sort]')) { mediaState.sort = event.target.value; refresh(); }
+      if (event.target.matches('[data-media-select-all]')) view.querySelectorAll('[data-media-select]').forEach(c => { c.checked = event.target.checked; });
+    };
+    view.ondragover = event => { if (event.dataTransfer?.types?.includes('Files')) { event.preventDefault(); view.classList.add('is-dragover'); } };
+    view.ondragleave = event => { if (!view.contains(event.relatedTarget)) view.classList.remove('is-dragover'); };
+    view.ondrop = async event => {
+      if (!event.dataTransfer?.files?.length) return;
+      event.preventDefault(); event.stopPropagation(); view.classList.remove('is-dragover');
+      try { const files = await uploadFiles([...event.dataTransfer.files]); await reload(`${files.length} image(s) uploaded. They show as “Not used” until you place them.`); } catch (error) { notice(error.message, true); }
+    };
+    view.onclick = async event => {
+      const t = event.target, item = i => mediaState.items[Number(i)];
+      const chip = t.closest('[data-media-filter]');
+      if (chip) { mediaState.filter = chip.dataset.mediaFilter; refresh(); return; }
+      const open = t.closest('[data-open-record]');
+      if (open) { const record = records.find(r => r.id === open.dataset.openRecord); if (record) { view.hidden = true; collection = record.collection; nav(); edit(record); } return; }
+      if (t.closest('[data-media-upload]')) {
+        const files = await pickFile(true);
+        if (!files.length) return;
+        try { const done = await uploadFiles(files); await reload(`${done.length} image(s) uploaded. They show as “Not used” until you place them.`); } catch (error) { notice(error.message, true); }
+        return;
+      }
+      const copy = t.closest('[data-media-copy]');
+      if (copy) { const url = new URL(item(copy.dataset.mediaCopy).url, location.origin).href; navigator.clipboard?.writeText(url).then(() => notice('Image link copied.'), () => notice(url)); return; }
+      const replace = t.closest('[data-media-replace]');
+      if (replace) {
+        const old = item(replace.dataset.mediaReplace);
+        const [file] = await pickFile(false);
+        if (!file) return;
+        try {
+          const [uploaded] = await uploadFiles([file]);
+          // A built-in copy can be referenced by its original Raikou address or by the local copy.
+          let updated = 0;
+          for (const from of [old.source, old.url].filter(Boolean)) updated += (await api('media/replace', { method: 'POST', body: JSON.stringify({ from, to: uploaded.url }) })).updated;
+          await reload(`Replaced in ${updated} entr${updated === 1 ? 'y' : 'ies'}. Each change is saved as a revision.`);
+        } catch (error) { notice(error.message, true); }
+        return;
+      }
+      const imp = t.closest('[data-media-import]');
+      if (imp) {
+        imp.disabled = true; notice('Copying image to the website…');
+        try { const r = await api('media/import', { method: 'POST', body: JSON.stringify({ url: item(imp.dataset.mediaImport).url }) }); await reload(`Copied. ${r.updated} entr${r.updated === 1 ? 'y now uses' : 'ies now use'} the site’s own copy.`); } catch (error) { notice(error.message, true); imp.disabled = false; }
+        return;
+      }
+      if (t.closest('[data-media-import-all]')) {
+        const list = mediaState.items.filter(i => i.importable && i.usage.length);
+        if (!confirm(`Copy ${list.length} images from the remote server into the website’s storage and switch every page to them?`)) return;
+        let ok = 0, failed = 0;
+        for (const [n, i] of list.entries()) {
+          notice(`Copying ${n + 1} of ${list.length}…`);
+          try { await api('media/import', { method: 'POST', body: JSON.stringify({ url: i.url }) }); ok++; } catch { failed++; }
+        }
+        await reload(`Copied ${ok} image(s)${failed ? `; ${failed} could not be reached (try again later)` : ''}.`);
+        return;
+      }
+      const del = t.closest('[data-media-delete]');
+      const selected = t.closest('[data-media-delete-selected]') ? [...view.querySelectorAll('[data-media-select]:checked')].map(c => item(c.dataset.mediaSelect)) : del ? [item(del.dataset.mediaDelete)] : null;
+      if (selected) {
+        if (!selected.length) { notice('Select the unused images to delete first.', true); return; }
+        const inRevisions = selected.filter(i => i.inRevisions).length;
+        if (!confirm(`Delete ${selected.length} unused image(s) permanently?${inRevisions ? `\n\n${inRevisions} of them appear in older versions of entries; restoring those versions would show no image.` : ''}`)) return;
+        let removed = 0;
+        for (const i of selected) { try { await api('media', { method: 'DELETE', body: JSON.stringify({ url: i.url, force: true }) }); removed++; } catch (error) { notice(error.message, true); } }
+        await reload(`${removed} image(s) deleted.`);
+      }
+    };
+  }
+  $('#open-media-library')?.addEventListener('click', () => mediaView());
+
+  /* Picker: the same library, filtered and searchable, to choose an image for a field or gallery. */
+  async function chooseImage(key = 'image') {
+    try { await loadMedia(); } catch (error) { notice(error.message, true); return; }
+    const dialog = document.createElement('dialog');
+    dialog.className = 'media-library-dialog';
+    dialog.innerHTML = `<div class="dialog-top"><div><h2>Choose an image</h2><p class="dialog-desc">Pick any image the site already has. Upload new ones with the box under the field, or in the Media library.</p></div><button type="button" class="small-button" data-close-library>Close ✕</button></div>${mediaToolbar()}<ul class="media-grid is-picker" data-media-grid></ul>`;
+    document.body.append(dialog);
+    const refresh = () => mediaGrid(dialog, 'pick');
+    refresh();
+    dialog.oninput = event => { if (event.target.matches('[data-media-search]')) { mediaState.query = event.target.value; refresh(); } };
+    dialog.onchange = event => { if (event.target.matches('[data-media-sort]')) { mediaState.sort = event.target.value; refresh(); } };
+    dialog.addEventListener('close', () => dialog.remove());
+    dialog.onclick = event => {
+      if (event.target.closest('[data-close-library]')) { dialog.close(); return; }
+      const chip = event.target.closest('[data-media-filter]');
+      if (chip) { mediaState.filter = chip.dataset.mediaFilter; refresh(); return; }
+      const pick = event.target.closest('[data-media-pick]');
+      if (!pick) return;
+      const picked = mediaState.items[Number(pick.dataset.mediaPick)];
+      if (key === 'gallery') addGalleryImage(picked.url);
+      else if ($('#field-image')) {
+        $('#field-image').value = picked.url;
+        current.imageOriginal = picked.kind === 'local' && picked.source ? picked.source : picked.url;
+        current.imageWidth = picked.width || 0;
+        current.imageHeight = picked.height || 0;
+        current.imageVariants = picked.variants || [];
+        updateImagePreview();
+      }
+      dirty = true;
+      dialog.close();
+    };
+    dialog.showModal();
+    dialog.querySelector('[data-media-search]').focus();
   }
 
   function discard() {
@@ -398,7 +518,6 @@
   });
 
   // Open Media Library directly from sidebar
-  $('#open-media-library')?.addEventListener('click', () => chooseImage());
 
   // Status Filter Pills
   document.addEventListener('click', event => {
@@ -800,7 +919,10 @@
 
     if (value === undefined || value === null) {
       if (['range'].includes(field.type)) value = 50;
-      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 4 : 0;
+      // Defaults must match what the site does when a setting was never saved (presentation.mjs),
+      // otherwise saving a record silently changes the site.
+      else if (field.type === 'number') value = key === 'feedCount' ? 3 : key === 'heroSlideCount' ? 8 : 0;
+      else if (key === 'heroMode') value = 'random';
       else if (key === 'memberStatus') value = current.category?.split(/\s*\/\s*/).includes('Alumni') ? 'alumni' : 'current';
       else if (key === 'imageFit') value = 'cover';
       else value = '';
@@ -1140,6 +1262,7 @@
     current = structuredClone(record);
     dirty = false;
     $('#record-list').hidden = true;
+    $('#media-view').hidden = true;
     $('#record-editor').hidden = false;
     $('#studio-notice').hidden = true;
 
@@ -1384,38 +1507,19 @@
     }
   });
 
+  /** Upload files into an image field or the gallery (drag and drop or the file picker). */
+  async function uploadInto(files, key) {
+    const uploaded = await uploadFiles([...files]);
+    for (const data of uploaded) {
+      if (key === 'gallery') addGalleryImage(data.url);
+      else applyMainImage(data);
+    }
+    dirty = true;
+    notice(uploaded.length > 1 ? `${uploaded.length} images uploaded. Click "Save changes" to apply.` : 'Image uploaded. Click "Save changes" to apply.');
+  }
   async function handleDroppedFiles(files, dropzone) {
     if (!files || !files.length) return;
-    const isGallery = dropzone.closest('.gallery-picker') !== null;
-    const key = isGallery ? 'gallery' : 'image';
-    notice('Uploading dropped image…');
-    try {
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) throw new Error('Only image files (PNG, JPG, WebP) are accepted.');
-        if (file.size > 10 * 1024 * 1024) throw new Error('Image size must be 10 MB or smaller.');
-        const data = await api('uploads', {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file
-        });
-        if (key === 'image') {
-          if (current) {
-            current.imageOriginal = data.url;
-            current.imageWidth = data.width;
-            current.imageHeight = data.height;
-            current.imageVariants = data.variants || [];
-          }
-          if ($('#field-image')) $('#field-image').value = data.url;
-          updateImagePreview();
-        } else if (key === 'gallery') {
-          addGalleryImage(data.url);
-        }
-      }
-      dirty = true;
-      notice('Image successfully uploaded and placed!');
-    } catch (err) {
-      notice(err.message, true);
-    }
+    try { await uploadInto(files, dropzone.closest('.gallery-picker') ? 'gallery' : 'image'); } catch (err) { notice(err.message, true); }
   }
 
   document.addEventListener('drop', async event => {
@@ -1736,30 +1840,9 @@
       updateImagePreview();
       return;
     }
-    const key = target.dataset.upload;
     target.disabled = true;
     try {
-      for (const file of target.files) {
-        if (file.size > 10 * 1024 * 1024) throw new Error('Each image must be 10 MB or smaller.');
-        notice('Uploading ' + file.name + '…');
-        const data = await api('uploads', {
-          method: 'POST',
-          headers: { 'content-type': file.type },
-          body: file
-        });
-        const field = $('#field-' + key);
-        if (key === 'image') {
-          current.imageOriginal = data.url;
-          current.imageWidth = data.width;
-          current.imageHeight = data.height;
-          current.imageVariants = data.variants || [];
-          if (field) field.value = data.url;
-        }
-        if (key === 'gallery') addGalleryImage(data.url);
-      }
-      dirty = true;
-      updateImagePreview();
-      notice('Image uploaded successfully! Click "Save changes" to apply.');
+      await uploadInto(target.files, target.dataset.upload);
     } catch (error) {
       notice(error.message, true);
     } finally {

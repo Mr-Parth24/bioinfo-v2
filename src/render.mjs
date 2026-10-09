@@ -5,7 +5,8 @@
  */
 import {
   header, footer, homepage, director, opportunities, related,
-  image, pageHeader, breadcrumbs, icons, arrow, asset, media, profileLinks, linkButtons, toneFor,
+  image, pageHeader, breadcrumbs, icons, arrow, asset, RAIKOU, profileLinks, linkButtons, toneFor,
+  toolGroups, hostOf, WEB3FORMS_KEY,
 } from './presentation.mjs';
 import { setting, dateValue, activeOpportunities, displayDate } from './editorial.mjs';
 import { escapeHtml as e, sanitizeHtml, safeUrl, plainText } from './security.mjs';
@@ -50,7 +51,6 @@ export const legacyRedirects = {
 };
 export const baseRoutes = ['/home', '/search', '/opportunities', '/', '/research', '/research/research-areas', '/people', '/people/our-team', '/people/alumni', '/publications', '/publications/conferences', '/publications/editorials', '/tools', '/news', '/events', '/contact', '/about'];
 
-const DEFAULT_DEPARTMENT = 'Department of Plants, Soils & Climate';
 
 /* ---------- Document shell ---------- */
 export function shell(title, body, { path = '/', description = 'Kaundal Artificial Intelligence & Advanced Bioinformatics Lab (KAABiL) at Utah State University: machine learning, multi-omics and open bioinformatics tools.', admin = false, records = [] } = {}) {
@@ -125,11 +125,10 @@ function researchArea(record, records) {
   const pubs = relatedOf(record, 'publicationIds', 'publications', records).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
   const years = pubs.map(p => parseInt(p.year)).filter(Boolean);
   const stats = [[tools.length, tools.length === 1 ? 'Tool or database' : 'Tools & databases'], [pubs.length, pubs.length === 1 ? 'Publication' : 'Publications'], [years.length ? (Math.min(...years) === Math.max(...years) ? String(years[0]) : `${Math.min(...years)}–${Math.max(...years)}`) : '', 'Years of published work']].filter(([n]) => n);
-  const host = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
   return `<article class="article research-area"><header class="article-header"><div class="wrap">${breadcrumbs([['Research', '/research'], [record.title]])}<div class="area-hero"><div class="article-heading"><p class="eyebrow">Research area ${index >= 0 ? String(index + 1).padStart(2, '0') : ''}</p><h1>${e(record.title)}</h1>${record.summary ? `<p class="lede">${e(record.summary)}</p>` : ''}${stats.length ? `<dl class="profile-stats">${stats.map(([n, l]) => `<div><dd>${e(String(n))}</dd><dt>${l}</dt></div>`).join('')}</dl>` : ''}</div>${record.image ? `<figure class="area-hero-figure">${image(record, 'area-hero-image')}${record.imageCaption ? `<figcaption>${e(record.imageCaption)}</figcaption>` : ''}</figure>` : ''}</div></div></header>`
     + `<div class="wrap area-layout"><div class="area-main">`
     + (record.body ? `<div class="prose">${richBody(record.body, records)}</div>` : `<p class="lede">This research area is part of the lab’s wider program. Explore the related tools and publications below.</p>`)
-    + (tools.length ? `<section class="area-section" id="tools"><h2>Tools &amp; databases</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Resource</th><th scope="col">What it does</th><th scope="col">Category</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead><tbody>${tools.map(t => `<tr><th scope="row"><a href="${e(t.link)}" target="_blank" rel="noopener noreferrer">${e(t.title)}</a></th><td>${e(t.summary || '')}</td><td><span class="tag">${e(t.category || 'Tool')}</span></td><td><a class="small-link" href="${e(t.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${e(t.title)} at ${e(host(t.link))}">Open ${icons.external}</a></td></tr>`).join('')}</tbody></table></div></section>` : '')
+    + (tools.length ? `<section class="area-section" id="tools"><h2>Tools &amp; databases</h2><div class="table-wrap"><table class="data-table"><thead><tr><th scope="col">Resource</th><th scope="col">What it does</th><th scope="col">Category</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead><tbody>${tools.map(t => `<tr><th scope="row"><a href="${e(t.link)}" target="_blank" rel="noopener noreferrer">${e(t.title)}</a></th><td>${e(t.summary || '')}</td><td><span class="tag">${e(t.category || 'Tool')}</span></td><td><a class="small-link" href="${e(t.link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${e(t.title)} at ${e(hostOf(t.link))}">Open ${icons.external}</a></td></tr>`).join('')}</tbody></table></div></section>` : '')
     + (pubs.length ? `<section class="area-section" id="publications"><div class="profile-section-head"><h2>Publications</h2><span class="count-badge">${pubs.length}</span></div><ol class="publication-entries compact">${pubs.map(p => publicationRow(p, { compact: true })).join('')}</ol><p><a class="link-more" href="/publications">All publications ${arrow}</a></p></section>` : '')
     + `</div><aside class="area-aside"><div class="aside-panel"><p class="eyebrow">On this page</p><ul class="aside-links"><li><a href="#main">Overview</a></li>${tools.length ? '<li><a href="#tools">Tools &amp; databases</a></li>' : ''}${pubs.length ? '<li><a href="#publications">Publications</a></li>' : ''}</ul></div><div class="aside-panel aside-opportunity"><p class="eyebrow">Work with us</p><p>Students and researchers interested in this area are welcome to get in touch.</p><a class="link-more" href="/opportunities">Opportunities ${arrow}</a></div></aside></div>`
     + `<div class="wrap">${areas.length > 1 ? `<section class="related"><h2>Other research areas</h2><ul class="related-grid">${areas.filter(r => r.id !== record.id).map(r => `<li><a class="glow" href="${e(r.route)}"><span class="tag">Research</span><span class="related-title">${e(r.title)}</span>${arrow}</a></li>`).join('')}</ul></section>` : ''}<p class="back-link"><a href="/research">${icons.back} Back to research</a></p></div></article>`;
@@ -137,13 +136,9 @@ function researchArea(record, records) {
 
 /* ---------- Tools ---------- */
 function toolsPage(records) {
-  const tools = records.filter(r => r.collection === 'tools').map(r => ({
-    ...r,
-    category: r.category || 'Other tools',
-    anchor: r.anchor || 'category-' + (r.category || 'other').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-  }));
-  const groups = [...new Set(tools.map(r => r.category))].map(name => ({ name, tone: toneFor(name), anchor: tools.find(r => r.category === name).anchor, items: tools.filter(r => r.category === name) }));
-  const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  // renderPage has already filtered to published records plus any draft being previewed.
+  const groups = toolGroups(records, { includeDrafts: true }).map(g => ({ ...g, tone: toneFor(g.name), items: g.items.map(r => ({ ...r, category: g.name })) }));
+  const tools = groups.flatMap(g => g.items);
   /* Availability: "maintenance" is set by editors; otherwise site.js asks the kaabil.net uptime monitor
      (as the original site did) and fills in the dot. No answer means no dot, never a false "down". */
   const status = r => ['maintenance', 'none'].includes(r.toolStatus) ? r.toolStatus : 'auto';
@@ -291,8 +286,8 @@ function personFacts(r) {
 function personCard(r, records) {
   const { position, department } = personFacts(r);
   const group = peopleGroup(r);
-  const pubs = (r.publicationIds || []).filter(id => records.some(x => x.id === id && x.status === 'published')).length;
-  const tools = (r.toolIds || []).filter(id => records.some(x => x.id === id && x.status === 'published')).length;
+  const pubs = relatedOf(r, 'publicationIds', 'publications', records).length;
+  const tools = relatedOf(r, 'toolIds', 'tools', records).length;
   const years = r.startYear || r.endYear ? `${r.startYear || ''}–${r.endYear || (isAlumnus(r) ? '' : 'now')}` : '';
   const chips = [pubs && `${pubs} ${pubs === 1 ? 'paper' : 'papers'}`, tools && `${tools} ${tools === 1 ? 'tool' : 'tools'}`, years].filter(Boolean);
   const interests = r.researchInterests ? `<p class="person-interests" title="${e(r.researchInterests)}">${e(r.researchInterests)}</p>` : '';
@@ -308,7 +303,7 @@ function peoplePage(records, path) {
   const directorVisible = d && d.status === 'published';
   const tabs = `<nav class="tabs" aria-label="People"><a href="/people"${!showingAlumni ? ' aria-current="page"' : ''}>Current team<span>${current.length + (directorVisible ? 1 : 0)}</span></a><a href="/people/alumni"${showingAlumni ? ' aria-current="page"' : ''}>Alumni<span>${alumni.length}</span></a></nav>`;
   const lead = !showingAlumni && directorVisible
-    ? `<a class="lead-card reveal glow" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: media + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
+    ? `<a class="lead-card reveal glow" href="/people/rakesh">${image(d.image ? d : { title: d.title, image: RAIKOU + '/image/raw/bioinfo/profile/RK_2.jpg' }, 'lead-photo', false)}<div><p class="eyebrow">Principal investigator</p><h2>${e(d.title)}</h2><p>${e(d.summary)}</p><ul class="lead-facts">${(d.education || []).length ? `<li><strong>${d.education.length}</strong> degrees &amp; fellowships</li>` : ''}${(d.appointments || []).length ? `<li><strong>${d.appointments.length}</strong> appointments</li>` : ''}${(d.awards || []).length ? `<li><strong>${d.awards.length}</strong> awards</li>` : ''}</ul><span class="link-more">Education, experience &amp; awards ${arrow}</span></div></a>`
     : '';
   const groups = PEOPLE_GROUPS.map(name => ({ name, rows: list.filter(r => peopleGroup(r) === name) })).filter(g => g.rows.length);
   const chips = groups.length > 1
@@ -330,8 +325,8 @@ function personProfile(record, records) {
   const alum = isAlumnus(record);
   const { position, department } = personFacts(record);
   const group = peopleGroup(record);
-  const pubs = records.filter(r => r.status === 'published' && r.collection === 'publications' && (record.publicationIds || []).includes(r.id)).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
-  const tools = records.filter(r => r.status === 'published' && r.collection === 'tools' && (record.toolIds || []).includes(r.id));
+  const pubs = relatedOf(record, 'publicationIds', 'publications', records).sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+  const tools = relatedOf(record, 'toolIds', 'tools', records);
   const years = [...new Set(pubs.map(p => p.year).filter(Boolean))].sort().reverse();
   const interests = (record.researchInterests || '').split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 1 && s.length < 80);
   const links = profileLinks([...(record.social || []), ...(record.workLinks || [])]);
@@ -484,8 +479,7 @@ function infoPage(record, records) {
 }
 
 function sourceLink(href, primary) {
-  let host = '';
-  try { host = new URL(href).hostname.replace(/^www\./, ''); } catch { host = ''; }
+  const host = hostOf(href);
   return primary
     ? `<div class="notice-panel"><div><p class="eyebrow">Full story</p><p>This story was published${host ? ` at <strong>${e(host)}</strong>` : ' elsewhere'}.</p></div><a class="button" href="${e(href)}"${external(href)}>Read the full story ${icons.external}</a></div>`
     : `<p class="source-link"><a class="button button-ghost" href="${e(href)}"${external(href)}>Read the original story ${icons.external}</a></p>`;
@@ -497,7 +491,7 @@ function contact(records) {
   const phone = String(c.phone || '').replace(/[^+0-9]/g, '');
   const active = activeOpportunities(records);
   const form = `<section class="contact-form-section" id="enroll" aria-labelledby="form-h"><h2 id="form-h">Send a message</h2><p class="contact-form-intro">We usually reply by email within a few working days.</p>`
-    + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form"><input type="hidden" name="access_key" value="00849017-c746-4914-9c81-2d8c4ee2d17a"><input type="hidden" name="redirect" value="https://web3forms.com/success">`
+    + `<form action="https://api.web3forms.com/submit" method="POST" class="web3form"><input type="hidden" name="access_key" value="${WEB3FORMS_KEY}"><input type="hidden" name="redirect" value="https://web3forms.com/success">`
     + `<div class="form-row"><div class="form-group"><label for="name">Your name</label><input type="text" id="name" name="name" autocomplete="name" required></div><div class="form-group"><label for="email">Your email</label><input type="email" id="email" name="email" autocomplete="email" required></div></div>`
     + `<div class="form-group"><label for="subject">Topic</label><select id="subject" name="subject" required><option value="General Inquiry">General question</option><option value="Research Opportunity">Joining the lab</option><option value="Collaboration">Collaboration or sequencing analysis</option><option value="Tool question">A tool or database</option><option value="Appointment Request">Appointment request</option></select></div>`
     + `<div class="form-group"><label for="message">Message</label><textarea id="message" name="message" rows="6" required></textarea></div>`

@@ -54,3 +54,14 @@ test('research illustrations replace only the original images, once',()=>{
  assert.match(html,/srcset="\/assets\/media\/research-ngs-640\.webp 640w/);
  store.close();
 });
+
+test('the old developer guides are unpublished once, and stay as editors leave them',()=>{
+ const store=new Store(':memory:');store.seed(seed);
+ applyContentUpdates(store);
+ for(const id of ['pages:guide-dev-env','pages:guide-run-local','pages:guide-scm-setup'])assert.equal(store.get(id).status,'draft',id);
+ const page=store.get('pages:guide-dev-env');store.save({...page,status:'published'},page.version,'editor');
+ applyContentUpdates(store);
+ assert.equal(store.get('pages:guide-dev-env').status,'published','an editor can republish it');
+ assert.equal(withContentUpdates(seed).find(r=>r.id==='pages:guide-scm-setup').status,'draft','static export from seed agrees');
+ store.close();
+});

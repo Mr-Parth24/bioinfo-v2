@@ -258,6 +258,36 @@
           }
         }
       }
+    },
+    {
+      "key": "content-replacements:2026-10-c",
+      "about": "October 2026 cleanup: the three developer guides from the original site (Express/Nunjucks, bxz update) describe a workflow that no longer exists, so they are unpublished. Republish them in the studio (Site Pages) if wanted.",
+      "records": {
+        "pages:guide-dev-env": {
+          "when": {
+            "status": "published"
+          },
+          "set": {
+            "status": "draft"
+          }
+        },
+        "pages:guide-run-local": {
+          "when": {
+            "status": "published"
+          },
+          "set": {
+            "status": "draft"
+          }
+        },
+        "pages:guide-scm-setup": {
+          "when": {
+            "status": "published"
+          },
+          "set": {
+            "status": "draft"
+          }
+        }
+      }
     }
   ]
 }
