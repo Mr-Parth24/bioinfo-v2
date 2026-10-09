@@ -46,6 +46,7 @@ A news update takes this path:
 | `src/app.mjs` | Routes HTTP, enforces editor access, serves allowlisted assets and images, returns security headers | `createApp({ store, origin, dataDir, production })` → async handler |
 | `src/store.mjs` | SQLite records, revisions, accounts, sessions, rate-limit counters, transactions and backups | `Store` |
 | `src/content.mjs` | Collections, field metadata, editor field order and record validation | `FIELDS`, `COLLECTION_FIELDS`, `validateRecord()` |
+| `src/media.mjs` | Media library: every image (uploads, built-in copies, remote URLs) with where it is used; replace everywhere; copy Raikou images into storage | `mediaLibrary()`, `replaceEverywhere()`, `importRemote()` |
 | `src/security.mjs` | Password hashing, constant-time comparisons, URL checks, HTML escaping and rich-text allowlist | `hashPassword()`, `verifyPassword()`, `safeUrl()`, `sanitizeHtml()` |
 | `src/uploads.mjs` | Bounded body reads, accepted image signatures and generated upload names | `readLimited()`, `saveImage()`, `uploadedImage()` |
 | `src/render.mjs` | Document shell, router and page templates: research, people and profiles, publications, tools, news, events, articles, contact, search | `renderPage(path, searchParams, records)`, `shell()` |

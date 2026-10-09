@@ -112,17 +112,28 @@ The full list is in [`docs/architecture.md`](docs/architecture.md#what-editors-c
 
 ## Images: old and new
 
-- **Existing photos** are links to the Raikou image server (`https://bioinfocore.usu.edu/raikou/…`), loaded
-  straight from there as before. 120 of them also have compressed local copies in `public/media/`
-  (mapped by `public/asset-map.json`), which show even if Raikou is down. **Keep Raikou running.**
-- **New photos uploaded in the studio** are validated (PNG/JPEG/GIF/WebP, ≤ 10 MB), stripped of
-  EXIF/GPS metadata, resized into 320/640/1200 px WebP versions, stored in `data/uploads/` (the
-  `bioinfo_data` Docker volume) and served by the site at `/uploads/…`. Nothing goes to Raikou.
-- You can still paste any image URL (e.g. a Raikou link) into an entry's *Image URL* field.
-- *Media Assets* in the studio lists uploads and where each is used; an image in use cannot be deleted.
+All images are managed in one place: **Media library** in the studio sidebar. It lists every image the
+site knows about and labels each by where it appears (People, News, Events, Tools, Research, Homepage…),
+or *Not used*. From there you can upload (button or drag and drop), **Replace…** an image everywhere it
+is used, delete unused uploads (one or many), open the entry that uses an image, and **Copy to site**.
+
+- **Where images live.** *Uploaded* images are stored in `data/uploads/` (the `bioinfo_data` Docker
+  volume). *Built-in copies* are compressed copies of original Raikou images shipped in `public/media/`
+  (mapped by `public/asset-map.json`). *Remote* images are still loaded from the Raikou server.
+- **Moving off Raikou.** *Copy to site* (or *Copy all remote images to site*) downloads a Raikou image
+  on the server, stores it as an upload and switches every entry to it, saving a revision for each.
+  Only `https://bioinfocore.usu.edu/raikou/…` can be copied. Run it on the lab server, which can reach
+  Raikou; after that the site no longer depends on Raikou for those images.
+- **Uploads** are validated (PNG/JPEG/GIF/WebP, ≤ 10 MB), stripped of EXIF/GPS metadata, stored at most
+  2560 px on the long edge, and get 320/640/1200 px WebP versions that the pages use.
+- **Deleting.** Images used by current content cannot be deleted; replace them there first. Images that
+  only old revisions mention can be deleted after a confirmation.
+- **Archived photos.** 977 upload files (431 MB) that belonged only to events deleted in the studio were
+  removed from the working tree in October 2026. They are listed in `docs/archived-uploads.json` and can
+  be brought back from git history: `node scripts/restore-archived-uploads.mjs list`.
 
 There is no separate image database to set up: the SQLite file stores the image addresses, the volume
-stores the files.
+stores the files. `node scripts/manage.mjs optimize-uploads` shrinks older oversized originals.
 
 ---
 
@@ -303,7 +314,9 @@ If the probe says sign-in is rate-limited, wait 15 minutes — that is the brute
 ```sh
 node scripts/manage.mjs inventory                       # record counts
 node scripts/manage.mjs checkpoint                      # fold the WAL into content.sqlite (before a commit)
-node scripts/manage.mjs backup  /safe/content.sqlite    # database (content, accounts, revisions)
+node scripts/manage.mjs backup-all /safe/kaabil-2026-10 # database + every upload, in one folder
+node scripts/manage.mjs restore-all /safe/kaabil-2026-10 # into an empty DATA_DIR (server stopped)
+node scripts/manage.mjs backup  /safe/content.sqlite    # database only (content, accounts, revisions)
 node scripts/manage.mjs export  /safe/content.json      # content as JSON
 node scripts/manage.mjs import  /safe/revised.json      # validated, atomic import
 ```

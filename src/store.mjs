@@ -27,10 +27,11 @@ export class Store {
   integrity(){return this.db.prepare('PRAGMA quick_check').get().quick_check;}
   get(id){const row=this.db.prepare('SELECT data,version,updated_at FROM records WHERE id=?').get(id);return row?{...JSON.parse(row.data),version:row.version,updatedAt:row.updated_at}:null;}
   list({published=false,collection}={}){
-    let sql='SELECT id FROM records WHERE 1=1';const args=[];
+    // One query for the whole list (each public page reads every record).
+    let sql='SELECT data,version,updated_at FROM records WHERE 1=1';const args=[];
     if(published){sql+=' AND status=?';args.push('published');}
     if(collection){sql+=' AND collection=?';args.push(collection);}
-    sql+=' ORDER BY rowid';return this.db.prepare(sql).all(...args).map(row=>this.get(row.id));
+    sql+=' ORDER BY rowid';return this.db.prepare(sql).all(...args).map(row=>({...JSON.parse(row.data),version:row.version,updatedAt:row.updated_at}));
   }
   seed(records){
     if(this.db.prepare("SELECT value FROM metadata WHERE key='seeded'").get())return;
@@ -78,9 +79,13 @@ export class Store {
     this.db.exec('BEGIN IMMEDIATE');try{for(const r of records)this._save(r,this.get(r.id)?.version??0,actor,records);this.db.exec('COMMIT');}catch(error){this.db.exec('ROLLBACK');throw error;}
   }
   addMedia(file){this.db.prepare('INSERT INTO media VALUES(?,?)').run(file.url,JSON.stringify(file));}
-  mediaList(){return this.db.prepare('SELECT data FROM media ORDER BY rowid DESC').all().map(r=>({...JSON.parse(r.data),usage:this.mediaUsage(JSON.parse(r.data).url)}));}
+  updateMedia(file){this.db.prepare('INSERT INTO media VALUES(?,?) ON CONFLICT(url) DO UPDATE SET data=excluded.data').run(file.url,JSON.stringify(file));}
+  mediaFiles(){return this.db.prepare('SELECT data FROM media ORDER BY rowid DESC').all().map(r=>JSON.parse(r.data));}
+  /** All revision data as one string, for a fast "is this file mentioned in any old version" check. */
+  revisionText(){return this.db.prepare('SELECT data FROM revisions').all().map(r=>r.data).join('\n');}
   mediaUsage(url){
-    const file=this.db.prepare('SELECT data FROM media WHERE url=?').get(url);const targets=[url,...(file?JSON.parse(file.data).variants||[]:[]).map(v=>v.url)];
+    // Uploads match on their base name, which covers the original and every responsive variant.
+    const targets=[/^\/uploads\//.test(url)?url.replace(/(-(?:320|640|1200))?\.(png|jpg|gif|webp)$/,''):url];
     const used=[];for(const r of this.db.prepare('SELECT id,data FROM records').all())if(targets.some(target=>r.data.includes(target)))used.push({id:r.id,type:'current'});
     for(const r of this.db.prepare('SELECT record_id AS id,version,data FROM revisions').all())if(targets.some(target=>r.data.includes(target)))used.push({id:r.id,type:'revision',version:r.version});return used;
   }

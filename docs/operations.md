@@ -90,6 +90,34 @@ Choose a new output path each time. SQLite's `VACUUM INTO` creates a consistent 
 
 For Docker, create a database snapshot inside the persistent volume, copy it out with `docker compose cp`, and copy the uploads directory too. Keep snapshot paths outside the public uploads directory. Remove private temporary snapshots after checking your external backup copy.
 
+## Moving the site to another server
+
+Everything that changes at runtime is in **one data folder**: `content.sqlite` (content, revisions,
+editor accounts) and `uploads/` (images). In Docker that folder is the named volume `bioinfo_data`,
+mounted at `/app/data`; the code and the image can be rebuilt at any time without touching it.
+
+To move to a new host:
+
+```sh
+# On the old server: one consistent copy of the data (works while the site runs)
+docker compose exec website node scripts/manage.mjs backup-all /app/data/move-2026-10
+docker compose cp website:/app/data/move-2026-10 ./move-2026-10
+docker compose exec website rm -r /app/data/move-2026-10      # do not leave it in the volume
+
+# On the new server: restore into the (new, empty) volume, then start
+git clone … && cd bioinfo-v2 && cp /path/.env .env
+chmod -R a+rX ./move-2026-10            # the container user (UID 1000) must be able to read it
+docker compose build
+docker compose run --rm --no-deps -v "$PWD/move-2026-10:/restore:ro" website \
+  node scripts/manage.mjs restore-all /restore
+docker compose up -d
+```
+
+Without Docker: `DATA_DIR=/srv/kaabil-data node scripts/manage.mjs restore-all ./move-2026-10`, then start
+the site with the same `DATA_DIR`. The backup folder contains password hashes and sessions: keep it
+private and delete transfer copies afterwards. Before going live, open **Media library → Copy all remote
+images to site** so no page depends on the old Raikou server.
+
 ## Restore / rollback
 
 1. Stop the app/container and retain the existing database and uploads as a separate rollback copy.

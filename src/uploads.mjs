@@ -23,23 +23,30 @@ export function detectImage(bytes){
  if(bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP'&&bytes.readUInt32LE(4)+8===bytes.length)return {ext:'webp',mime:'image/webp'};
  return null;
 }
-export async function saveImage(request,dataDir){
- const bytes=await readLimited(request,MAX_UPLOAD),format=detectImage(bytes);
+export const MAX_EDGE=2560;// stored originals are capped here; pages use the 320/640/1200 variants
+export async function saveImage(request,dataDir){return saveImageBytes(await readLimited(request,MAX_UPLOAD),dataDir);}
+export async function saveImageBytes(bytes,dataDir){
+ const format=detectImage(bytes);
  if(!format)throw new InputError('Upload a valid PNG, JPEG, GIF, or WebP image.');
  let metadata,normalized;
- try{metadata=await sharp(bytes,{limitInputPixels:40000000}).metadata();if(!metadata.width||!metadata.height||metadata.width*metadata.height>40000000)throw new Error('dimensions');normalized=await sharp(bytes,{limitInputPixels:40000000}).rotate().toBuffer();metadata=await sharp(normalized).metadata();}
+ try{metadata=await sharp(bytes,{limitInputPixels:40000000}).metadata();if(!metadata.width||!metadata.height||metadata.width*metadata.height>40000000)throw new Error('dimensions');normalized=await sharp(bytes,{limitInputPixels:40000000}).rotate().resize({width:MAX_EDGE,height:MAX_EDGE,fit:'inside',withoutEnlargement:true}).toBuffer();metadata=await sharp(normalized).metadata();}
  catch{throw new InputError('This image could not be decoded or exceeds 40 million pixels.');}
  const filename=randomUUID()+'.'+format.ext,folder=join(dataDir,'uploads');
  await mkdir(folder,{recursive:true});// Store a re-encoded copy for still images: drops EXIF/XMP metadata such as GPS location. GIFs keep their animation.
  await writeFile(join(folder,filename),format.ext==='gif'?bytes:normalized,{flag:'wx',mode:0o640});
  const variants=[];
  for(const width of [320,640,1200])if(width<=metadata.width){const name=filename.replace(/\.[a-z]+$/,'-'+width+'.webp');await sharp(normalized).resize({width,withoutEnlargement:true}).webp({quality:84}).toFile(join(folder,name));variants.push({url:'/uploads/'+name,width});}
- return {url:'/uploads/'+filename,bytes:(format.ext==='gif'?bytes:normalized).length,type:format.mime,width:metadata.width,height:metadata.height,variants};
+ return {url:'/uploads/'+filename,createdAt:new Date().toISOString(),bytes:(format.ext==='gif'?bytes:normalized).length,type:format.mime,width:metadata.width,height:metadata.height,variants};
 }
-export async function removeImage(url,dataDir,store){
+/** Deletes an upload and its variants. Images used by current content are never deleted; images that only
+    old revisions mention need `force` (restoring such a revision would then show no image). */
+export async function removeImage(url,dataDir,store,{force=false}={}){
  if(!/^\/uploads\/[a-f0-9-]{36}\.(png|jpg|gif|webp)$/.test(url))throw new InputError('Only uploaded original images can be deleted.');
- const file=store.mediaList().find(r=>r.url===url);if(!file)throw new InputError('Image not found.',404);
- if(store.mediaUsage(url).length)throw new InputError('This image is used by content or a retained revision. Remove detaches the image; the original is preserved.',409);
+ const file=store.mediaFiles().find(r=>r.url===url)||{url,variants:[320,640,1200].map(w=>({url:url.replace(/\.[a-z]+$/,'-'+w+'.webp')}))};
+ if(!store.mediaFiles().some(r=>r.url===url)&&!(await uploadedImage(url,dataDir)))throw new InputError('Image not found.',404);
+ const usage=store.mediaUsage(url);
+ if(usage.some(u=>u.type==='current'))throw new InputError('This image is used by current content. Replace it there first.',409);
+ if(usage.length&&!force)throw new InputError('Old revisions use this image. Confirm to delete it anyway; restoring those revisions would then show no image.',409);
  for(const path of [url,...(file.variants||[]).map(v=>v.url)])try{await unlink(join(dataDir,'uploads',path.split('/').at(-1)));}catch(e){if(e.code!=='ENOENT')throw e;}
  store.deleteMedia(url);
 }
