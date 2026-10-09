@@ -21,5 +21,10 @@ if (!target || target === 'list') {
 const chosen = target === 'all' ? manifest.records : manifest.records.filter(r => r.id === target);
 if (!chosen.length) { console.error(`No archived uploads for "${target}". Run with "list" to see the options.`); process.exit(1); }
 const files = chosen.flatMap(r => r.files);
-for (let i = 0; i < files.length; i += 200) execFileSync('git', ['checkout', manifest.commit, '--', ...files.slice(i, i + 200)], { stdio: 'inherit' });
-console.log(`Restored ${files.length} files from ${manifest.commit.slice(0, 7)} into data/uploads/.`);
+for (let i = 0; i < files.length; i += 200) {
+  const batch = files.slice(i, i + 200);
+  execFileSync('git', ['checkout', manifest.commit, '--', ...batch], { stdio: 'inherit' });
+  // checkout also stages the files; unstage them so they only get committed if you choose to.
+  execFileSync('git', ['reset', '-q', '--', ...batch], { stdio: 'inherit' });
+}
+console.log(`Restored ${files.length} files from ${manifest.commit.slice(0, 7)} into data/uploads/ (not staged).`);
